@@ -9,15 +9,21 @@ interface InvoiceActionsProps {
   invoice: DbInvoice;
   onUpdateStatus: (invoiceId: string, newStatus: InvoiceStatus) => Promise<void>;
   onPayInvoice: (invoice: DbInvoice) => void;
+  onViewDetails: (invoice: DbInvoice) => void;
 }
 
-export function InvoiceActions({ invoice, onUpdateStatus, onPayInvoice }: InvoiceActionsProps) {
+export function InvoiceActions({ invoice, onUpdateStatus, onPayInvoice, onViewDetails }: InvoiceActionsProps) {
   return (
     <div className="flex items-center justify-end gap-2">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-gray-500"
+              onClick={() => onViewDetails(invoice)}
+            >
               <Eye className="h-4 w-4" />
             </Button>
           </TooltipTrigger>

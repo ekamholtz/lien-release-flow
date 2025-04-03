@@ -18,9 +18,10 @@ interface InvoicesTableProps {
   invoices: ExtendedInvoice[];
   onUpdateStatus: (invoiceId: string, newStatus: InvoiceStatus) => Promise<void>;
   onPayInvoice: (invoice: ExtendedInvoice) => void;
+  onViewDetails: (invoice: ExtendedInvoice) => void;
 }
 
-export function InvoicesTable({ invoices, onUpdateStatus, onPayInvoice }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, onUpdateStatus, onPayInvoice, onViewDetails }: InvoicesTableProps) {
   return (
     <div className="rounded-md border overflow-hidden">
       <Table>
@@ -60,7 +61,8 @@ export function InvoicesTable({ invoices, onUpdateStatus, onPayInvoice }: Invoic
                 <InvoiceActions 
                   invoice={invoice} 
                   onUpdateStatus={onUpdateStatus} 
-                  onPayInvoice={onPayInvoice} 
+                  onPayInvoice={onPayInvoice}
+                  onViewDetails={onViewDetails}
                 />
               </TableCell>
             </TableRow>

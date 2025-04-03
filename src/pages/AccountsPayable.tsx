@@ -10,6 +10,7 @@ import { DbBill, BillStatus } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { PayBill } from '@/components/payments/PayBill';
 import { BillsTable } from '@/components/payments/BillsTable';
+import { BillDetailsModal } from '@/components/payments/BillDetailsModal';
 
 // Define an extended bill type that includes the project name from the join
 type ExtendedBill = DbBill & {
@@ -23,6 +24,7 @@ const AccountsPayable = () => {
   const [loading, setLoading] = useState(true);
   const [selectedBill, setSelectedBill] = useState<ExtendedBill | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const fetchBills = async () => {
@@ -97,6 +99,11 @@ const AccountsPayable = () => {
     setSelectedBill(bill);
     setIsPaymentDialogOpen(true);
   };
+  
+  const handleViewDetails = (bill: ExtendedBill) => {
+    setSelectedBill(bill);
+    setIsDetailsModalOpen(true);
+  };
 
   return (
     <AppLayout>
@@ -129,22 +136,31 @@ const AccountsPayable = () => {
             <BillsTable 
               bills={bills} 
               onUpdateStatus={handleUpdateStatus} 
-              onPayBill={handlePayBill} 
+              onPayBill={handlePayBill}
+              onViewDetails={handleViewDetails}
             />
           )}
         </div>
       </div>
       
       {selectedBill && (
-        <PayBill
-          bill={selectedBill}
-          isOpen={isPaymentDialogOpen}
-          onClose={() => setIsPaymentDialogOpen(false)}
-          onPaymentComplete={() => {
-            fetchBills();
-            setSelectedBill(null);
-          }}
-        />
+        <>
+          <PayBill
+            bill={selectedBill}
+            isOpen={isPaymentDialogOpen}
+            onClose={() => setIsPaymentDialogOpen(false)}
+            onPaymentComplete={() => {
+              fetchBills();
+              setSelectedBill(null);
+            }}
+          />
+          
+          <BillDetailsModal
+            bill={selectedBill}
+            isOpen={isDetailsModalOpen}
+            onClose={() => setIsDetailsModalOpen(false)}
+          />
+        </>
       )}
       
       <AiAssistant />

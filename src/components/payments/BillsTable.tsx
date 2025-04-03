@@ -5,7 +5,7 @@ import { FileText } from "lucide-react";
 import { format } from 'date-fns';
 import { BillStatusBadge } from './BillStatusBadge';
 import { BillActions } from './BillActions';
-import { BillStatus, DbBill } from '@/lib/supabase';
+import { DbBill, BillStatus } from '@/lib/supabase';
 
 // Define an extended bill type that includes the project name from the join
 type ExtendedBill = DbBill & {
@@ -18,9 +18,10 @@ interface BillsTableProps {
   bills: ExtendedBill[];
   onUpdateStatus: (billId: string, newStatus: BillStatus) => Promise<void>;
   onPayBill: (bill: ExtendedBill) => void;
+  onViewDetails: (bill: ExtendedBill) => void;
 }
 
-export function BillsTable({ bills, onUpdateStatus, onPayBill }: BillsTableProps) {
+export function BillsTable({ bills, onUpdateStatus, onPayBill, onViewDetails }: BillsTableProps) {
   return (
     <div className="rounded-md border overflow-hidden">
       <Table>
@@ -60,7 +61,8 @@ export function BillsTable({ bills, onUpdateStatus, onPayBill }: BillsTableProps
                 <BillActions 
                   bill={bill} 
                   onUpdateStatus={onUpdateStatus} 
-                  onPayBill={onPayBill} 
+                  onPayBill={onPayBill}
+                  onViewDetails={onViewDetails}
                 />
               </TableCell>
             </TableRow>

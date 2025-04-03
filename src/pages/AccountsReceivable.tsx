@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { DbInvoice, InvoiceStatus } from '@/lib/supabase';
 import { InvoicesTable } from '@/components/payments/InvoicesTable';
 import { PayInvoice } from '@/components/payments/PayInvoice';
+import { InvoiceDetailsModal } from '@/components/payments/InvoiceDetailsModal';
 
 // Define an extended invoice type that includes the project name from the join
 type ExtendedInvoice = DbInvoice & {
@@ -23,6 +24,7 @@ const AccountsReceivable = () => {
   const [loading, setLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState<ExtendedInvoice | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const fetchInvoices = async () => {
@@ -90,6 +92,11 @@ const AccountsReceivable = () => {
     setSelectedInvoice(invoice);
     setIsPaymentDialogOpen(true);
   };
+  
+  const handleViewDetails = (invoice: ExtendedInvoice) => {
+    setSelectedInvoice(invoice);
+    setIsDetailsModalOpen(true);
+  };
 
   return (
     <AppLayout>
@@ -122,22 +129,31 @@ const AccountsReceivable = () => {
             <InvoicesTable 
               invoices={invoices} 
               onUpdateStatus={handleUpdateStatus} 
-              onPayInvoice={handlePayInvoice} 
+              onPayInvoice={handlePayInvoice}
+              onViewDetails={handleViewDetails}
             />
           )}
         </div>
       </div>
       
       {selectedInvoice && (
-        <PayInvoice
-          invoice={selectedInvoice}
-          isOpen={isPaymentDialogOpen}
-          onClose={() => setIsPaymentDialogOpen(false)}
-          onPaymentComplete={() => {
-            fetchInvoices();
-            setSelectedInvoice(null);
-          }}
-        />
+        <>
+          <PayInvoice
+            invoice={selectedInvoice}
+            isOpen={isPaymentDialogOpen}
+            onClose={() => setIsPaymentDialogOpen(false)}
+            onPaymentComplete={() => {
+              fetchInvoices();
+              setSelectedInvoice(null);
+            }}
+          />
+          
+          <InvoiceDetailsModal
+            invoice={selectedInvoice}
+            isOpen={isDetailsModalOpen}
+            onClose={() => setIsDetailsModalOpen(false)}
+          />
+        </>
       )}
       
       <AiAssistant />
