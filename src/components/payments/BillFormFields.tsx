@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Control } from "react-hook-form";
+import { ProjectSelector } from "./ProjectSelector";
 
 type BillFormValues = {
   billNumber: string;
@@ -115,9 +116,10 @@ export function BillFormFields({ control }: BillFormFieldsProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Project</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter project name" {...field} />
-              </FormControl>
+              <ProjectSelector 
+                value={field.value} 
+                onChange={field.onChange}
+              />
               <FormMessage />
             </FormItem>
           )}
