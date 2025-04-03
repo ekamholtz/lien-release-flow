@@ -1,135 +1,74 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  CircleDollarSign, 
+  Home, 
+  ArrowLeftRight, 
+  ArrowDownToLine, 
   FileText, 
-  FileSignature, 
-  Settings,
-  Users,
-  PieChart,
-  ArrowLeftRight,
-  MessageSquareText,
-  Receipt,
+  Settings, 
+  Users, 
+  BarChart3, 
+  Mail,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-} from "@/components/ui/sidebar";
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAuth } from '@/hooks/useAuth';
 
 export function AppSidebar() {
-  // Use the useLocation hook to get the current path
-  const location = useLocation();
-  const currentPath = location.pathname;
+  const { signOut } = useAuth();
   
-  const navigationItems = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/accounts-payable", icon: CircleDollarSign, label: "Accounts Payable" },
-    { to: "/accounts-receivable", icon: FileText, label: "Accounts Receivable" },
-    { to: "/create-invoice", icon: FileText, label: "Create Invoice" },
-    { to: "/create-bill", icon: Receipt, label: "Create Bill" },
-    { to: "/lien-release", icon: FileSignature, label: "Lien Releases" },
-    { to: "/reports", icon: PieChart, label: "Reports" },
-    { to: "/team", icon: Users, label: "Team Members" },
-  ];
-  
-  const settingsItems = [
-    { to: "/integrations", icon: ArrowLeftRight, label: "Integrations" },
-    { to: "/settings", icon: Settings, label: "Settings" },
+  const links = [
+    { to: '/dashboard', icon: <Home className="h-5 w-5" />, text: 'Dashboard' },
+    { to: '/accounts-payable', icon: <ArrowLeftRight className="h-5 w-5" />, text: 'Accounts Payable' },
+    { to: '/accounts-receivable', icon: <ArrowDownToLine className="h-5 w-5" />, text: 'Accounts Receivable' },
+    { to: '/lien-release', icon: <FileText className="h-5 w-5" />, text: 'Lien Release' },
+    { to: '/team', icon: <Users className="h-5 w-5" />, text: 'Team' },
+    { to: '/reports', icon: <BarChart3 className="h-5 w-5" />, text: 'Reports' },
+    { to: '/integrations', icon: <Mail className="h-5 w-5" />, text: 'Integrations' },
+    { to: '/settings', icon: <Settings className="h-5 w-5" />, text: 'Settings' },
   ];
 
   return (
-    <Sidebar className="bg-cnstrct-navy">
-      <SidebarHeader>
-        <div className="p-4">
-          <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-md bg-cnstrct-orange flex items-center justify-center">
-              <ArrowLeftRight className="h-5 w-5 text-white" />
-            </div>
-            <span className="font-bold text-lg text-white">PaymentFlow</span>
+    <div className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:z-50 md:w-60">
+      <ScrollArea className="flex flex-col h-full bg-white border-r">
+        <div className="flex flex-col h-full py-4">
+          <div className="px-3 py-2">
+            <h2 className="px-4 text-lg font-semibold">Navigation</h2>
+          </div>
+          <div className="flex-1">
+            <nav className="grid gap-1 px-3">
+              {links.map((link) => (
+                <NavLink 
+                  key={link.to} 
+                  to={link.to} 
+                  className={({ isActive }) => cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100",
+                    isActive ? "bg-gray-100 text-construction-900" : "text-gray-700"
+                  )}
+                >
+                  {link.icon}
+                  {link.text}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+          <div className="px-3 py-2">
+            <Separator className="my-2" />
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700"
+              onClick={signOut}
+            >
+              <LogOut className="mr-2 h-5 w-5" />
+              Log out
+            </Button>
           </div>
         </div>
-      </SidebarHeader>
-      
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-white/70">Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={currentPath === item.to}
-                    tooltip={item.label}
-                    className={currentPath === item.to ? 
-                      "bg-cnstrct-orange/20 text-cnstrct-orange" : 
-                      "text-white hover:bg-cnstrct-lightblue/30"
-                    }
-                  >
-                    <Link to={item.to}>
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      
-      <SidebarFooter>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {settingsItems.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={currentPath === item.to}
-                    tooltip={item.label}
-                    className={currentPath === item.to ? 
-                      "bg-cnstrct-orange/20 text-cnstrct-orange" : 
-                      "text-white hover:bg-cnstrct-lightblue/30"
-                    }
-                  >
-                    <Link to={item.to}>
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        
-        <div className="p-4">
-          <div className="p-3 bg-cnstrct-lightblue/20 rounded-lg">
-            <div className="flex items-start space-x-3">
-              <div className="h-8 w-8 rounded-full bg-cnstrct-orange/20 flex items-center justify-center">
-                <MessageSquareText className="h-5 w-5 text-cnstrct-orange" />
-              </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-medium text-white">AI Assistant</h4>
-                <p className="text-xs text-white/70 mt-1">Need help? Ask me anything about your payments.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </SidebarFooter>
-    </Sidebar>
+      </ScrollArea>
+    </div>
   );
 }

@@ -1,123 +1,128 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Auth from "./pages/Auth";
-import CreateInvoice from "./pages/CreateInvoice";
-import CreateBill from "./pages/CreateBill";
-import LienRelease from "./pages/LienRelease";
-import Integrations from "./pages/Integrations";
-import Settings from "./pages/Settings";
-import AccountsPayable from "./pages/AccountsPayable";
-import AccountsReceivable from "./pages/AccountsReceivable";
-import Team from "./pages/Team";
-import Reports from "./pages/Reports";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { Toaster } from '@/components/ui/toaster';
 
-const App = () => {
-  const [session, setSession] = useState<Session | null>(null);
-  // Create a new QueryClient instance inside the component
-  const queryClient = new QueryClient();
+// Pages
+import Index from '@/pages/Index';
+import Dashboard from '@/pages/Dashboard';
+import AccountsPayable from '@/pages/AccountsPayable';
+import AccountsReceivable from '@/pages/AccountsReceivable';
+import CreateBill from '@/pages/CreateBill';
+import CreateInvoice from '@/pages/CreateInvoice';
+import LienRelease from '@/pages/LienRelease';
+import Settings from '@/pages/Settings';
+import Integrations from '@/pages/Integrations';
+import NotFound from '@/pages/NotFound';
+import Auth from '@/pages/Auth';
+import Team from '@/pages/Team';
+import Reports from '@/pages/Reports';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    // Redirect to auth page, but save the location the user was trying to access
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
   
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("Auth state changed:", event);
-        setSession(session);
-      }
-    );
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
+  // If user is authenticated, redirect to dashboard or the page they were trying to access before login
+  if (user) {
+    const from = (location.state as any)?.from?.pathname || '/dashboard';
+    return <Navigate to={from} replace />;
+  }
 
-    return () => subscription.unsubscribe();
-  }, []);
+  return <>{children}</>;
+}
 
-  // Protected route component
-  const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-    if (!session) {
-      return <Navigate to="/auth" replace />;
-    }
-    return children;
-  };
-  
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <Router>
+      <AuthProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={
+            <PublicOnlyRoute>
+              <Auth />
+            </PublicOnlyRoute>
+          } />
+
+          {/* Protected routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/accounts-payable" element={
+            <ProtectedRoute>
+              <AccountsPayable />
+            </ProtectedRoute>
+          } />
+          <Route path="/accounts-receivable" element={
+            <ProtectedRoute>
+              <AccountsReceivable />
+            </ProtectedRoute>
+          } />
+          <Route path="/create-bill" element={
+            <ProtectedRoute>
+              <CreateBill />
+            </ProtectedRoute>
+          } />
+          <Route path="/create-invoice" element={
+            <ProtectedRoute>
+              <CreateInvoice />
+            </ProtectedRoute>
+          } />
+          <Route path="/lien-release" element={
+            <ProtectedRoute>
+              <LienRelease />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } />
+          <Route path="/integrations" element={
+            <ProtectedRoute>
+              <Integrations />
+            </ProtectedRoute>
+          } />
+          <Route path="/team" element={
+            <ProtectedRoute>
+              <Team />
+            </ProtectedRoute>
+          } />
+          <Route path="/reports" element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          } />
+
+          {/* Catch-all route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
         <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            
-            {/* Protected routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/create-invoice" element={
-              <ProtectedRoute>
-                <CreateInvoice />
-              </ProtectedRoute>
-            } />
-            <Route path="/create-bill" element={
-              <ProtectedRoute>
-                <CreateBill />
-              </ProtectedRoute>
-            } />
-            <Route path="/lien-release" element={
-              <ProtectedRoute>
-                <LienRelease />
-              </ProtectedRoute>
-            } />
-            <Route path="/accounts-payable" element={
-              <ProtectedRoute>
-                <AccountsPayable />
-              </ProtectedRoute>
-            } />
-            <Route path="/accounts-receivable" element={
-              <ProtectedRoute>
-                <AccountsReceivable />
-              </ProtectedRoute>
-            } />
-            <Route path="/team" element={
-              <ProtectedRoute>
-                <Team />
-              </ProtectedRoute>
-            } />
-            <Route path="/reports" element={
-              <ProtectedRoute>
-                <Reports />
-              </ProtectedRoute>
-            } />
-            <Route path="/integrations" element={
-              <ProtectedRoute>
-                <Integrations />
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+      </AuthProvider>
+    </Router>
   );
-};
+}
 
 export default App;

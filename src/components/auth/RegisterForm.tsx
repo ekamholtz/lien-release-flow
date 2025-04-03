@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ interface RegisterFormProps {
 export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -58,13 +60,24 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
         throw authError;
       }
 
-      toast({
-        title: "Account created successfully",
-        description: "Welcome to PaymentFlow! You can now sign in.",
-      });
-      
-      // Notify parent component of successful registration
-      onRegisterSuccess();
+      // Check if email confirmation is required
+      if (authData?.user && authData?.session) {
+        // User is immediately signed in (email confirmation disabled)
+        toast({
+          title: "Account created successfully",
+          description: "Welcome to PaymentFlow! You're now logged in.",
+        });
+        navigate('/dashboard');
+      } else {
+        // Email confirmation is required
+        toast({
+          title: "Account created successfully",
+          description: "Please check your email to confirm your account.",
+        });
+        
+        // Notify parent component of successful registration
+        onRegisterSuccess();
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       toast({

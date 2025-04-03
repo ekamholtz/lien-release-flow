@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   
   const form = useForm<LoginFormValues>({
@@ -47,13 +48,15 @@ export function LoginForm() {
         throw error;
       }
 
-      // Success - redirect to dashboard
+      // Success - redirect to dashboard or the page they were trying to access
       toast({
         title: "Login successful",
         description: "Welcome back to PaymentFlow",
       });
       
-      navigate('/dashboard');
+      // Redirect to the page they were trying to access before login or dashboard
+      const from = (location.state as any)?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
     } catch (error: any) {
       console.error('Login error:', error);
       toast({
