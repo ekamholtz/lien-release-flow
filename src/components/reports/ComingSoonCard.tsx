@@ -7,17 +7,30 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import * as LucideIcons from 'lucide-react';
+import { 
+  PieChart, 
+  LineChart, 
+  BarChart, 
+  GanttChart 
+} from 'lucide-react';
 
 interface ComingSoonCardProps {
   title: string;
   description: string;
-  Icon?: string;  // Making this optional with the name of a Lucide icon
+  Icon?: string;  // Name of a Lucide icon
 }
 
 export const ComingSoonCard: React.FC<ComingSoonCardProps> = ({ title, description, Icon }) => {
-  // Dynamically render the specified Lucide icon if provided
-  const IconComponent = Icon ? LucideIcons[Icon as keyof typeof LucideIcons] : null;
+  // Map icon name to the actual component
+  const iconMap: Record<string, React.ReactNode> = {
+    "PieChart": <PieChart className="w-12 h-12 text-muted-foreground mb-4" />,
+    "LineChart": <LineChart className="w-12 h-12 text-muted-foreground mb-4" />,
+    "BarChart": <BarChart className="w-12 h-12 text-muted-foreground mb-4" />,
+    "GanttChart": <GanttChart className="w-12 h-12 text-muted-foreground mb-4" />
+  };
+  
+  // Get the icon component based on the provided name
+  const IconElement = Icon ? iconMap[Icon] : null;
   
   return (
     <Card>
@@ -27,7 +40,7 @@ export const ComingSoonCard: React.FC<ComingSoonCardProps> = ({ title, descripti
       </CardHeader>
       <CardContent>
         <div className="h-[300px] flex flex-col items-center justify-center">
-          {IconComponent && <IconComponent className="w-12 h-12 text-muted-foreground mb-4" />}
+          {IconElement}
           <p className="text-muted-foreground">{title} detailed reports coming soon</p>
         </div>
       </CardContent>
