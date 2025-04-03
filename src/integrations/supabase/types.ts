@@ -9,7 +9,163 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bills: {
+        Row: {
+          amount: number
+          bill_number: string
+          created_at: string
+          due_date: string
+          id: string
+          project_id: string | null
+          status: string
+          vendor_email: string
+          vendor_name: string
+        }
+        Insert: {
+          amount: number
+          bill_number: string
+          created_at?: string
+          due_date: string
+          id?: string
+          project_id?: string | null
+          status?: string
+          vendor_email: string
+          vendor_name: string
+        }
+        Update: {
+          amount?: number
+          bill_number?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          project_id?: string | null
+          status?: string
+          vendor_email?: string
+          vendor_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bills_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount: number
+          client_email: string
+          client_name: string
+          created_at: string
+          due_date: string
+          id: string
+          invoice_number: string
+          payment_method: string
+          project_id: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          client_email: string
+          client_name: string
+          created_at?: string
+          due_date: string
+          id?: string
+          invoice_number: string
+          payment_method?: string
+          project_id?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          client_email?: string
+          client_name?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          payment_method?: string
+          project_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          client: string
+          created_at: string
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string
+          status: string
+          value: number
+        }
+        Insert: {
+          client: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date: string
+          status: string
+          value: number
+        }
+        Update: {
+          client?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string
+          status?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          role: string
+          status: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          role: string
+          status?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          role?: string
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

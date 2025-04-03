@@ -9,6 +9,8 @@ import { toast } from "@/hooks/use-toast";
 import { FileUpload } from "./FileUpload";
 import { FilePreview } from "./FilePreview";
 import { BillFormFields } from "./BillFormFields";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const formSchema = z.object({
   billNumber: z.string().min(1, { message: "Bill number is required" }),
@@ -26,6 +28,8 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function BillForm() {
   const [files, setFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -41,17 +45,63 @@ export function BillForm() {
     },
   });
 
-  function onSubmit(values: FormValues) {
-    console.log(values);
-    console.log('Attached files:', files);
+  async function onSubmit(values: FormValues) {
+    setIsSubmitting(true);
     
-    // Mock successful submission with toast notification
-    toast({
-      title: "Bill created",
-      description: `Bill ${values.billNumber} has been created with ${files.length} attachment(s)`,
-    });
-    
-    // Here you would typically handle the form submission, e.g., send data to an API
+    try {
+      console.log('Form Values:', values);
+      console.log('Attached files:', files);
+      
+      // Convert amount from string to number
+      const amountNumber = parseFloat(values.amount);
+      
+      // Save bill to Supabase
+      const { data, error } = await supabase
+        .from('bills')
+        .insert([
+          {
+            bill_number: values.billNumber,
+            vendor_name: values.vendorName,
+            vendor_email: values.vendorEmail,
+            project_id: values.project, // Assuming project is the UUID
+            amount: amountNumber,
+            due_date: values.dueDate,
+            status: 'pending'
+          }
+        ])
+        .select();
+      
+      if (error) {
+        console.error('Error saving bill:', error);
+        toast({
+          title: "Error",
+          description: `Failed to create bill: ${error.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: "Bill created",
+        description: `Bill ${values.billNumber} has been created with ${files.length} attachment(s)`,
+      });
+      
+      // Reset form
+      form.reset();
+      setFiles([]);
+      
+      // Navigate to accounts payable page
+      navigate('/accounts-payable');
+    } catch (err) {
+      console.error('Error in bill submission:', err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,8 +124,20 @@ export function BillForm() {
         <FilePreview files={files} onRemoveFile={removeFile} />
         
         <div className="flex gap-3 justify-end">
-          <Button type="button" variant="outline">Cancel</Button>
-          <Button type="submit" className="bg-construction-600 hover:bg-construction-700">Create Bill</Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => navigate('/accounts-payable')}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            className="bg-construction-600 hover:bg-construction-700"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Creating...' : 'Create Bill'}
+          </Button>
         </div>
       </form>
     </Form>

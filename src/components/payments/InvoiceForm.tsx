@@ -11,6 +11,8 @@ import { PaymentMethodSelector } from "./PaymentMethodSelector";
 import { InvoiceOptions } from "./InvoiceOptions";
 import { FileUpload } from "./FileUpload";
 import { FilePreview } from "./FilePreview";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const formSchema = z.object({
   invoiceNumber: z.string().min(1, { message: "Invoice number is required" }),
@@ -30,6 +32,8 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function InvoiceForm() {
   const [files, setFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -47,17 +51,64 @@ export function InvoiceForm() {
     },
   });
 
-  function onSubmit(values: FormValues) {
-    console.log(values);
-    console.log('Attached files:', files);
+  async function onSubmit(values: FormValues) {
+    setIsSubmitting(true);
     
-    // Show success message
-    toast({
-      title: "Invoice created",
-      description: `Invoice ${values.invoiceNumber} has been created successfully with ${files.length} attachment(s)`,
-    });
-    
-    // Here you would typically handle the form submission, e.g., send data to an API
+    try {
+      console.log('Form Values:', values);
+      console.log('Attached files:', files);
+      
+      // Convert amount from string to number
+      const amountNumber = parseFloat(values.amount);
+      
+      // Save invoice to Supabase
+      const { data, error } = await supabase
+        .from('invoices')
+        .insert([
+          {
+            invoice_number: values.invoiceNumber,
+            client_name: values.clientName,
+            client_email: values.clientEmail,
+            project_id: values.project, // Assuming project is the UUID
+            amount: amountNumber,
+            due_date: values.dueDate,
+            status: 'draft',
+            payment_method: values.paymentMethod
+          }
+        ])
+        .select();
+      
+      if (error) {
+        console.error('Error saving invoice:', error);
+        toast({
+          title: "Error",
+          description: `Failed to create invoice: ${error.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: "Invoice created",
+        description: `Invoice ${values.invoiceNumber} has been created successfully with ${files.length} attachment(s)`,
+      });
+      
+      // Reset form
+      form.reset();
+      setFiles([]);
+      
+      // Navigate to accounts receivable page
+      navigate('/accounts-receivable');
+    } catch (err) {
+      console.error('Error in invoice submission:', err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,8 +135,20 @@ export function InvoiceForm() {
         <FilePreview files={files} onRemoveFile={removeFile} />
         
         <div className="flex gap-3 justify-end">
-          <Button type="button" variant="outline">Cancel</Button>
-          <Button type="submit" className="bg-construction-600 hover:bg-construction-700">Create Invoice</Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => navigate('/accounts-receivable')}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            className="bg-construction-600 hover:bg-construction-700"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Creating...' : 'Create Invoice'}
+          </Button>
         </div>
       </form>
     </Form>
