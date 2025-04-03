@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +16,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { ArrowLeftRight, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -33,6 +36,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -52,26 +57,77 @@ export function AuthForm() {
     },
   });
 
-  function onLoginSubmit(values: LoginFormValues) {
+  async function onLoginSubmit(values: LoginFormValues) {
     setIsLoading(true);
-    console.log("Login values:", values);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Success - redirect to dashboard
+      toast({
+        title: "Login successful",
+        description: "Welcome back to PaymentFlow",
+      });
+      
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      // Here you would typically handle authentication
-    }, 1500);
+    }
   }
 
-  function onRegisterSubmit(values: RegisterFormValues) {
+  async function onRegisterSubmit(values: RegisterFormValues) {
     setIsLoading(true);
-    console.log("Register values:", values);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // First register the user with Supabase auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            full_name: values.fullName,
+            company_name: values.companyName,
+          },
+        },
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      toast({
+        title: "Account created successfully",
+        description: "Welcome to PaymentFlow! You can now sign in.",
+      });
+      
+      // Switch to login tab
+      document.querySelector('[data-value="login"]')?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true })
+      );
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast({
+        title: "Registration failed",
+        description: error.message || "There was an error creating your account",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      // Here you would typically handle registration
-    }, 1500);
+    }
   }
 
   return (
@@ -87,8 +143,8 @@ export function AuthForm() {
       
       <Tabs defaultValue="login" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="login">Sign In</TabsTrigger>
-          <TabsTrigger value="register">Create Account</TabsTrigger>
+          <TabsTrigger value="login" data-value="login">Sign In</TabsTrigger>
+          <TabsTrigger value="register" data-value="register">Create Account</TabsTrigger>
         </TabsList>
         
         <TabsContent value="login">
