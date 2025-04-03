@@ -8,7 +8,7 @@ import {
   SidebarInset 
 } from '@/components/ui/sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, PieChart, AreaChart } from '@/components/ui/chart';
+import { BarChart, PieChart, AreaChart } from '@/components/ui/charts';
 import { 
   Card, 
   CardContent, 
