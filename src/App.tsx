@@ -11,6 +11,8 @@ import CreateInvoice from "./pages/CreateInvoice";
 import LienRelease from "./pages/LienRelease";
 import Integrations from "./pages/Integrations";
 import Settings from "./pages/Settings";
+import AccountsPayable from "./pages/AccountsPayable";
+import AccountsReceivable from "./pages/AccountsReceivable";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -29,6 +31,8 @@ const App = () => {
             <Route path="/auth" element={<Auth />} />
             <Route path="/create-invoice" element={<CreateInvoice />} />
             <Route path="/lien-release" element={<LienRelease />} />
+            <Route path="/accounts-payable" element={<AccountsPayable />} />
+            <Route path="/accounts-receivable" element={<AccountsReceivable />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
