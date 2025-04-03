@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import CreateInvoice from "./pages/CreateInvoice";
+import CreateBill from "./pages/CreateBill";
 import LienRelease from "./pages/LienRelease";
 import Integrations from "./pages/Integrations";
 import Settings from "./pages/Settings";
@@ -30,6 +31,7 @@ const App = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/create-invoice" element={<CreateInvoice />} />
+            <Route path="/create-bill" element={<CreateBill />} />
             <Route path="/lien-release" element={<LienRelease />} />
             <Route path="/accounts-payable" element={<AccountsPayable />} />
             <Route path="/accounts-receivable" element={<AccountsReceivable />} />

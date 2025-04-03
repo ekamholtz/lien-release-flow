@@ -12,6 +12,7 @@ import {
   PieChart,
   ArrowLeftRight,
   MessageSquareText,
+  Receipt,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -37,6 +38,8 @@ export function AppSidebar() {
     { to: "/", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/accounts-payable", icon: CircleDollarSign, label: "Accounts Payable" },
     { to: "/accounts-receivable", icon: FileText, label: "Accounts Receivable" },
+    { to: "/create-invoice", icon: FileText, label: "Create Invoice" },
+    { to: "/create-bill", icon: Receipt, label: "Create Bill" },
     { to: "/lien-release", icon: FileSignature, label: "Lien Releases" },
     { to: "/reports", icon: PieChart, label: "Reports" },
     { to: "/team", icon: Users, label: "Team Members" },

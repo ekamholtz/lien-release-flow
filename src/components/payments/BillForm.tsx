@@ -21,34 +21,29 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const formSchema = z.object({
-  invoiceNumber: z.string().min(1, { message: "Invoice number is required" }),
-  clientName: z.string().min(1, { message: "Client name is required" }),
-  clientEmail: z.string().email({ message: "Invalid email address" }),
+  billNumber: z.string().min(1, { message: "Bill number is required" }),
+  vendorName: z.string().min(1, { message: "Vendor name is required" }),
+  vendorEmail: z.string().email({ message: "Invalid email address" }),
   amount: z.string().min(1, { message: "Amount is required" }),
   dueDate: z.date({ required_error: "Due date is required" }),
   description: z.string().optional(),
-  paymentMethod: z.enum(["regular", "accelerated"]).default("regular"),
-  sendLienRelease: z.boolean().default(false),
-  includePaymentLink: z.boolean().default(true),
+  requiresLien: z.boolean().default(false),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function InvoiceForm() {
+export function BillForm() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      invoiceNumber: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
-      clientName: "",
-      clientEmail: "",
+      billNumber: `BILL-${Math.floor(1000 + Math.random() * 9000)}`,
+      vendorName: "",
+      vendorEmail: "",
       amount: "",
       description: "",
-      paymentMethod: "regular",
-      sendLienRelease: false,
-      includePaymentLink: true,
+      requiresLien: false,
     },
   });
 
@@ -63,12 +58,12 @@ export function InvoiceForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="invoiceNumber"
+            name="billNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Invoice Number</FormLabel>
+                <FormLabel>Bill Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="INV-0000" {...field} />
+                  <Input placeholder="BILL-0000" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -93,12 +88,12 @@ export function InvoiceForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="clientName"
+            name="vendorName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Client Name</FormLabel>
+                <FormLabel>Vendor Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter client name" {...field} />
+                  <Input placeholder="Enter vendor name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -107,12 +102,12 @@ export function InvoiceForm() {
           
           <FormField
             control={form.control}
-            name="clientEmail"
+            name="vendorEmail"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Client Email</FormLabel>
+                <FormLabel>Vendor Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="client@example.com" type="email" {...field} />
+                  <Input placeholder="vendor@example.com" type="email" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -170,7 +165,7 @@ export function InvoiceForm() {
               <FormLabel>Description</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Enter invoice details here..."
+                  placeholder="Enter bill details here..."
                   className="resize-none"
                   {...field}
                 />
@@ -179,45 +174,10 @@ export function InvoiceForm() {
             </FormItem>
           )}
         />
-
-        <FormField
-          control={form.control}
-          name="paymentMethod"
-          render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel>Payment Processing Method</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex flex-col space-y-1"
-                >
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="regular" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Regular Payment Processing (Standard Fee)
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="accelerated" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Accelerated Payment Processing (Higher Fee)
-                    </FormLabel>
-                  </FormItem>
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         
         <FormField
           control={form.control}
-          name="includePaymentLink"
+          name="requiresLien"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -227,30 +187,9 @@ export function InvoiceForm() {
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel>Include Payment Link</FormLabel>
+                <FormLabel>Requires Lien Release</FormLabel>
                 <FormDescription>
-                  Include a payment link with this invoice that will be sent to the customer.
-                </FormDescription>
-              </div>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="sendLienRelease"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>Send Lien Release on Payment</FormLabel>
-                <FormDescription>
-                  Automatically send a release of lien to the customer when payment is complete.
+                  Check this box if this payment requires a release of lien before funds can be released.
                 </FormDescription>
               </div>
             </FormItem>
@@ -259,7 +198,7 @@ export function InvoiceForm() {
         
         <div className="flex gap-3 justify-end">
           <Button type="button" variant="outline">Cancel</Button>
-          <Button type="submit" className="bg-construction-600 hover:bg-construction-700">Create Invoice</Button>
+          <Button type="submit" className="bg-construction-600 hover:bg-construction-700">Create Bill</Button>
         </div>
       </form>
     </Form>
