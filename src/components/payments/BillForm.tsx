@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,10 +17,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Upload, X, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   billNumber: z.string().min(1, { message: "Bill number is required" }),
@@ -30,11 +31,14 @@ const formSchema = z.object({
   dueDate: z.date({ required_error: "Due date is required" }),
   description: z.string().optional(),
   requiresLien: z.boolean().default(false),
+  // Note: We don't include files in the schema as they're handled separately
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 export function BillForm() {
+  const [files, setFiles] = useState<File[]>([]);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,8 +53,27 @@ export function BillForm() {
 
   function onSubmit(values: FormValues) {
     console.log(values);
+    console.log('Attached files:', files);
+    
+    // Mock successful submission with toast notification
+    toast({
+      title: "Bill created",
+      description: `Bill ${values.billNumber} has been created with ${files.length} attachment(s)`,
+    });
+    
     // Here you would typically handle the form submission, e.g., send data to an API
   }
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+  
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <Form {...form}>
@@ -174,6 +197,63 @@ export function BillForm() {
             </FormItem>
           )}
         />
+        
+        {/* File Upload Section */}
+        <div>
+          <FormLabel>Supporting Documents</FormLabel>
+          <div className="mt-2">
+            <div className="flex items-center justify-center w-full">
+              <label
+                htmlFor="file-upload"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-8 h-8 mb-2 text-gray-400" />
+                  <p className="mb-2 text-sm text-gray-500">
+                    <span className="font-semibold">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500">PDF, PNG, JPG, DOCX (MAX. 10MB)</p>
+                </div>
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  multiple
+                />
+              </label>
+            </div>
+          </div>
+          
+          {/* File Preview */}
+          {files.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-medium">Uploaded Files:</p>
+              <div className="space-y-2">
+                {files.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 border rounded-md bg-gray-50">
+                    <div className="flex items-center">
+                      <FileText className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="text-sm truncate max-w-[200px]">{file.name}</span>
+                      <span className="ml-2 text-xs text-gray-500">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile(index)}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         
         <FormField
           control={form.control}
