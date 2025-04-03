@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   CircleDollarSign, 
@@ -35,8 +35,9 @@ const SidebarLink = ({ to, icon: Icon, label, isActive = false }: SidebarLinkPro
 );
 
 export function AppSidebar() {
-  // In a real app, we would determine the active link based on the current route
-  const activePath = "/";
+  // Use the useLocation hook to get the current path
+  const location = useLocation();
+  const currentPath = location.pathname;
   
   return (
     <div className="w-64 border-r bg-white flex flex-col h-full">
@@ -54,37 +55,37 @@ export function AppSidebar() {
           to="/"
           icon={LayoutDashboard}
           label="Dashboard"
-          isActive={activePath === "/"}
+          isActive={currentPath === "/"}
         />
         <SidebarLink 
           to="/accounts-payable"
           icon={CircleDollarSign}
           label="Accounts Payable"
-          isActive={activePath === "/accounts-payable"}
+          isActive={currentPath === "/accounts-payable"}
         />
         <SidebarLink 
           to="/accounts-receivable"
           icon={FileText}
           label="Accounts Receivable"
-          isActive={activePath === "/accounts-receivable"}
+          isActive={currentPath === "/accounts-receivable"}
         />
         <SidebarLink 
           to="/lien-release"
           icon={FileSignature}
           label="Lien Releases"
-          isActive={activePath === "/lien-release"}
+          isActive={currentPath === "/lien-release"}
         />
         <SidebarLink 
           to="/reports"
           icon={PieChart}
           label="Reports"
-          isActive={activePath === "/reports"}
+          isActive={currentPath === "/reports"}
         />
         <SidebarLink 
           to="/team"
           icon={Users}
           label="Team Members"
-          isActive={activePath === "/team"}
+          isActive={currentPath === "/team"}
         />
       </div>
       
@@ -93,7 +94,7 @@ export function AppSidebar() {
           to="/settings"
           icon={Settings}
           label="Settings"
-          isActive={activePath === "/settings"}
+          isActive={currentPath === "/settings"}
         />
       </div>
       
