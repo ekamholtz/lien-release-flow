@@ -19,14 +19,14 @@ export function PendingApprovals() {
         setLoading(true);
         const { data, error } = await supabase
           .from('bills')
-          .select('id, bill_number, vendor_name, amount, due_date')
+          .select('id, bill_number, vendor_name, vendor_email, project_id, amount, due_date, status, created_at')
           .eq('status', 'pending')
           .order('due_date', { ascending: true })
           .limit(3);
         
         if (error) throw error;
         
-        setApprovals(data || []);
+        setApprovals(data as DbBill[] || []);
       } catch (error) {
         console.error('Error fetching pending approvals:', error);
       } finally {
