@@ -1,18 +1,13 @@
+
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { BillStatus, DbBill } from '@/lib/supabase';
 
-type BillApproval = {
-  id: string;
-  bill_number: string;
-  vendor_name: string;
-  amount: number;
-  due_date: string;
-  description?: string;
-};
+type BillApproval = DbBill;
 
 export function PendingApprovals() {
   const [approvals, setApprovals] = useState<BillApproval[]>([]);
@@ -46,7 +41,7 @@ export function PendingApprovals() {
     try {
       const { error } = await supabase
         .from('bills')
-        .update({ status: 'approved' })
+        .update({ status: 'approved' as BillStatus })
         .eq('id', id);
       
       if (error) throw error;
@@ -70,7 +65,7 @@ export function PendingApprovals() {
     try {
       const { error } = await supabase
         .from('bills')
-        .update({ status: 'rejected' })
+        .update({ status: 'rejected' as BillStatus })
         .eq('id', id);
       
       if (error) throw error;

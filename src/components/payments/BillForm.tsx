@@ -11,6 +11,7 @@ import { FilePreview } from "./FilePreview";
 import { BillFormFields } from "./BillFormFields";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { BillStatus } from "@/lib/supabase";
 
 const formSchema = z.object({
   billNumber: z.string().min(1, { message: "Bill number is required" }),
@@ -58,7 +59,7 @@ export function BillForm() {
       // Format due date as ISO string (YYYY-MM-DD)
       const formattedDueDate = values.dueDate.toISOString().split('T')[0];
       
-      // Save bill to Supabase - note we're inserting a single object, not an array
+      // Save bill to Supabase
       const { data, error } = await supabase
         .from('bills')
         .insert({
@@ -68,7 +69,7 @@ export function BillForm() {
           project_id: values.project, // Assuming project is the UUID
           amount: amountNumber,
           due_date: formattedDueDate,
-          status: 'pending'
+          status: 'pending' as BillStatus
         })
         .select();
       

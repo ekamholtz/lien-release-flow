@@ -34,6 +34,8 @@ export type DbTeamMember = {
   created_at: string;
 };
 
+export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
+
 export type DbInvoice = {
   id: string;
   invoice_number: string;
@@ -42,10 +44,16 @@ export type DbInvoice = {
   project_id: string;
   amount: number;
   due_date: string;
-  status: string;
+  status: InvoiceStatus;
   created_at: string;
   payment_method: string;
+  payment_id?: string;
+  payment_date?: string;
+  payment_provider?: string;
+  payment_link?: string;
 };
+
+export type BillStatus = "pending" | "approved" | "paid" | "rejected";
 
 export type DbBill = {
   id: string;
@@ -55,6 +63,10 @@ export type DbBill = {
   project_id: string;
   amount: number;
   due_date: string;
-  status: string;
+  status: BillStatus;
   created_at: string;
+  payment_id?: string;
+  payment_date?: string;
+  payment_provider?: string;
+  payment_reference?: string;
 };
