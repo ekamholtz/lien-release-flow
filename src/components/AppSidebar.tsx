@@ -50,21 +50,21 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar>
+    <Sidebar className="bg-cnstrct-navy">
       <SidebarHeader>
         <div className="p-4">
           <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-md bg-construction-600 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-md bg-cnstrct-orange flex items-center justify-center">
               <ArrowLeftRight className="h-5 w-5 text-white" />
             </div>
-            <span className="font-bold text-lg text-construction-900">PaymentFlow</span>
+            <span className="font-bold text-lg text-white">PaymentFlow</span>
           </div>
         </div>
       </SidebarHeader>
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-white/70">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
@@ -73,6 +73,10 @@ export function AppSidebar() {
                     asChild 
                     isActive={currentPath === item.to}
                     tooltip={item.label}
+                    className={currentPath === item.to ? 
+                      "bg-cnstrct-orange/20 text-cnstrct-orange" : 
+                      "text-white hover:bg-cnstrct-lightblue/30"
+                    }
                   >
                     <Link to={item.to}>
                       <item.icon className="h-5 w-5" />
@@ -96,6 +100,10 @@ export function AppSidebar() {
                     asChild 
                     isActive={currentPath === item.to}
                     tooltip={item.label}
+                    className={currentPath === item.to ? 
+                      "bg-cnstrct-orange/20 text-cnstrct-orange" : 
+                      "text-white hover:bg-cnstrct-lightblue/30"
+                    }
                   >
                     <Link to={item.to}>
                       <item.icon className="h-5 w-5" />
@@ -109,14 +117,14 @@ export function AppSidebar() {
         </SidebarGroup>
         
         <div className="p-4">
-          <div className="p-3 bg-construction-50 rounded-lg">
+          <div className="p-3 bg-cnstrct-lightblue/20 rounded-lg">
             <div className="flex items-start space-x-3">
-              <div className="h-8 w-8 rounded-full bg-construction-100 flex items-center justify-center">
-                <MessageSquareText className="h-5 w-5 text-construction-500" />
+              <div className="h-8 w-8 rounded-full bg-cnstrct-orange/20 flex items-center justify-center">
+                <MessageSquareText className="h-5 w-5 text-cnstrct-orange" />
               </div>
               <div className="flex-1">
-                <h4 className="text-sm font-medium text-construction-900">AI Assistant</h4>
-                <p className="text-xs text-gray-500 mt-1">Need help? Ask me anything about your payments.</p>
+                <h4 className="text-sm font-medium text-white">AI Assistant</h4>
+                <p className="text-xs text-white/70 mt-1">Need help? Ask me anything about your payments.</p>
               </div>
             </div>
           </div>

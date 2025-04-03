@@ -16,34 +16,37 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 210 100% 47%;
-    --primary-foreground: 210 40% 98%;
+    /* Updated primary color to match the deep navy blue */
+    --primary: 230 53% 26%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    /* Updated secondary color to match the orange accent */
+    --secondary: 22 100% 55%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 22 100% 55%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 222 84% 4%;
+    --ring: 230 53% 26%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 100% 47%;
+    /* Sidebar colors updated to match the CNSTRCT branding */
+    --sidebar-background: 230 53% 26%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 22 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 18%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 18%;
+    --sidebar-accent: 230 35% 30%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 230 35% 30%;
     --sidebar-ring: 224 76% 48%;
   }
 }
@@ -58,7 +61,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-semibold tracking-tight;
+    @apply font-cnstrct font-semibold tracking-tight;
   }
 }
 
@@ -72,10 +75,23 @@
   }
   
   .nav-link-active {
-    @apply bg-construction-50 text-construction-700;
+    @apply bg-cnstrct-orange/20 text-cnstrct-orange;
   }
   
   .nav-link-inactive {
-    @apply text-gray-700 hover:bg-gray-100;
+    @apply text-white hover:bg-cnstrct-navy;
+  }
+
+  /* New CNSTRCT theme components */
+  .cnstrct-button {
+    @apply bg-cnstrct-orange text-white hover:bg-cnstrct-orange/90 font-medium rounded-md px-4 py-2 transition-colors;
+  }
+  
+  .cnstrct-card {
+    @apply bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-5;
+  }
+  
+  .cnstrct-section {
+    @apply bg-cnstrct-lightgray py-12;
   }
 }

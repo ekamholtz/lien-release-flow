@@ -53,19 +53,28 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				// Construction app specific colors
+				// Construction app specific colors - updated based on the provided image
 				construction: {
-					50: '#f0f7ff',
-					100: '#e0effe',
-					200: '#bae0fd',
-					300: '#7cc9fb',
-					400: '#37abf6',
-					500: '#0f8edf',
-					600: '#0270be',
-					700: '#025a9a', 
-					800: '#074c7f',
-					900: '#0a4068',
-					950: '#062942',
+					50: '#ebf0ff',
+					100: '#d6e0ff',
+					200: '#adc2fe',
+					300: '#7c9ef9',
+					400: '#4979f5',
+					500: '#1a56e0',
+					600: '#0e3fb3',
+					700: '#12307f', 
+					800: '#152461',
+					900: '#101c43',
+					950: '#0c1333',
+				},
+				// New color palette based on the CNSTRCT logo
+				cnstrct: {
+					navy: '#172373', // Deep navy blue from the logo background
+					orange: '#FF5C1C', // Bright orange from the logo
+					white: '#FFFFFF', // White text from the logo
+					lightblue: '#2A3BA1', // Lighter shade of the navy for hover states
+					lightgray: '#F5F7FA', // Light background for sections
+					darkgray: '#333740', // Dark text color
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
@@ -133,7 +142,8 @@ export default {
 			},
 			fontFamily: {
 				sans: ['Inter', 'sans-serif'],
-				display: ['Montserrat', 'sans-serif']
+				display: ['Montserrat', 'sans-serif'],
+				cnstrct: ['Montserrat', 'Arial', 'sans-serif'] // Adding the font matching the CNSTRCT logo
 			}
 		}
 	},

@@ -16,7 +16,7 @@ export function AppHeader() {
   return (
     <header className="border-b bg-white px-6 py-3 flex items-center justify-between">
       <div className="flex items-center">
-        <h1 className="text-xl font-semibold text-construction-900">
+        <h1 className="text-xl font-semibold text-cnstrct-navy">
           PaymentFlow
         </h1>
       </div>
@@ -29,7 +29,7 @@ export function AppHeader() {
         <Button variant="ghost" size="icon" aria-label="Notifications">
           <div className="relative">
             <BellIcon className="h-5 w-5 text-gray-500" />
-            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-construction-500 text-[10px] font-medium text-white flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-cnstrct-orange text-[10px] font-medium text-white flex items-center justify-center">
               3
             </span>
           </div>

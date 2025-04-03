@@ -77,7 +77,7 @@ export function ProjectSelector({ value, onChange }: ProjectSelectorProps) {
                 >
                   {project.name}
                   {value === project.name && (
-                    <Check className="ml-auto h-4 w-4" />
+                    <Check className="ml-auto h-4 w-4 text-cnstrct-orange" />
                   )}
                 </CommandItem>
               ))}

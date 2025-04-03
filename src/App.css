@@ -1,3 +1,4 @@
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -5,6 +6,17 @@
   text-align: center;
 }
 
+/* CNSTRCT Theme Colors */
+:root {
+  --cnstrct-navy: #172373;
+  --cnstrct-orange: #FF5C1C;
+  --cnstrct-white: #FFFFFF;
+  --cnstrct-lightblue: #2A3BA1;
+  --cnstrct-lightgray: #F5F7FA;
+  --cnstrct-darkgray: #333740;
+}
+
+/* Updated logo animation with CNSTRCT orange */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -12,10 +24,10 @@
   transition: filter 300ms;
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 2em #FF5C1C);
 }
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em #FF5C1C);
 }
 
 @keyframes logo-spin {
@@ -38,5 +50,30 @@
 }
 
 .read-the-docs {
-  color: #888;
+  color: var(--cnstrct-darkgray);
+}
+
+/* CNSTRCT specific theme classes */
+.cnstrct-bg-navy {
+  background-color: var(--cnstrct-navy);
+}
+
+.cnstrct-bg-orange {
+  background-color: var(--cnstrct-orange);
+}
+
+.cnstrct-text-white {
+  color: var(--cnstrct-white);
+}
+
+.cnstrct-text-orange {
+  color: var(--cnstrct-orange);
+}
+
+.cnstrct-text-navy {
+  color: var(--cnstrct-navy);
+}
+
+.cnstrct-gradient {
+  background: linear-gradient(90deg, var(--cnstrct-navy), var(--cnstrct-lightblue));
 }
