@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,7 @@ interface InvoiceFormValues {
 }
 
 interface InvoiceFormFieldsProps {
-  control: Control<InvoiceFormValues>;
+  control: Control<any>;
 }
 
 export function InvoiceFormFields({ control }: InvoiceFormFieldsProps) {

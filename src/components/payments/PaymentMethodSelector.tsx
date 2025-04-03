@@ -5,9 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Control } from "react-hook-form";
 
 interface PaymentMethodSelectorProps {
-  control: Control<{
-    paymentMethod: "regular" | "accelerated";
-  }>;
+  control: Control<any>;
 }
 
 export function PaymentMethodSelector({ control }: PaymentMethodSelectorProps) {

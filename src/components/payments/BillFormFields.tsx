@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Control } from "react-hook-form";
 
-interface BillFormValues {
+type BillFormValues = {
   billNumber: string;
   vendorName: string;
   vendorEmail: string;
@@ -20,10 +20,10 @@ interface BillFormValues {
   dueDate: Date;
   description: string;
   requiresLien: boolean;
-}
+};
 
 interface BillFormFieldsProps {
-  control: Control<BillFormValues>;
+  control: Control<any>;
 }
 
 export function BillFormFields({ control }: BillFormFieldsProps) {

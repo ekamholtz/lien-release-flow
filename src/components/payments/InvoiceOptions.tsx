@@ -5,10 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Control } from "react-hook-form";
 
 interface InvoiceOptionsProps {
-  control: Control<{
-    includePaymentLink: boolean;
-    sendLienRelease: boolean;
-  }>;
+  control: Control<any>;
 }
 
 export function InvoiceOptions({ control }: InvoiceOptionsProps) {
