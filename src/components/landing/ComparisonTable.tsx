@@ -3,18 +3,18 @@ import React from 'react';
 import { CheckCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface Feature {
+export interface Feature {
   name: string;
   paymentFlow: boolean;
   others: boolean;
 }
 
-interface ComparisonTableProps {
+export interface ComparisonTableProps {
   features: Feature[];
   className?: string;
 }
 
-export function ComparisonTable({ features, className }: ComparisonTableProps) {
+export function ComparisonTable({ features = [], className }: ComparisonTableProps) {
   return (
     <div className={cn("overflow-x-auto", className)}>
       <table className="w-full border-collapse">

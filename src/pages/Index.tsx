@@ -13,6 +13,18 @@ import { CTASection } from '@/components/landing/CTASection';
 import { Footer } from '@/components/landing/Footer';
 import { useAuth } from '@/hooks/useAuth';
 
+// Sample data for comparison table
+const comparisonFeatures = [
+  { name: "Integrated Payment Processing", paymentFlow: true, others: false },
+  { name: "Electronic Lien Releases", paymentFlow: true, others: false },
+  { name: "QuickBooks Online Integration", paymentFlow: true, others: true },
+  { name: "Customizable Approval Workflows", paymentFlow: true, others: false },
+  { name: "Automated Payment Reminders", paymentFlow: true, others: true },
+  { name: "Mobile Responsive Interface", paymentFlow: true, others: true },
+  { name: "AI-Powered Payment Suggestions", paymentFlow: true, others: false },
+  { name: "No Payment Processing Fees", paymentFlow: true, others: false },
+];
+
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -31,7 +43,7 @@ const Index = () => {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <HeroSection onGetStarted={handleGetStarted} />
+        <HeroSection />
         
         {/* Features */}
         <FeaturesSection />
@@ -43,13 +55,13 @@ const Index = () => {
         <RolesSection />
         
         {/* Comparison Table */}
-        <ComparisonTable />
+        <ComparisonTable features={comparisonFeatures} />
         
         {/* Testimonials */}
         <TestimonialsSection />
         
         {/* CTA */}
-        <CTASection onGetStarted={handleGetStarted} />
+        <CTASection />
       </main>
 
       <Footer />
