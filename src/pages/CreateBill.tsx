@@ -7,10 +7,10 @@ import { AiAssistant } from '@/components/dashboard/AiAssistant';
 const CreateBill = () => {
   return (
     <AppLayout>
-      <div className="max-w-3xl mx-auto p-6">
+      <div className="w-full p-6">
         <h1 className="text-2xl font-bold mb-6">Create Bill</h1>
         
-        <div className="dashboard-card">
+        <div className="dashboard-card max-w-3xl mx-auto">
           <BillForm />
         </div>
       </div>

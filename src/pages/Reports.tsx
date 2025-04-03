@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { ReportsHeader } from '@/components/reports/ReportsHeader';
@@ -28,7 +29,7 @@ const Reports = () => {
 
   return (
     <AppLayout>
-      <div className="container mx-auto p-6 max-w-7xl">
+      <div className="w-full p-6">
         <ReportsHeader 
           timeRange={timeRange}
           setTimeRange={setTimeRange}
