@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import CreateInvoice from "./pages/CreateInvoice";
 import LienRelease from "./pages/LienRelease";
 import Integrations from "./pages/Integrations";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/create-invoice" element={<CreateInvoice />} />
           <Route path="/lien-release" element={<LienRelease />} />
           <Route path="/integrations" element={<Integrations />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
