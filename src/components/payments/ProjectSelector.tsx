@@ -7,6 +7,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -14,7 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CheckIcon, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Sample projects data - in a real app, this would likely come from an API
@@ -45,39 +46,43 @@ export function ProjectSelector({ value, onChange }: ProjectSelectorProps) {
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between"
+            className="w-full justify-between bg-background font-normal"
           >
-            {value
-              ? projects.find((project) => project.name === value)?.name || value
-              : "Select project..."}
+            <span className={cn("truncate", !value && "text-muted-foreground")}>
+              {value
+                ? projects.find((project) => project.name === value)?.name
+                : "Select project..."}
+            </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </FormControl>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
+      <PopoverContent
+        className="w-full min-w-[var(--radix-popper-anchor-width)] p-0"
+        align="start"
+      >
         <Command>
           <CommandInput placeholder="Search projects..." />
-          <CommandEmpty>No project found.</CommandEmpty>
-          <CommandGroup>
-            {projects.map((project) => (
-              <CommandItem
-                key={project.id}
-                value={project.name}
-                onSelect={(currentValue) => {
-                  onChange(currentValue);
-                  setOpen(false);
-                }}
-              >
-                <CheckIcon
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === project.name ? "opacity-100" : "opacity-0"
+          <CommandList>
+            <CommandEmpty>No project found.</CommandEmpty>
+            <CommandGroup>
+              {projects.map((project) => (
+                <CommandItem
+                  key={project.id}
+                  value={project.name}
+                  onSelect={(currentValue) => {
+                    onChange(currentValue);
+                    setOpen(false);
+                  }}
+                >
+                  {project.name}
+                  {value === project.name && (
+                    <Check className="ml-auto h-4 w-4" />
                   )}
-                />
-                {project.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
