@@ -14,6 +14,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RetroGrid } from '@/components/ui/retro-grid';
+import { Card } from '@/components/ui/card';
+import { TestimonialCard } from '@/components/landing/TestimonialCard';
+import { ComparisonTable } from '@/components/landing/ComparisonTable';
 
 const FeatureCard = ({ 
   icon: Icon, 
@@ -32,6 +35,18 @@ const FeatureCard = ({
     <p className="text-gray-500 text-sm">{description}</p>
   </div>
 );
+
+// Sample data for comparison table
+const comparisonFeatures = [
+  { name: "Integrated Payment Processing", paymentFlow: true, others: false },
+  { name: "Electronic Lien Releases", paymentFlow: true, others: false },
+  { name: "QuickBooks Online Integration", paymentFlow: true, others: true },
+  { name: "Customizable Approval Workflows", paymentFlow: true, others: false },
+  { name: "Automated Payment Reminders", paymentFlow: true, others: true },
+  { name: "Mobile Responsive Interface", paymentFlow: true, others: true },
+  { name: "AI-Powered Payment Suggestions", paymentFlow: true, others: false },
+  { name: "No Payment Processing Fees", paymentFlow: true, others: false },
+];
 
 const Index = () => {
   const navigate = useNavigate();
@@ -53,6 +68,7 @@ const Index = () => {
               <a href="#features" className="text-gray-500 hover:text-construction-600">Features</a>
               <a href="#how-it-works" className="text-gray-500 hover:text-construction-600">How It Works</a>
               <a href="#roles" className="text-gray-500 hover:text-construction-600">For Teams</a>
+              <a href="#testimonials" className="text-gray-500 hover:text-construction-600">Testimonials</a>
             </nav>
             
             <div className="flex items-center space-x-4">
@@ -79,7 +95,7 @@ const Index = () => {
         <RetroGrid className="opacity-30" angle={55} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
+            <div className="animate-fade-in">
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
                 Streamline Your Construction Payments
               </h1>
@@ -109,11 +125,11 @@ const Index = () => {
                 <span>No credit card required to start</span>
               </div>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+            <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 transform hover:scale-[1.02] transition-all animate-fade-in">
               <img 
-                src="/placeholder.svg" 
-                alt="Platform Dashboard" 
-                className="rounded-md w-full"
+                src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                alt="Construction Payment Dashboard" 
+                className="rounded-md w-full shadow-sm"
               />
             </div>
           </div>
@@ -145,6 +161,13 @@ const Index = () => {
               icon={FileText}
               title="Invoice Management"
               description="Create, send, and track invoices with built-in payment links for faster collections."
+            />
+          </div>
+
+          <div className="mt-16">
+            <ComparisonTable 
+              features={comparisonFeatures} 
+              className="animate-fade-in"
             />
           </div>
         </div>
@@ -194,8 +217,44 @@ const Index = () => {
         </div>
       </section>
       
+      {/* Testimonials Section */}
+      <section id="testimonials" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900">What Our Clients Say</h2>
+            <p className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto">
+              Hear from contractors and subcontractors who have streamlined their payment processes
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <TestimonialCard 
+              quote="PaymentFlow has cut our payment processing time in half. The electronic lien release feature alone has saved us countless hours of paperwork."
+              author="Michael Johnson"
+              role="CFO"
+              company="Johnson Construction"
+              className="animate-fade-in"
+            />
+            <TestimonialCard 
+              quote="As a subcontractor, getting paid quickly is crucial. With PaymentFlow, we've reduced our payment wait times by over 60%."
+              author="Sarah Williams"
+              role="Owner"
+              company="Williams Electric"
+              className="animate-fade-in [animation-delay:100ms]"
+            />
+            <TestimonialCard 
+              quote="The QuickBooks integration is seamless. Now all our financial data syncs automatically, and we don't have to manually reconcile anymore."
+              author="Robert Chen"
+              role="Controller"
+              company="Chen & Associates"
+              className="animate-fade-in [animation-delay:200ms]"
+            />
+          </div>
+        </div>
+      </section>
+      
       {/* For Different Roles */}
-      <section id="roles" className="py-20 bg-white">
+      <section id="roles" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900">For Every Team Member</h2>
@@ -308,7 +367,7 @@ const Index = () => {
             <div>
               <h3 className="text-white text-lg font-medium mb-4">Product</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white">Features</a></li>
+                <li><a href="#features" className="hover:text-white">Features</a></li>
                 <li><a href="#" className="hover:text-white">Pricing</a></li>
                 <li><a href="#" className="hover:text-white">Integrations</a></li>
                 <li><a href="#" className="hover:text-white">Case Studies</a></li>
