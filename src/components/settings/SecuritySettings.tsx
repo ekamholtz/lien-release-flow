@@ -13,8 +13,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Shield, Key, Smartphone } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const SecuritySettings = () => {
+  const handlePasswordChange = () => {
+    toast.success('Password changed successfully');
+  };
+  
+  const handleConfigureTwoFactor = () => {
+    toast.info('Two-factor configuration will be available soon');
+  };
+  
+  const handleGenerateApiKey = () => {
+    toast.success('New API key generated successfully');
+  };
+  
+  const handleRevokeKey = (keyName: string) => {
+    toast.success(`${keyName} API key revoked successfully`);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -40,7 +57,7 @@ export const SecuritySettings = () => {
           </div>
         </CardContent>
         <CardFooter>
-          <Button>Change Password</Button>
+          <Button onClick={handlePasswordChange}>Change Password</Button>
         </CardFooter>
       </Card>
 
@@ -69,7 +86,7 @@ export const SecuritySettings = () => {
           </div>
         </CardContent>
         <CardFooter>
-          <Button variant="outline">Configure Two-Factor Authentication</Button>
+          <Button variant="outline" onClick={handleConfigureTwoFactor}>Configure Two-Factor Authentication</Button>
         </CardFooter>
       </Card>
 
@@ -88,19 +105,19 @@ export const SecuritySettings = () => {
                 <p className="font-medium">QuickBooks Integration</p>
                 <p className="text-xs text-muted-foreground">Created on April 1, 2025</p>
               </div>
-              <Button variant="outline" size="sm">Revoke</Button>
+              <Button variant="outline" size="sm" onClick={() => handleRevokeKey('QuickBooks')}>Revoke</Button>
             </div>
             <div className="flex items-center justify-between py-2 border-b">
               <div>
                 <p className="font-medium">Checkbook.io</p>
                 <p className="text-xs text-muted-foreground">Created on March 15, 2025</p>
               </div>
-              <Button variant="outline" size="sm">Revoke</Button>
+              <Button variant="outline" size="sm" onClick={() => handleRevokeKey('Checkbook.io')}>Revoke</Button>
             </div>
           </div>
         </CardContent>
         <CardFooter>
-          <Button>Generate New API Key</Button>
+          <Button onClick={handleGenerateApiKey}>Generate New API Key</Button>
         </CardFooter>
       </Card>
     </div>

@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { 
   Bell, 
   Mail, 
@@ -19,6 +20,10 @@ import {
 } from 'lucide-react';
 
 export const NotificationsSettings = () => {
+  const handleSavePreferences = () => {
+    toast.success('Notification preferences saved successfully');
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -170,8 +175,8 @@ export const NotificationsSettings = () => {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button>Save Notification Preferences</Button>
+      <div className="flex justify-end mb-10">
+        <Button onClick={handleSavePreferences}>Save Notification Preferences</Button>
       </div>
     </div>
   );

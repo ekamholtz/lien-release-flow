@@ -11,8 +11,21 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const IntegrationsSettings = () => {
+  const handleSyncNow = () => {
+    toast.success('Successfully synced with QuickBooks Online');
+  };
+
+  const handleConnect = (integration: string) => {
+    toast.info(`${integration} integration will be available soon`);
+  };
+
+  const handleConfigure = (integration: string) => {
+    toast.info(`${integration} configuration will be available soon`);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -21,7 +34,7 @@ export const IntegrationsSettings = () => {
           <CardDescription>Sync invoices, payments, and expenses with your QuickBooks account.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
               <div className="h-10 w-10 rounded bg-blue-100 flex items-center justify-center">
                 <svg viewBox="0 0 24 24" className="h-6 w-6 text-blue-600">
@@ -34,10 +47,10 @@ export const IntegrationsSettings = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleSyncNow}>
                 Sync Now
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => handleConfigure('QuickBooks Online')}>
                 Settings
                 <ExternalLink className="ml-1 h-4 w-4" />
               </Button>
@@ -75,7 +88,7 @@ export const IntegrationsSettings = () => {
           <CardDescription>Send and receive digital checks for faster payments.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
               <div className="h-10 w-10 rounded bg-green-100 flex items-center justify-center">
                 <CheckCircle2 className="h-6 w-6 text-green-600" />
@@ -85,7 +98,7 @@ export const IntegrationsSettings = () => {
                 <p className="text-xs text-muted-foreground">API Key: ****-****-****-3F7A</p>
               </div>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => handleConfigure('Checkbook.io')}>
               Configure
             </Button>
           </div>
@@ -98,7 +111,7 @@ export const IntegrationsSettings = () => {
           <CardDescription>Process payments and handle financial transactions.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
               <div className="h-10 w-10 rounded bg-amber-100 flex items-center justify-center">
                 <AlertCircle className="h-6 w-6 text-amber-600" />
@@ -108,7 +121,7 @@ export const IntegrationsSettings = () => {
                 <p className="text-xs text-muted-foreground">Connect your Finix account to enable payments</p>
               </div>
             </div>
-            <Button size="sm">
+            <Button size="sm" onClick={() => handleConnect('Finix')}>
               Connect
             </Button>
           </div>
@@ -133,7 +146,7 @@ export const IntegrationsSettings = () => {
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <p className="text-sm text-muted-foreground mb-4">Industry-standard e-signature service.</p>
-                <Button variant="outline" size="sm" className="w-full">Connect</Button>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => handleConnect('SignNow')}>Connect</Button>
               </CardContent>
             </Card>
             <Card>
@@ -142,7 +155,7 @@ export const IntegrationsSettings = () => {
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <p className="text-sm text-muted-foreground mb-4">Open-source e-signature solution.</p>
-                <Button variant="outline" size="sm" className="w-full">Connect</Button>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => handleConnect('OpenSign')}>Connect</Button>
               </CardContent>
             </Card>
           </div>

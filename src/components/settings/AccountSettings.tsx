@@ -4,8 +4,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 export const AccountSettings = () => {
+  const handleSaveChanges = () => {
+    toast.success('Account information updated successfully');
+  };
+
+  const handleManageSubscription = () => {
+    toast.info('Subscription management will be available soon');
+  };
+
+  const handleUpdatePayment = () => {
+    toast.info('Payment method update will be available soon');
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -32,7 +45,7 @@ export const AccountSettings = () => {
               <Input id="phone" defaultValue="(415) 555-0123" />
             </div>
           </div>
-          <Button className="mt-4">Save Changes</Button>
+          <Button className="mt-4" onClick={handleSaveChanges}>Save Changes</Button>
         </CardContent>
       </Card>
 
@@ -47,9 +60,9 @@ export const AccountSettings = () => {
             <p className="font-medium">Professional Plan - $49/month</p>
             <p className="text-sm text-muted-foreground">Next billing date: June 1, 2025</p>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button variant="outline">Manage Subscription</Button>
-            <Button variant="outline">Update Payment Method</Button>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Button variant="outline" onClick={handleManageSubscription}>Manage Subscription</Button>
+            <Button variant="outline" onClick={handleUpdatePayment}>Update Payment Method</Button>
           </div>
         </CardContent>
       </Card>

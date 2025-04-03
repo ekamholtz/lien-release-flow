@@ -12,7 +12,7 @@ const Settings = () => {
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
           <AppSidebar />
-          <SidebarInset className="overflow-y-auto bg-gray-50 p-6">
+          <SidebarInset className="overflow-y-auto bg-gray-50 p-4 md:p-6 w-full">
             <div className="max-w-5xl mx-auto">
               <div className="flex items-center mb-6">
                 <h1 className="text-2xl font-bold">Settings</h1>
@@ -21,7 +21,7 @@ const Settings = () => {
                 </div>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-6 pb-10">
                 <SettingsTabs />
               </div>
             </div>
