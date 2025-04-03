@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AppHeader } from '@/components/AppHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { 
@@ -84,6 +84,7 @@ const Team = () => {
       // if (error) throw error;
       // return data;
       
+      // Return mock data for now
       return mockTeamMembers;
     }
   });
