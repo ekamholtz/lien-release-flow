@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,6 +9,8 @@ import { toast } from "@/hooks/use-toast";
 import { InvoiceFormFields } from "./InvoiceFormFields";
 import { PaymentMethodSelector } from "./PaymentMethodSelector";
 import { InvoiceOptions } from "./InvoiceOptions";
+import { FileUpload } from "./FileUpload";
+import { FilePreview } from "./FilePreview";
 
 const formSchema = z.object({
   invoiceNumber: z.string().min(1, { message: "Invoice number is required" }),
@@ -25,6 +27,8 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function InvoiceForm() {
+  const [files, setFiles] = useState<File[]>([]);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -41,15 +45,27 @@ export function InvoiceForm() {
 
   function onSubmit(values: FormValues) {
     console.log(values);
+    console.log('Attached files:', files);
     
     // Show success message
     toast({
       title: "Invoice created",
-      description: `Invoice ${values.invoiceNumber} has been created successfully`,
+      description: `Invoice ${values.invoiceNumber} has been created successfully with ${files.length} attachment(s)`,
     });
     
     // Here you would typically handle the form submission, e.g., send data to an API
   }
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+  
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <Form {...form}>
@@ -59,6 +75,9 @@ export function InvoiceForm() {
         <PaymentMethodSelector control={form.control} />
         
         <InvoiceOptions control={form.control} />
+        
+        <FileUpload onFileChange={handleFileChange} />
+        <FilePreview files={files} onRemoveFile={removeFile} />
         
         <div className="flex gap-3 justify-end">
           <Button type="button" variant="outline">Cancel</Button>
