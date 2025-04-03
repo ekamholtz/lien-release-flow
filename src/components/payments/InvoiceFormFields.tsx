@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -5,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Control } from "react-hook-form";
@@ -14,6 +15,8 @@ interface InvoiceFormValues {
   invoiceNumber: string;
   clientName: string;
   clientEmail: string;
+  clientPhone: string;
+  project: string;
   amount: string;
   dueDate: Date;
   description: string;
@@ -79,6 +82,39 @@ export function InvoiceFormFields({ control }: InvoiceFormFieldsProps) {
               <FormLabel>Client Email</FormLabel>
               <FormControl>
                 <Input placeholder="client@example.com" type="email" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormField
+          control={control}
+          name="clientPhone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Client Phone</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                  <Input className="pl-10" placeholder="(555) 123-4567" {...field} />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={control}
+          name="project"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Project</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter project name" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
