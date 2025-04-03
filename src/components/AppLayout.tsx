@@ -10,14 +10,16 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen">
       <AppHeader />
       <SidebarProvider>
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 flex">
           <AppSidebar />
-          <SidebarInset className="overflow-y-auto bg-gray-50 w-full">
-            {children}
-          </SidebarInset>
+          <div className="flex-1">
+            <SidebarInset className="min-h-[calc(100vh-4rem)] bg-gray-50 w-full">
+              {children}
+            </SidebarInset>
+          </div>
         </div>
       </SidebarProvider>
     </div>

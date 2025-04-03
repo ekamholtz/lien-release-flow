@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { ReportsHeader } from '@/components/reports/ReportsHeader';
@@ -14,13 +13,11 @@ const Reports = () => {
   const { toast } = useToast();
 
   const handleExport = (format: string) => {
-    // In a real app, this would generate and download a report
     toast({
       title: "Export initiated",
       description: `Your ${format.toUpperCase()} report is being generated. It will download shortly.`,
     });
     
-    // Simulate a download delay
     setTimeout(() => {
       toast({
         title: "Export complete",
@@ -31,15 +28,15 @@ const Reports = () => {
 
   return (
     <AppLayout>
-      <div className="container mx-auto py-6 px-4 md:px-6">
+      <div className="container mx-auto p-6 max-w-7xl">
         <ReportsHeader 
           timeRange={timeRange}
           setTimeRange={setTimeRange}
           handleExport={handleExport}
         />
 
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-6">
+        <Tabs defaultValue="overview" className="w-full space-y-6">
+          <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="payables">Accounts Payable</TabsTrigger>
             <TabsTrigger value="receivables">Accounts Receivable</TabsTrigger>
