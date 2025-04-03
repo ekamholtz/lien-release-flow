@@ -69,4 +69,5 @@ export type DbBill = {
   payment_date?: string;
   payment_provider?: string;
   payment_reference?: string;
+  requires_lien_release?: boolean; // Added the missing property
 };
