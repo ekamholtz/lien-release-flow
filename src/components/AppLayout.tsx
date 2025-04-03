@@ -10,16 +10,16 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <div className="flex flex-col flex-1">
-          <AppHeader />
-          <SidebarInset className="bg-gray-50">
+    <div className="min-h-screen flex flex-col">
+      <AppHeader />
+      <SidebarProvider>
+        <div className="flex flex-1 overflow-hidden">
+          <AppSidebar />
+          <SidebarInset className="overflow-y-auto bg-gray-50 w-full">
             {children}
           </SidebarInset>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </div>
   );
 }

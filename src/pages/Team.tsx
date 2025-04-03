@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { type DbTeamMember } from '@/lib/supabase';
 import { TeamHeader } from '@/components/team/TeamHeader';
 import { TeamMemberTable } from '@/components/team/TeamMemberTable';
+import { useQuery } from '@tanstack/react-query';
 
 // Mock team data for initial development
 const mockTeamMembers: DbTeamMember[] = [
