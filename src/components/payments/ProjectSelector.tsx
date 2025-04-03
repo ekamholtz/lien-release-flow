@@ -54,11 +54,11 @@ export function ProjectSelector({ value, onChange }: ProjectSelectorProps) {
           </Button>
         </FormControl>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" style={{ zIndex: 50 }}>
+      <PopoverContent className="w-full p-0">
         <Command>
           <CommandInput placeholder="Search projects..." />
           <CommandEmpty>No project found.</CommandEmpty>
-          <CommandGroup className="max-h-60 overflow-y-auto">
+          <CommandGroup>
             {projects.map((project) => (
               <CommandItem
                 key={project.id}
