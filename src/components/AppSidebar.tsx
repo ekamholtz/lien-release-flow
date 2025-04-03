@@ -7,7 +7,6 @@ import {
   FileText, 
   FileSignature, 
   Settings,
-  Loader2,
   Users,
   PieChart,
   ArrowLeftRight,
@@ -35,7 +34,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   
   const navigationItems = [
-    { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/accounts-payable", icon: CircleDollarSign, label: "Accounts Payable" },
     { to: "/accounts-receivable", icon: FileText, label: "Accounts Receivable" },
     { to: "/create-invoice", icon: FileText, label: "Create Invoice" },
@@ -46,6 +45,7 @@ export function AppSidebar() {
   ];
   
   const settingsItems = [
+    { to: "/integrations", icon: ArrowLeftRight, label: "Integrations" },
     { to: "/settings", icon: Settings, label: "Settings" },
   ];
 

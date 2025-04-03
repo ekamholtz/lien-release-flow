@@ -14,6 +14,8 @@ import Integrations from "./pages/Integrations";
 import Settings from "./pages/Settings";
 import AccountsPayable from "./pages/AccountsPayable";
 import AccountsReceivable from "./pages/AccountsReceivable";
+import Team from "./pages/Team";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -35,6 +37,8 @@ const App = () => {
             <Route path="/lien-release" element={<LienRelease />} />
             <Route path="/accounts-payable" element={<AccountsPayable />} />
             <Route path="/accounts-receivable" element={<AccountsReceivable />} />
+            <Route path="/team" element={<Team />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
