@@ -55,20 +55,21 @@ export function BillForm() {
       // Convert amount from string to number
       const amountNumber = parseFloat(values.amount);
       
-      // Save bill to Supabase
+      // Format due date as ISO string (YYYY-MM-DD)
+      const formattedDueDate = values.dueDate.toISOString().split('T')[0];
+      
+      // Save bill to Supabase - note we're inserting a single object, not an array
       const { data, error } = await supabase
         .from('bills')
-        .insert([
-          {
-            bill_number: values.billNumber,
-            vendor_name: values.vendorName,
-            vendor_email: values.vendorEmail,
-            project_id: values.project, // Assuming project is the UUID
-            amount: amountNumber,
-            due_date: values.dueDate,
-            status: 'pending'
-          }
-        ])
+        .insert({
+          bill_number: values.billNumber,
+          vendor_name: values.vendorName,
+          vendor_email: values.vendorEmail,
+          project_id: values.project, // Assuming project is the UUID
+          amount: amountNumber,
+          due_date: formattedDueDate,
+          status: 'pending'
+        })
         .select();
       
       if (error) {

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { AppHeader } from '@/components/AppHeader';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -13,8 +14,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DbInvoice } from '@/lib/supabase';
 
+// Define an extended invoice type that includes the project name from the join
+type ExtendedInvoice = DbInvoice & {
+  projects?: { 
+    name: string;
+  };
+};
+
 const AccountsReceivable = () => {
-  const [invoices, setInvoices] = useState<DbInvoice[]>([]);
+  const [invoices, setInvoices] = useState<ExtendedInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 

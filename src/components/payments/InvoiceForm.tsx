@@ -61,21 +61,22 @@ export function InvoiceForm() {
       // Convert amount from string to number
       const amountNumber = parseFloat(values.amount);
       
-      // Save invoice to Supabase
+      // Format due date as ISO string (YYYY-MM-DD)
+      const formattedDueDate = values.dueDate.toISOString().split('T')[0];
+      
+      // Save invoice to Supabase - note we're inserting a single object, not an array
       const { data, error } = await supabase
         .from('invoices')
-        .insert([
-          {
-            invoice_number: values.invoiceNumber,
-            client_name: values.clientName,
-            client_email: values.clientEmail,
-            project_id: values.project, // Assuming project is the UUID
-            amount: amountNumber,
-            due_date: values.dueDate,
-            status: 'draft',
-            payment_method: values.paymentMethod
-          }
-        ])
+        .insert({
+          invoice_number: values.invoiceNumber,
+          client_name: values.clientName,
+          client_email: values.clientEmail,
+          project_id: values.project, // Assuming project is the UUID
+          amount: amountNumber,
+          due_date: formattedDueDate,
+          status: 'draft',
+          payment_method: values.paymentMethod
+        })
         .select();
       
       if (error) {
