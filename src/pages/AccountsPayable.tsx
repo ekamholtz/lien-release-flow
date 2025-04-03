@@ -1,17 +1,15 @@
+
 import React, { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { AiAssistant } from '@/components/dashboard/AiAssistant';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, FileText, CheckCircle, XCircle, Eye, DollarSign } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DbBill, BillStatus } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { PayBill } from '@/components/payments/PayBill';
+import { BillsTable } from '@/components/payments/BillsTable';
 
 // Define an extended bill type that includes the project name from the join
 type ExtendedBill = DbBill & {
@@ -56,21 +54,6 @@ const AccountsPayable = () => {
   useEffect(() => {
     fetchBills();
   }, []);
-
-  const getStatusBadge = (status: BillStatus) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-      case 'paid':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Paid</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
 
   const handleUpdateStatus = async (billId: string, newStatus: BillStatus) => {
     try {
@@ -143,119 +126,11 @@ const AccountsPayable = () => {
               <p>No bills to display. Use the "New Bill" button to add payment requests.</p>
             </div>
           ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Bill Number</TableHead>
-                    <TableHead>Vendor</TableHead>
-                    <TableHead>Project</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bills.map((bill) => (
-                    <TableRow key={bill.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-construction-600" />
-                          {bill.bill_number}
-                        </div>
-                      </TableCell>
-                      <TableCell>{bill.vendor_name}</TableCell>
-                      <TableCell>
-                        {bill.project_id ? (
-                          // @ts-ignore - projects is returned from the join
-                          bill.projects?.name || 'Unknown Project'
-                        ) : 'No Project'}
-                      </TableCell>
-                      <TableCell>${bill.amount.toFixed(2)}</TableCell>
-                      <TableCell>{format(new Date(bill.due_date), 'MMM d, yyyy')}</TableCell>
-                      <TableCell>{getStatusBadge(bill.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>View Details</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          {bill.status === 'pending' && (
-                            <>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-8 w-8 text-green-600"
-                                      onClick={() => handleUpdateStatus(bill.id, 'approved')}
-                                    >
-                                      <CheckCircle className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Approve</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-8 w-8 text-red-600"
-                                      onClick={() => handleUpdateStatus(bill.id, 'rejected')}
-                                    >
-                                      <XCircle className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Reject</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </>
-                          )}
-                          
-                          {bill.status === 'approved' && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8 text-blue-600"
-                                    onClick={() => handlePayBill(bill)}
-                                  >
-                                    <DollarSign className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Pay Bill</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <BillsTable 
+              bills={bills} 
+              onUpdateStatus={handleUpdateStatus} 
+              onPayBill={handlePayBill} 
+            />
           )}
         </div>
       </div>
