@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
@@ -43,6 +44,7 @@ serve(async (req) => {
     // Initialize Stripe
     const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
     // Initialize Supabase client
