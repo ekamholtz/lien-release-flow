@@ -49,13 +49,10 @@ const Subscription = () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
-          .from('subscriptions')
-          .select('id, status, plan_name, current_period_end')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        // Using raw SQL query via RPC instead of from() since type definitions don't include the subscriptions table
+        const { data, error } = await supabase.rpc('get_user_subscription', { user_id_param: user.id });
+        
+        if (error) {
           console.error('Error fetching subscription:', error);
           toast({
             title: 'Error',
@@ -64,8 +61,14 @@ const Subscription = () => {
           });
         }
         
-        if (data) {
-          setSubscription(data);
+        if (data && data.length > 0) {
+          const subData = data[0];
+          setSubscription({
+            id: subData.id,
+            status: subData.status as SubscriptionStatus,
+            plan_name: subData.plan_name,
+            current_period_end: subData.current_period_end,
+          });
         }
       } catch (err) {
         console.error('Error in subscription fetch:', err);
