@@ -108,36 +108,70 @@ serve(async (req) => {
         const subscriptionId = checkoutSession.subscription;
         const userId = checkoutSession.client_reference_id; // This should be set during checkout creation
         
-        if (userId && subscriptionId) {
+        if (!userId) {
+          console.warn('⚠️ Missing user_id in checkout session');
+          break;
+        }
+        
+        if (subscriptionId) {
           // Get subscription details from Stripe
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           const planId = subscription.items.data[0].price.id;
           const planName = subscription.items.data[0].price.nickname || 'Default Plan';
           
-          // Update the subscriptions table
-          const { error } = await supabase
+          // Check if a subscription record exists for this user
+          const { data: existingSubscription } = await supabase
             .from('subscriptions')
-            .upsert({
-              user_id: userId,
-              stripe_customer_id: customerId,
-              stripe_subscription_id: subscriptionId,
-              status: subscription.status,
-              plan_id: planId,
-              plan_name: planName,
-              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-              cancel_at_period_end: subscription.cancel_at_period_end,
-            }, {
-              onConflict: 'user_id'
-            });
+            .select('*')
+            .eq('user_id', userId)
+            .single();
             
-          if (error) {
-            console.error('Error updating subscription record:', error);
+          if (existingSubscription) {
+            // Update existing subscription
+            const { error } = await supabase
+              .from('subscriptions')
+              .update({
+                stripe_customer_id: customerId,
+                stripe_subscription_id: subscriptionId,
+                status: subscription.status,
+                plan_id: planId,
+                plan_name: planName,
+                current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                cancel_at_period_end: subscription.cancel_at_period_end,
+                updated_at: new Date().toISOString()
+              })
+              .eq('user_id', userId);
+              
+            if (error) {
+              console.error('Error updating subscription record:', error);
+            } else {
+              console.log(`✅ Successfully updated subscription for user ${userId}`);
+            }
           } else {
-            console.log(`✅ Successfully created/updated subscription for user ${userId}`);
+            // Create new subscription
+            const { error } = await supabase
+              .from('subscriptions')
+              .insert({
+                user_id: userId,
+                stripe_customer_id: customerId,
+                stripe_subscription_id: subscriptionId,
+                status: subscription.status,
+                plan_id: planId,
+                plan_name: planName,
+                current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                cancel_at_period_end: subscription.cancel_at_period_end
+              });
+                
+            if (error) {
+              console.error('Error creating subscription record:', error);
+            } else {
+              console.log(`✅ Successfully created subscription for user ${userId}`);
+            }
           }
         } else {
-          console.warn('⚠️ Missing user_id or subscription_id in checkout session');
+          console.warn('⚠️ Missing subscription_id in checkout session');
         }
         break;
       }
@@ -149,14 +183,26 @@ serve(async (req) => {
         // Since this might be a subscription created outside of our checkout flow,
         // we need to find the user associated with this customer
         const customerId = subscription.customer;
+        
+        if (!customerId) {
+          console.warn('⚠️ Missing customer ID in subscription event');
+          break;
+        }
+        
+        // First check if we already have this customer ID in our system
         const { data: userData, error: userError } = await supabase
           .from('subscriptions')
           .select('user_id')
           .eq('stripe_customer_id', customerId)
-          .single();
+          .maybeSingle();
           
-        if (userError || !userData) {
-          console.warn(`⚠️ No user found for customer ${customerId}`);
+        if (userError) {
+          console.error('Error looking up user:', userError);
+          break;
+        }
+        
+        if (!userData) {
+          console.log(`⚠️ No user found for customer ${customerId}, will be linked when customer completes checkout`);
           break;
         }
         
@@ -167,9 +213,7 @@ serve(async (req) => {
         // Update subscription record
         const { error } = await supabase
           .from('subscriptions')
-          .upsert({
-            user_id: userId,
-            stripe_customer_id: customerId,
+          .update({
             stripe_subscription_id: subscription.id,
             status: subscription.status,
             plan_id: planId,
@@ -177,7 +221,9 @@ serve(async (req) => {
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             cancel_at_period_end: subscription.cancel_at_period_end,
-          });
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
           
         if (error) {
           console.error('Error updating subscription record:', error);
