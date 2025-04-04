@@ -3,9 +3,19 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 export function CTASection() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const handleGetStarted = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth');
+    }
+  };
   
   return (
     <section className="py-16 bg-construction-600">
@@ -17,7 +27,7 @@ export function CTASection() {
         <Button 
           size="lg" 
           className="bg-white text-construction-600 hover:bg-gray-100"
-          onClick={() => navigate('/auth')}
+          onClick={handleGetStarted}
         >
           Start Your Free Trial
           <ArrowRight className="ml-2 h-5 w-5" />
