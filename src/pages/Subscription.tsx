@@ -49,25 +49,27 @@ const Subscription = () => {
       if (!user) return;
       
       try {
-        // Using raw SQL query via RPC instead of from() since type definitions don't include the subscriptions table
-        const { data, error } = await supabase.rpc('get_user_subscription', { user_id_param: user.id });
+        // Call the edge function to get subscription details
+        const { data: functionData, error: functionError } = await supabase.functions.invoke('get-subscription', {
+          body: { userId: user.id }
+        });
         
-        if (error) {
-          console.error('Error fetching subscription:', error);
+        if (functionError) {
+          console.error('Error fetching subscription:', functionError);
           toast({
             title: 'Error',
             description: 'Failed to load subscription information',
             variant: 'destructive',
           });
+          return;
         }
         
-        if (data && data.length > 0) {
-          const subData = data[0];
+        if (functionData?.data) {
           setSubscription({
-            id: subData.id,
-            status: subData.status as SubscriptionStatus,
-            plan_name: subData.plan_name,
-            current_period_end: subData.current_period_end,
+            id: functionData.data.id,
+            status: functionData.data.status as SubscriptionStatus,
+            plan_name: functionData.data.plan_name,
+            current_period_end: functionData.data.current_period_end,
           });
         }
       } catch (err) {
