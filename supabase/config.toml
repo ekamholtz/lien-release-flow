@@ -1,1 +1,5 @@
+
 project_id = "oknofqytitpxmlprvekn"
+
+[functions.stripe-webhook]
+verify_jwt = false
