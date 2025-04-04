@@ -23,9 +23,9 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -48,20 +48,24 @@ export function LoginForm() {
         throw error;
       }
 
-      // Success - redirect to dashboard or the page they were trying to access
       toast({
-        title: "Login successful",
-        description: "Welcome back to PaymentFlow",
+        title: "Logged in successfully",
+        description: "Welcome back to PaymentFlow!",
       });
       
-      // Redirect to the page they were trying to access before login or dashboard
-      const from = (location.state as any)?.from?.pathname || '/dashboard';
-      navigate(from, { replace: true });
+      // Check if the user has an active subscription
+      // For now, we'll redirect all users to the subscription page
+      // In a real app, you would check if they have an active subscription first
+      
+      // Get the redirect path from location state or default to subscription
+      const from = (location.state as any)?.from?.pathname || '/subscription';
+      navigate(from);
+      
     } catch (error: any) {
       console.error('Login error:', error);
       toast({
         title: "Login failed",
-        description: error.message || "Please check your credentials and try again",
+        description: error.message || "There was a problem with your login credentials",
         variant: "destructive",
       });
     } finally {
@@ -71,8 +75,8 @@ export function LoginForm() {
 
   return (
     <div className="bg-white rounded-lg border p-6 shadow-sm">
-      <h3 className="text-xl font-semibold mb-4">Welcome back</h3>
-      <p className="text-sm text-gray-500 mb-6">Enter your credentials to access your account</p>
+      <h3 className="text-xl font-semibold mb-4">Log in to your account</h3>
+      <p className="text-sm text-gray-500 mb-6">Enter your email and password to access your account</p>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -97,29 +101,29 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="********" {...field} />
+                  <Input type="password" placeholder="Enter your password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
           
-          <div className="text-sm text-right">
-            <a href="#" className="text-construction-600 hover:text-construction-800">
-              Forgot password?
-            </a>
-          </div>
-          
           <Button type="submit" className="w-full bg-construction-600 hover:bg-construction-700" disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
+                Logging in...
               </>
             ) : (
-              "Sign In"
+              "Log In"
             )}
           </Button>
+          
+          <div className="text-center">
+            <Button variant="link" className="text-sm text-construction-600" type="button" onClick={() => alert("Password reset functionality would be implemented here")}>
+              Forgot your password?
+            </Button>
+          </div>
         </form>
       </Form>
     </div>

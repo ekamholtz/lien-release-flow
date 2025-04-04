@@ -44,7 +44,7 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
     setIsLoading(true);
     
     try {
-      // First register the user with Supabase auth
+      // Register the user with Supabase auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -65,9 +65,11 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
         // User is immediately signed in (email confirmation disabled)
         toast({
           title: "Account created successfully",
-          description: "Welcome to PaymentFlow! You're now logged in.",
+          description: "Welcome to PaymentFlow! Please select a subscription plan.",
         });
-        navigate('/dashboard');
+        
+        // Redirect to subscription page
+        navigate('/subscription');
       } else {
         // Email confirmation is required
         toast({

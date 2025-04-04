@@ -17,6 +17,7 @@ import NotFound from '@/pages/NotFound';
 import Auth from '@/pages/Auth';
 import Team from '@/pages/Team';
 import Reports from '@/pages/Reports';
+import Subscription from '@/pages/Subscription';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -44,7 +45,7 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
   // If user is authenticated, redirect to dashboard or the page they were trying to access before login
   if (user) {
-    const from = (location.state as any)?.from?.pathname || '/dashboard';
+    const from = (location.state as any)?.from?.pathname || '/subscription'; // Changed default redirect to subscription
     return <Navigate to={from} replace />;
   }
 
@@ -62,6 +63,13 @@ function App() {
             <PublicOnlyRoute>
               <Auth />
             </PublicOnlyRoute>
+          } />
+
+          {/* Subscription route (semi-protected - requires auth but accessible before dashboard) */}
+          <Route path="/subscription" element={
+            <ProtectedRoute>
+              <Subscription />
+            </ProtectedRoute>
           } />
 
           {/* Protected routes */}
