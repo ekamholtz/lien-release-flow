@@ -23,13 +23,7 @@ export function ProjectSelector({ value, onChange }: ProjectSelectorProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newProject, setNewProject] = useState({
-    name: '',
-    client: '',
-    value: '',
-    status: 'active',
-    start_date: new Date().toISOString().split('T')[0],
-  });
+  const [newProjectName, setNewProjectName] = useState('');
 
   useEffect(() => {
     fetchProjects();
@@ -62,36 +56,24 @@ export function ProjectSelector({ value, onChange }: ProjectSelectorProps) {
   };
 
   const handleCreateProject = async () => {
-    if (!newProject.name || !newProject.client || !newProject.value) {
+    if (!newProjectName.trim()) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields.",
+        description: "Please enter a project name.",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      // Convert value string to number for DB
-      const projectValue = parseFloat(newProject.value);
-      
-      if (isNaN(projectValue)) {
-        toast({
-          title: "Invalid value",
-          description: "Project value must be a number.",
-          variant: "destructive"
-        });
-        return;
-      }
-
       const { data, error } = await supabase
         .from('projects')
         .insert({
-          name: newProject.name,
-          client: newProject.client,
-          value: projectValue,
-          status: newProject.status,
-          start_date: newProject.start_date
+          name: newProjectName,
+          client: 'TBD', // Default value for required field
+          value: 0, // Default value for required field
+          status: 'active', // Default value
+          start_date: new Date().toISOString().split('T')[0] // Default to today
         })
         .select();
 
@@ -99,17 +81,11 @@ export function ProjectSelector({ value, onChange }: ProjectSelectorProps) {
 
       toast({
         title: "Project created",
-        description: `Project ${newProject.name} has been created successfully.`
+        description: `Project ${newProjectName} has been created successfully.`
       });
 
       // Reset form
-      setNewProject({
-        name: '',
-        client: '',
-        value: '',
-        status: 'active',
-        start_date: new Date().toISOString().split('T')[0],
-      });
+      setNewProjectName('');
       
       // Close dialog
       setIsDialogOpen(false);
@@ -165,37 +141,14 @@ export function ProjectSelector({ value, onChange }: ProjectSelectorProps) {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="projectName" className="text-right">
-                Name*
+                Project Name*
               </Label>
               <Input
                 id="projectName"
-                value={newProject.name}
-                onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
                 className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="projectClient" className="text-right">
-                Client*
-              </Label>
-              <Input
-                id="projectClient"
-                value={newProject.client}
-                onChange={(e) => setNewProject({...newProject, client: e.target.value})}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="projectValue" className="text-right">
-                Value*
-              </Label>
-              <Input
-                id="projectValue"
-                type="number"
-                value={newProject.value}
-                onChange={(e) => setNewProject({...newProject, value: e.target.value})}
-                className="col-span-3"
-                placeholder="0.00"
+                autoFocus
               />
             </div>
           </div>
