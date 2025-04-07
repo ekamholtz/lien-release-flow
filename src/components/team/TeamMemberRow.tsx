@@ -24,21 +24,32 @@ import { useToast } from '@/hooks/use-toast';
 
 interface TeamMemberRowProps {
   member: DbTeamMember;
+  onStatusChange: (id: string, status: string) => Promise<{ success: boolean, error?: string }>;
 }
 
-export function TeamMemberRow({ member }: TeamMemberRowProps) {
+export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
   const { toast } = useToast();
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  const handleStatusToggle = () => {
+  const handleStatusToggle = async () => {
     const newStatus = member.status === 'active' ? 'inactive' : 'active';
-    toast({
-      title: "Status updated",
-      description: `${member.first_name} ${member.last_name} is now ${newStatus}.`,
-    });
+    const result = await onStatusChange(member.id, newStatus);
+    
+    if (result.success) {
+      toast({
+        title: "Status updated",
+        description: `${member.first_name} ${member.last_name} is now ${newStatus}.`,
+      });
+    } else {
+      toast({
+        title: "Failed to update status",
+        description: result.error || "An error occurred while updating status.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -63,10 +74,12 @@ export function TeamMemberRow({ member }: TeamMemberRowProps) {
           variant={member.status === 'active' ? "default" : "outline"}
           className={member.status === 'active' 
             ? "bg-green-100 text-green-700 hover:bg-green-100" 
-            : "bg-gray-100 text-gray-700 hover:bg-gray-100"
+            : member.status === 'pending'
+              ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-100"
           }
         >
-          {member.status === 'active' ? 'Active' : 'Inactive'}
+          {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
         </Badge>
       </TableCell>
       <TableCell className="text-right">
@@ -83,19 +96,21 @@ export function TeamMemberRow({ member }: TeamMemberRowProps) {
               <Mail className="mr-2 h-4 w-4" />
               <span>Email</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleStatusToggle}>
-              {member.status === 'active' ? (
-                <>
-                  <UserX className="mr-2 h-4 w-4" />
-                  <span>Deactivate</span>
-                </>
-              ) : (
-                <>
-                  <UserCheck className="mr-2 h-4 w-4" />
-                  <span>Activate</span>
-                </>
-              )}
-            </DropdownMenuItem>
+            {member.status !== 'pending' && (
+              <DropdownMenuItem onClick={handleStatusToggle}>
+                {member.status === 'active' ? (
+                  <>
+                    <UserX className="mr-2 h-4 w-4" />
+                    <span>Deactivate</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    <span>Activate</span>
+                  </>
+                )}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <Edit className="mr-2 h-4 w-4" />
