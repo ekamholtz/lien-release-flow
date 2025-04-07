@@ -1,38 +1,41 @@
 
-import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { IntegrationsSettings } from '@/components/settings/IntegrationsSettings';
-import { AccountSettings } from '@/components/settings/AccountSettings';
-import { SecuritySettings } from '@/components/settings/SecuritySettings';
-import { NotificationsSettings } from '@/components/settings/NotificationsSettings';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AccountSettings } from "./AccountSettings";
+import { NotificationsSettings } from "./NotificationsSettings";
+import { SecuritySettings } from "./SecuritySettings";
+import { IntegrationsSettings } from "./IntegrationsSettings";
+import { DocumentsTab } from "../documents/DocumentsTab";
 
-export const SettingsTabs = () => {
+export function SettingsTabs() {
   return (
     <Tabs defaultValue="account" className="w-full">
-      <div className="overflow-x-auto">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full mb-4">
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-        </TabsList>
-      </div>
-
-      <TabsContent value="account" className="space-y-4">
+      <TabsList className="grid grid-cols-5 w-full max-w-3xl mb-8">
+        <TabsTrigger value="account">Account</TabsTrigger>
+        <TabsTrigger value="security">Security</TabsTrigger>
+        <TabsTrigger value="notifications">Notifications</TabsTrigger>
+        <TabsTrigger value="integrations">Integrations</TabsTrigger>
+        <TabsTrigger value="documents">Documents</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="account">
         <AccountSettings />
       </TabsContent>
-
-      <TabsContent value="integrations" className="space-y-4">
-        <IntegrationsSettings />
-      </TabsContent>
-
-      <TabsContent value="security" className="space-y-4">
+      
+      <TabsContent value="security">
         <SecuritySettings />
       </TabsContent>
-
-      <TabsContent value="notifications" className="space-y-4">
+      
+      <TabsContent value="notifications">
         <NotificationsSettings />
+      </TabsContent>
+      
+      <TabsContent value="integrations">
+        <IntegrationsSettings />
+      </TabsContent>
+      
+      <TabsContent value="documents">
+        <DocumentsTab />
       </TabsContent>
     </Tabs>
   );
-};
+}
