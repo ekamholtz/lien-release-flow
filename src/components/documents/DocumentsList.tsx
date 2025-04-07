@@ -27,10 +27,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
-import { type Document } from '@/hooks/useDocuments';
+import { type Document as DocType } from '@/hooks/useDocuments';
 
 interface DocumentsListProps {
-  documents: Document[];
+  documents: DocType[];
   loading: boolean;
   onDeleteDocument: (id: string, filePath: string) => Promise<{ success: boolean, error?: string }>;
   getDocumentUrl: (filePath: string) => Promise<string | null>;
@@ -44,9 +44,9 @@ export function DocumentsList({
 }: DocumentsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleDownload = async (document: Document) => {
+  const handleDownload = async (doc: DocType) => {
     try {
-      const url = await getDocumentUrl(document.file_path);
+      const url = await getDocumentUrl(doc.file_path);
       
       if (!url) {
         toast.error('Could not generate download link');
@@ -54,12 +54,12 @@ export function DocumentsList({
       }
       
       // Create temporary link and trigger download
-      const link = document.createElement('a');
+      const link = window.document.createElement('a');
       link.href = url;
-      link.download = document.name;
-      document.body.appendChild(link);
+      link.download = doc.name;
+      window.document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      window.document.body.removeChild(link);
     } catch (error) {
       console.error('Error downloading document:', error);
       toast.error('Failed to download document');
@@ -136,31 +136,31 @@ export function DocumentsList({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {documents.map((document) => (
-        <Card key={document.id} className="overflow-hidden">
+      {documents.map((doc) => (
+        <Card key={doc.id} className="overflow-hidden">
           <CardHeader className="bg-muted/50 p-4 flex flex-row items-center space-x-4">
-            {getFileIcon(document.file_type)}
+            {getFileIcon(doc.file_type)}
             <div className="flex-1 overflow-hidden">
-              <h3 className="font-medium text-base truncate">{document.name}</h3>
+              <h3 className="font-medium text-base truncate">{doc.name}</h3>
               <p className="text-xs text-muted-foreground">
-                {formatFileSize(document.file_size)} • {formatDate(document.created_at)}
+                {formatFileSize(doc.file_size)} • {formatDate(doc.created_at)}
               </p>
             </div>
           </CardHeader>
           
           <CardContent className="p-4">
-            {document.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{document.description}</p>
+            {doc.description && (
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{doc.description}</p>
             )}
             
             <div className="flex flex-wrap gap-1 mt-2">
-              {document.category && (
+              {doc.category && (
                 <Badge variant="outline" className="text-xs">
-                  {document.category}
+                  {doc.category}
                 </Badge>
               )}
               
-              {document.tags && document.tags.map((tag) => (
+              {doc.tags && doc.tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="text-xs">
                   {tag}
                 </Badge>
@@ -173,7 +173,7 @@ export function DocumentsList({
               variant="outline" 
               size="sm" 
               className="flex-1 mr-2"
-              onClick={() => handleDownload(document)}
+              onClick={() => handleDownload(doc)}
             >
               <Download className="h-4 w-4 mr-2" />
               Download
@@ -185,7 +185,7 @@ export function DocumentsList({
                   variant="destructive" 
                   size="sm"
                   className="flex-none"
-                  disabled={deletingId === document.id}
+                  disabled={deletingId === doc.id}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -195,7 +195,7 @@ export function DocumentsList({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Document</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete "{document.name}"? This action cannot be undone.
+                    Are you sure you want to delete "{doc.name}"? This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 
@@ -204,7 +204,7 @@ export function DocumentsList({
                   <AlertDialogAction
                     onClick={(e) => {
                       e.preventDefault();
-                      handleDelete(document.id, document.file_path);
+                      handleDelete(doc.id, doc.file_path);
                     }}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >

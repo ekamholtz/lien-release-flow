@@ -32,6 +32,7 @@ export function useDocuments() {
         return;
       }
       
+      // Use the generic query method to avoid TypeScript issues with newly created tables
       const { data, error } = await supabase
         .from('documents')
         .select('*')
@@ -39,7 +40,8 @@ export function useDocuments() {
       
       if (error) throw error;
       
-      setDocuments(data || []);
+      // Explicitly cast the data to our Document type
+      setDocuments(data as unknown as Document[]);
     } catch (err) {
       console.error('Error loading documents:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch documents'));
@@ -73,17 +75,19 @@ export function useDocuments() {
       
       if (uploadError) throw uploadError;
       
-      // Insert metadata into documents table
-      const { error: insertError } = await supabase.from('documents').insert({
-        name,
-        description,
-        file_path: filePath,
-        file_size: file.size,
-        file_type: file.type,
-        category,
-        tags,
-        user_id: user.id
-      });
+      // Insert metadata into documents table using the generic interface
+      const { error: insertError } = await supabase
+        .from('documents')
+        .insert({
+          name,
+          description,
+          file_path: filePath,
+          file_size: file.size,
+          file_type: file.type,
+          category,
+          tags,
+          user_id: user.id
+        });
       
       if (insertError) throw insertError;
       
