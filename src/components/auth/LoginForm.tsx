@@ -66,13 +66,21 @@ export function LoginForm() {
           
           // If user has an active subscription, redirect to dashboard
           // Otherwise, redirect to subscription page
-          const from = (location.state as any)?.from?.pathname || '/dashboard'; // Default to dashboard
-          
           if (subscriptionData?.data && 
               (subscriptionData.data.status === 'active' || subscriptionData.data.status === 'trialing')) {
+            // Always navigate to dashboard for users with active subscriptions
             navigate('/dashboard');
           } else {
-            navigate('/subscription');
+            // Check if there's a redirect stored in location state
+            const from = (location.state as any)?.from?.pathname;
+            
+            // If they were trying to access a protected route, send them to that route
+            // Otherwise send them to subscription page
+            if (from && from !== '/auth' && from !== '/') {
+              navigate(from);
+            } else {
+              navigate('/subscription');
+            }
           }
         } catch (subError) {
           console.error('Error in subscription check:', subError);

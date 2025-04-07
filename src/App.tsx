@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { Toaster } from '@/components/ui/toaster';
@@ -43,10 +42,10 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  // If user is authenticated, redirect to dashboard (changed default to dashboard from subscription)
+  // If user is authenticated, redirect to dashboard 
   if (user) {
-    const from = (location.state as any)?.from?.pathname || '/dashboard';
-    return <Navigate to={from} replace />;
+    // Always redirect to dashboard if user is authenticated
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

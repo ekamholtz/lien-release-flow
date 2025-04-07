@@ -11,11 +11,45 @@ export async function handleCheckoutSessionCompleted(event: any, stripe: Stripe,
   // Get customer and subscription details from the session
   const customerId = checkoutSession.customer;
   const subscriptionId = checkoutSession.subscription;
-  const userId = checkoutSession.client_reference_id; // This should be set during checkout creation
+  let userId = checkoutSession.client_reference_id; // This should be set during checkout creation
+  
+  // If userId is missing, try to find it from customer data or customer metadata
+  if (!userId && customerId) {
+    console.log(`⚠️ Missing user_id in checkout session, attempting to find from customer: ${customerId}`);
+    
+    try {
+      // First, check if we already have this customer mapped to a user in our subscriptions table
+      const { data: existingCustomer } = await supabase
+        .from('subscriptions')
+        .select('user_id')
+        .eq('stripe_customer_id', customerId)
+        .maybeSingle();
+        
+      if (existingCustomer?.user_id) {
+        console.log(`✅ Found user_id ${existingCustomer.user_id} from existing customer record`);
+        userId = existingCustomer.user_id;
+      } else if (checkoutSession.customer_details?.email) {
+        // If we don't have a mapping, try to find the user by email
+        const { data: userByEmail } = await supabase
+          .from('auth')
+          .select('users.id')
+          .eq('users.email', checkoutSession.customer_details.email)
+          .maybeSingle();
+          
+        if (userByEmail?.id) {
+          console.log(`✅ Found user_id ${userByEmail.id} by email lookup`);
+          userId = userByEmail.id;
+        }
+      }
+    } catch (err) {
+      console.error('Error looking up user from customer:', err);
+    }
+  }
   
   if (!userId) {
-    console.warn('⚠️ Missing user_id in checkout session');
-    return;
+    console.warn('⚠️ Missing user_id in checkout session and could not find via customer');
+    // We'll still proceed to record the subscription, but without a user association
+    // The user will need to be associated later
   }
   
   if (subscriptionId) {
@@ -24,41 +58,64 @@ export async function handleCheckoutSessionCompleted(event: any, stripe: Stripe,
     const planId = subscription.items.data[0].price.id;
     const planName = subscription.items.data[0].price.nickname || 'Default Plan';
     
-    // Check if a subscription record exists for this user
-    const { data: existingSubscription } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-      
-    if (existingSubscription) {
-      // Update existing subscription
-      const { error } = await supabase
+    if (userId) {
+      // Check if a subscription record exists for this user
+      const { data: existingSubscription } = await supabase
         .from('subscriptions')
-        .update({
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptionId,
-          status: subscription.status,
-          plan_id: planId,
-          plan_name: planName,
-          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          cancel_at_period_end: subscription.cancel_at_period_end,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
         
-      if (error) {
-        console.error('Error updating subscription record:', error);
+      if (existingSubscription) {
+        // Update existing subscription
+        const { error } = await supabase
+          .from('subscriptions')
+          .update({
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            status: subscription.status,
+            plan_id: planId,
+            plan_name: planName,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+          
+        if (error) {
+          console.error('Error updating subscription record:', error);
+        } else {
+          console.log(`✅ Successfully updated subscription for user ${userId}`);
+        }
       } else {
-        console.log(`✅ Successfully updated subscription for user ${userId}`);
+        // Create new subscription
+        const { error } = await supabase
+          .from('subscriptions')
+          .insert({
+            user_id: userId,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            status: subscription.status,
+            plan_id: planId,
+            plan_name: planName,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end
+          });
+            
+        if (error) {
+          console.error('Error creating subscription record:', error);
+        } else {
+          console.log(`✅ Successfully created subscription for user ${userId}`);
+        }
       }
-    } else {
-      // Create new subscription
+    } else if (customerId) {
+      // Store the subscription with customer ID only for now
+      // We'll associate it with a user later when they log in
       const { error } = await supabase
         .from('subscriptions')
         .insert({
-          user_id: userId,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
           status: subscription.status,
@@ -70,9 +127,9 @@ export async function handleCheckoutSessionCompleted(event: any, stripe: Stripe,
         });
           
       if (error) {
-        console.error('Error creating subscription record:', error);
+        console.error('Error creating orphaned subscription record:', error);
       } else {
-        console.log(`✅ Successfully created subscription for user ${userId}`);
+        console.log(`✅ Created subscription without user association for customer ${customerId}`);
       }
     }
   } else {
@@ -106,7 +163,7 @@ export async function handleSubscriptionCreated(event: any, stripe: Stripe, supa
     return;
   }
   
-  if (!userData) {
+  if (!userData?.user_id) {
     console.log(`⚠️ No user found for customer ${customerId}, will be linked when customer completes checkout`);
     return;
   }

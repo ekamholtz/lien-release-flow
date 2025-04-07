@@ -72,12 +72,14 @@ const Subscription = () => {
             current_period_end: functionData.data.current_period_end,
           });
           
-          // If user has an active subscription and we're on the subscription page directly (not from success param),
-          // redirect them to dashboard if they aren't processing a new subscription
+          // If user has an active subscription and we're not processing a checkout result,
+          // redirect them to dashboard
           const params = new URLSearchParams(location.search);
           const isSuccess = params.get('success') === 'true';
+          const isCanceled = params.get('canceled') === 'true';
           
-          if ((functionData.data.status === 'active' || functionData.data.status === 'trialing') && !isSuccess) {
+          if ((functionData.data.status === 'active' || functionData.data.status === 'trialing') && 
+              !isSuccess && !isCanceled) {
             navigate('/dashboard');
           }
         }
@@ -108,7 +110,11 @@ const Subscription = () => {
         title: 'Subscription Successful',
         description: 'Your subscription has been processed successfully.',
       });
-      navigate('/dashboard');
+      
+      // Add a small delay before redirecting to ensure the toast is shown
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
     }
     
     if (params.get('canceled') === 'true') {
@@ -119,7 +125,7 @@ const Subscription = () => {
     }
 
     return () => {
-      if (scriptRef.current) {
+      if (scriptRef.current && document.body.contains(scriptRef.current)) {
         document.body.removeChild(scriptRef.current);
       }
     };
@@ -193,6 +199,6 @@ const Subscription = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Subscription;
