@@ -10,7 +10,8 @@ import {
   Users, 
   BarChart3, 
   Mail,
-  LogOut
+  LogOut,
+  Files
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ export function AppSidebar() {
     { to: '/accounts-payable', icon: <ArrowLeftRight className="h-5 w-5" />, text: 'Accounts Payable' },
     { to: '/accounts-receivable', icon: <ArrowDownToLine className="h-5 w-5" />, text: 'Accounts Receivable' },
     { to: '/lien-release', icon: <FileText className="h-5 w-5" />, text: 'Lien Release' },
+    { to: '/documents', icon: <Files className="h-5 w-5" />, text: 'Documents' },
     { to: '/team', icon: <Users className="h-5 w-5" />, text: 'Team' },
     { to: '/reports', icon: <BarChart3 className="h-5 w-5" />, text: 'Reports' },
     { to: '/integrations', icon: <Mail className="h-5 w-5" />, text: 'Integrations' },
