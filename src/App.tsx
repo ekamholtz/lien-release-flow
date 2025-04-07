@@ -43,9 +43,9 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  // If user is authenticated, redirect to dashboard or the page they were trying to access before login
+  // If user is authenticated, redirect to dashboard (changed default to dashboard from subscription)
   if (user) {
-    const from = (location.state as any)?.from?.pathname || '/subscription'; // Changed default redirect to subscription
+    const from = (location.state as any)?.from?.pathname || '/dashboard';
     return <Navigate to={from} replace />;
   }
 
@@ -65,7 +65,7 @@ function App() {
             </PublicOnlyRoute>
           } />
 
-          {/* Subscription route (semi-protected - requires auth but accessible before dashboard) */}
+          {/* Subscription route (requires auth) */}
           <Route path="/subscription" element={
             <ProtectedRoute>
               <Subscription />

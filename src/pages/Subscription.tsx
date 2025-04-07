@@ -43,7 +43,7 @@ const Subscription = () => {
     }
   }, [user, navigate]);
 
-  // Load user's subscription data
+  // Load user's subscription data and redirect if they already have an active subscription
   useEffect(() => {
     async function fetchSubscription() {
       if (!user) return;
@@ -71,6 +71,15 @@ const Subscription = () => {
             plan_name: functionData.data.plan_name,
             current_period_end: functionData.data.current_period_end,
           });
+          
+          // If user has an active subscription and we're on the subscription page directly (not from success param),
+          // redirect them to dashboard if they aren't processing a new subscription
+          const params = new URLSearchParams(location.search);
+          const isSuccess = params.get('success') === 'true';
+          
+          if ((functionData.data.status === 'active' || functionData.data.status === 'trialing') && !isSuccess) {
+            navigate('/dashboard');
+          }
         }
       } catch (err) {
         console.error('Error in subscription fetch:', err);
@@ -80,9 +89,9 @@ const Subscription = () => {
     }
     
     fetchSubscription();
-  }, [user, toast]);
+  }, [user, toast, navigate, location.search]);
 
-  // Load Stripe pricing table script
+  // Load Stripe pricing table script and handle success redirects
   useEffect(() => {
     if (!scriptRef.current) {
       const script = document.createElement('script');

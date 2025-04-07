@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -53,14 +52,33 @@ export function LoginForm() {
         description: "Welcome back to PaymentFlow!",
       });
       
-      // Check if the user has an active subscription
-      // For now, we'll redirect all users to the subscription page
-      // In a real app, you would check if they have an active subscription first
-      
-      // Get the redirect path from location state or default to subscription
-      const from = (location.state as any)?.from?.pathname || '/subscription';
-      navigate(from);
-      
+      // After successful login, check if the user has an active subscription
+      const user = data.user;
+      if (user) {
+        try {
+          const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('get-subscription', {
+            body: { userId: user.id }
+          });
+          
+          if (subscriptionError) {
+            console.error('Error checking subscription:', subscriptionError);
+          }
+          
+          // If user has an active subscription, redirect to dashboard
+          // Otherwise, redirect to subscription page
+          const from = (location.state as any)?.from?.pathname || '/dashboard'; // Default to dashboard
+          
+          if (subscriptionData?.data && 
+              (subscriptionData.data.status === 'active' || subscriptionData.data.status === 'trialing')) {
+            navigate('/dashboard');
+          } else {
+            navigate('/subscription');
+          }
+        } catch (subError) {
+          console.error('Error in subscription check:', subError);
+          navigate('/subscription'); // Default to subscription page if check fails
+        }
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       toast({
