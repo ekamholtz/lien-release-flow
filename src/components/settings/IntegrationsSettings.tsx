@@ -30,38 +30,10 @@ export function IntegrationsSettings() {
       .catch(() => setQboStatus("not_connected"));
   }, [user, session]);
 
-  const handleConnectQbo = async () => {
+  const handleConnectQbo = () => {
     setConnecting(true);
-    try {
-      // Call the edge function to get the Intuit OAuth2 authorization redirect
-      const res = await fetch(
-        "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
-        {
-          method: "POST",
-          headers: {
-            Authorization: session?.access_token ? `Bearer ${session.access_token}` : "",
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      // The edge function should respond with a redirect, so browser fetch won't follow it.
-      // Instead, we should let the browser redirect directly.
-      if (res.status === 302) {
-        const redirectUrl = res.headers.get("location");
-        if (redirectUrl) {
-          window.location.href = redirectUrl;
-          return;
-        }
-      } else {
-        // fallback: open directly
-        window.location.href = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
-      }
-    } catch (e) {
-      console.error("QBO connect error", e);
-      alert("Could not connect to QuickBooks Online. Please try again later.");
-    } finally {
-      setConnecting(false);
-    }
+    // Redirect to edge function via GET, which will redirect onward to QBO OAuth
+    window.location.href = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
   };
 
   return (
