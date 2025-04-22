@@ -40,18 +40,17 @@ export function IntegrationsSettings() {
       });
   }, [user, session]);
 
-  // Handler: simplified window.location redirect approach
+  // Handler: fetch to the edge function (Bearer JWT), redirect to Intuit
   const handleConnectQbo = async () => {
     setConnecting(true);
     setError(null);
     setDebugInfo(null);
 
     try {
-      // Get a fresh session to ensure token is fresh
-      const { data } = await supabase.auth.getSession();
-      const sessionToken = data?.session?.access_token;
-
-      if (!sessionToken) {
+      // 1. Get current session / access token
+      const { data: { session: latestSession } } = await supabase.auth.getSession();
+      const jwt = latestSession?.access_token;
+      if (!jwt) {
         setConnecting(false);
         toast({
           title: "Authentication Required",
@@ -61,16 +60,63 @@ export function IntegrationsSettings() {
         return;
       }
 
-      // Simple redirect with token as query param
-      const edgeUrl = `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize?token=${encodeURIComponent(sessionToken)}`;
-      console.log("Redirecting to:", edgeUrl);
-      
-      // Direct redirect - the browser will handle the rest
-      window.location.href = edgeUrl;
-    } catch (error) {
-      console.error("Error initiating QBO connection:", error);
+      // 2. Call the protected edge function with the Authorization header
+      const res = await fetch(
+        "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
+        {
+          headers: {
+            Authorization: `Bearer ${jwt}`,
+          }
+        }
+      );
+
+      if (!res.ok) {
+        const msg = await res.text();
+        setConnecting(false);
+        setError(`authorize failed: ${res.status} ${msg}`);
+        toast({
+          title: "Could not start QuickBooks connection",
+          description: msg || "Unknown error.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // 3. Expect either JSON or a 302 redirect, depending on backend logic. Handle both possibilities.
+      let intuitUrl: string | undefined;
+      const contentType = res.headers.get("content-type") || "";
+      if (res.redirected && res.url) {
+        intuitUrl = res.url;
+      } else if (contentType.includes("application/json")) {
+        const body = await res.json();
+        if (body && body.intuit_oauth_url) {
+          intuitUrl = body.intuit_oauth_url;
+        }
+      }
+
+      if (!intuitUrl) {
+        setConnecting(false);
+        setError("Failed to get Intuit URL from authorize response");
+        toast({
+          title: "Could not start QuickBooks connection",
+          description: "Failed to get Intuit authorization URL.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // 4. Redirect the browser to the Intuit authorization URL
+      window.location.replace(intuitUrl);
+
+    } catch (error: any) {
+      console.error("QBO connect error:", error);
       setConnecting(false);
-      setError("Failed to initiate QuickBooks connection");
+      setError("Could not start QuickBooks connection");
+      toast({
+        title: "Could not start QuickBooks connection",
+        description: error.message || String(error),
+        variant: "destructive"
+      });
     }
   };
 
