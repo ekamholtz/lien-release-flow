@@ -96,10 +96,10 @@ const Integrations = () => {
         return;
       }
       
-      // Construct URL with token param
+      // Simple redirect with token as query param
       const edgeUrl = `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize?token=${encodeURIComponent(sessionToken)}`;
       
-      // Redirect
+      // Direct redirect - the browser will handle the rest
       window.location.href = edgeUrl;
     } catch (error) {
       console.error("Error connecting to QBO:", error);

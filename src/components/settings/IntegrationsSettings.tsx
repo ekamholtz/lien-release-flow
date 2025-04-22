@@ -40,31 +40,38 @@ export function IntegrationsSettings() {
       });
   }, [user, session]);
 
-  // Handler: full-page redirect with JWT in query param
+  // Handler: simplified window.location redirect approach
   const handleConnectQbo = async () => {
     setConnecting(true);
     setError(null);
     setDebugInfo(null);
 
-    // Get a fresh session to ensure token is fresh
-    const { data, error: sessionError } = await supabase.auth.getSession();
-    const sessionToken = data?.session?.access_token;
+    try {
+      // Get a fresh session to ensure token is fresh
+      const { data } = await supabase.auth.getSession();
+      const sessionToken = data?.session?.access_token;
 
-    if (!sessionToken) {
+      if (!sessionToken) {
+        setConnecting(false);
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in again before connecting QuickBooks Online.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Simple redirect with token as query param
+      const edgeUrl = `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize?token=${encodeURIComponent(sessionToken)}`;
+      console.log("Redirecting to:", edgeUrl);
+      
+      // Direct redirect - the browser will handle the rest
+      window.location.href = edgeUrl;
+    } catch (error) {
+      console.error("Error initiating QBO connection:", error);
       setConnecting(false);
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in again before connecting QuickBooks Online.",
-        variant: "destructive"
-      });
-      return;
+      setError("Failed to initiate QuickBooks connection");
     }
-
-    // Construct URL with token param
-    const edgeUrl = `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize?token=${encodeURIComponent(sessionToken)}`;
-
-    // Redirect
-    window.location.href = edgeUrl;
   };
 
   return (
