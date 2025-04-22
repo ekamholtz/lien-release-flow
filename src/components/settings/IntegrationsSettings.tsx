@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -47,3 +48,4 @@ export function IntegrationsSettings() {
     </div>
   )
 }
+
