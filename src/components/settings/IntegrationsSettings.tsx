@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,8 @@ export function IntegrationsSettings() {
       });
   }, [user, session]);
 
-  const handleConnectQbo = async () => {
+  // New handler: simple full-page redirect, no fetch
+  const handleConnectQbo = () => {
     if (!session) {
       toast({
         title: "Authentication Required",
@@ -51,76 +53,8 @@ export function IntegrationsSettings() {
     setError(null);
     setDebugInfo(null);
 
-    try {
-      console.log("Initiating QBO connection...");
-      // 1. Call qbo-authorize with Authorization header
-      const response = await fetch(
-        "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
-        {
-          method: "POST", // Use POST to avoid browser cache issues and allow CORS
-          headers: {
-            "Authorization": `Bearer ${session.access_token}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
-
-      console.log("QBO authorize response status:", response.status);
-      
-      const responseText = await response.text();
-      console.log("QBO authorize response:", responseText);
-      
-      if (!response.ok) {
-        throw new Error(responseText || "Failed to connect to QuickBooks Online");
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error("Failed to parse JSON response:", e);
-        throw new Error("Invalid response from server");
-      }
-
-      if (data?.intuit_oauth_url) {
-        console.log("Redirecting to Intuit OAuth URL...");
-        setDebugInfo(`Redirect URL: ${data.intuit_oauth_url.substring(0, 50)}...`);
-        
-        // Add a small delay before redirecting to ensure logs are visible
-        setTimeout(() => {
-          // 2. Redirect user to Intuit OAuth
-          window.location.href = data.intuit_oauth_url;
-        }, 500);
-      } else {
-        console.error("Missing OAuth URL in response:", data);
-        throw new Error("Unexpected response. Could not start QuickBooks Online connection.");
-      }
-    } catch (error: any) {
-      console.error("QBO connect error:", error);
-      
-      // Try to extract error message from JSON if possible
-      let errorMessage = "Could not connect to QuickBooks Online. Please try again.";
-      
-      if (typeof error === "string") {
-        errorMessage = error;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      } else if (error?.error) {
-        errorMessage = error.error;
-      }
-      
-      setError(errorMessage);
-      toast({
-        title: "Connection Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
-    } finally {
-      // Keep connecting true if we're about to redirect
-      if (error) {
-        setConnecting(false);
-      }
-    }
+    // Use the full Supabase function URL for maximum reliability
+    window.location.href = `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize`;
   };
 
   return (
@@ -167,3 +101,4 @@ export function IntegrationsSettings() {
     </div>
   );
 }
+
