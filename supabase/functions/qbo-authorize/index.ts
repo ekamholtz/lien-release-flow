@@ -2,7 +2,7 @@
 /**
  * Edge function: qbo-authorize
  * - Verifies JWT (user must be signed-in)
- * - Responds with Intuit OAuth2 authorize URL with scopes for QBO
+ * - Responds with Intuit OAuth2 authorize URL with scopes for QBO (302 redirect)
  */
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -80,10 +80,9 @@ serve(async (req) => {
   });
 
   const oauthUrl = `${authorizeBase}?${params.toString()}`;
-  console.log("Generated OAuth URL (anonymized):", oauthUrl.replace(INTUIT_CLIENT_ID, "CLIENT_ID_HIDDEN"));
-
-  return new Response(JSON.stringify({ intuit_oauth_url: oauthUrl }), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  // Remove JSON response and instead return HTTP 302 redirect
+  return new Response(null, {
+    status: 302,
+    headers: { ...corsHeaders, Location: oauthUrl },
   });
 });
