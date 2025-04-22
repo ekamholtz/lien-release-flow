@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle } from "lucide-react";
 
 /**
@@ -39,22 +40,31 @@ export function IntegrationsSettings() {
       });
   }, [user, session]);
 
-  // New handler: simple full-page redirect, no fetch
-  const handleConnectQbo = () => {
-    if (!session) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in before connecting QuickBooks Online.",
-        variant: "destructive"
-      });
-      return;
-    }
+  // Handler: full-page redirect with JWT in query param
+  const handleConnectQbo = async () => {
     setConnecting(true);
     setError(null);
     setDebugInfo(null);
 
-    // Use the full Supabase function URL for maximum reliability
-    window.location.href = `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize`;
+    // Get a fresh session to ensure token is fresh
+    const { data, error: sessionError } = await supabase.auth.getSession();
+    const sessionToken = data?.session?.access_token;
+
+    if (!sessionToken) {
+      setConnecting(false);
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in again before connecting QuickBooks Online.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Construct URL with token param
+    const edgeUrl = `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize?token=${encodeURIComponent(sessionToken)}`;
+
+    // Redirect
+    window.location.href = edgeUrl;
   };
 
   return (
@@ -101,4 +111,3 @@ export function IntegrationsSettings() {
     </div>
   );
 }
-
