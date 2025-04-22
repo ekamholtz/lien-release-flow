@@ -40,9 +40,26 @@ serve(async (req) => {
   // "sub" from the access_token is the user_id
   let user_id: string | undefined;
   try {
+    let token: string | undefined;
+    
+    // First try to get token from Authorization header
     const authHeader = req.headers.get("authorization") || "";
-    const [bearer, token] = authHeader.split(" ");
-    if (bearer !== "Bearer" || !token) throw new Error("Invalid/missing auth header");
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    }
+    
+    // If no token in header, try to get it from URL query param
+    if (!token) {
+      const url = new URL(req.url);
+      token = url.searchParams.get("token") || undefined;
+    }
+    
+    // If still no token, throw error
+    if (!token) {
+      throw new Error("No token provided in Authorization header or URL param");
+    }
+    
+    // Parse the JWT payload
     const payload = JSON.parse(
       atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
     );
@@ -52,7 +69,7 @@ serve(async (req) => {
     console.log("Successfully authenticated user:", user_id);
   } catch (e) {
     console.error("Authentication error:", e);
-    return new Response(JSON.stringify({ error: "Unauthorized: Invalid/missing authorization header" }), {
+    return new Response(JSON.stringify({ error: "Unauthorized: Invalid/missing token" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
