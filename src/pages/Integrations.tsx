@@ -6,6 +6,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from '@/components/ui/button';
 import { AiAssistant } from '@/components/dashboard/AiAssistant';
 import { CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const IntegrationCard = ({ 
   title, 
@@ -86,23 +87,20 @@ const Integrations = () => {
     if (!session?.access_token) return;
     
     try {
-      const response = await fetch(
-        "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${session.access_token}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
+      // Get the current session token
+      const { data } = await supabase.auth.getSession();
+      const sessionToken = data?.session?.access_token;
       
-      const data = await response.json();
-      
-      if (data?.intuit_oauth_url) {
-        console.log("Redirecting to Intuit OAuth URL...");
-        window.location.href = data.intuit_oauth_url;
+      if (!sessionToken) {
+        console.error("No active session found");
+        return;
       }
+      
+      // Construct URL with token param
+      const edgeUrl = `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize?token=${encodeURIComponent(sessionToken)}`;
+      
+      // Redirect
+      window.location.href = edgeUrl;
     } catch (error) {
       console.error("Error connecting to QBO:", error);
     }
