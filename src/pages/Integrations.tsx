@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { AppHeader } from '@/components/AppHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from '@/components/ui/button';
@@ -11,13 +12,15 @@ const IntegrationCard = ({
   description, 
   icon, 
   isConnected = false, 
-  buttonText = "Connect" 
+  buttonText = "Connect",
+  onButtonClick,
 }: { 
   title: string; 
   description: string; 
   icon: string; 
   isConnected?: boolean; 
   buttonText?: string;
+  onButtonClick?: () => void;
 }) => (
   <div className="dashboard-card flex flex-col">
     <div className="flex items-start justify-between mb-4">
@@ -44,6 +47,7 @@ const IntegrationCard = ({
       <Button 
         variant={isConnected ? "outline" : "default"} 
         className={isConnected ? "text-construction-600 border-construction-200" : "bg-construction-600 hover:bg-construction-700"}
+        onClick={onButtonClick}
       >
         {isConnected ? "Manage Connection" : buttonText}
         <ExternalLink className="ml-2 h-4 w-4" />
@@ -53,6 +57,57 @@ const IntegrationCard = ({
 );
 
 const Integrations = () => {
+  const { user, session } = useAuth();
+  const [qboConnected, setQboConnected] = useState(false);
+  
+  useEffect(() => {
+    if (!user || !session?.access_token) return;
+    
+    // Check QBO connection status
+    fetch(
+      `https://oknofqytitpxmlprvekn.supabase.co/rest/v1/qbo_connections?user_id=eq.${user.id}&select=id`,
+      {
+        headers: {
+          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
+          Authorization: `Bearer ${session.access_token}`,
+        }
+      }
+    )
+      .then((r) => r.ok ? r.json() : [])
+      .then((rows) => {
+        setQboConnected(Array.isArray(rows) && rows.length > 0);
+      })
+      .catch((err) => {
+        console.error("Error checking QBO connection:", err);
+      });
+  }, [user, session]);
+
+  const handleConnectQbo = async () => {
+    if (!session?.access_token) return;
+    
+    try {
+      const response = await fetch(
+        "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${session.access_token}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (data?.intuit_oauth_url) {
+        console.log("Redirecting to Intuit OAuth URL...");
+        window.location.href = data.intuit_oauth_url;
+      }
+    } catch (error) {
+      console.error("Error connecting to QBO:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <AppHeader />
@@ -105,7 +160,9 @@ const Integrations = () => {
                   title="QuickBooks Online" 
                   description="Sync invoices and payment data with QuickBooks" 
                   icon="/placeholder.svg" 
-                  isConnected={true}
+                  isConnected={qboConnected}
+                  buttonText="Connect"
+                  onButtonClick={handleConnectQbo}
                 />
                 <IntegrationCard 
                   title="Custom ERP" 

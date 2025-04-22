@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ export function IntegrationsSettings() {
   const [qboStatus, setQboStatus] = useState<"connected" | "not_connected" | "loading">("loading");
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -49,6 +49,7 @@ export function IntegrationsSettings() {
     }
     setConnecting(true);
     setError(null);
+    setDebugInfo(null);
 
     try {
       console.log("Initiating QBO connection...");
@@ -83,8 +84,13 @@ export function IntegrationsSettings() {
 
       if (data?.intuit_oauth_url) {
         console.log("Redirecting to Intuit OAuth URL...");
-        // 2. Redirect user to Intuit OAuth
-        window.location.href = data.intuit_oauth_url;
+        setDebugInfo(`Redirect URL: ${data.intuit_oauth_url.substring(0, 50)}...`);
+        
+        // Add a small delay before redirecting to ensure logs are visible
+        setTimeout(() => {
+          // 2. Redirect user to Intuit OAuth
+          window.location.href = data.intuit_oauth_url;
+        }, 500);
       } else {
         console.error("Missing OAuth URL in response:", data);
         throw new Error("Unexpected response. Could not start QuickBooks Online connection.");
@@ -110,7 +116,10 @@ export function IntegrationsSettings() {
         variant: "destructive"
       });
     } finally {
-      setConnecting(false);
+      // Keep connecting true if we're about to redirect
+      if (error) {
+        setConnecting(false);
+      }
     }
   };
 
@@ -140,6 +149,12 @@ export function IntegrationsSettings() {
         <div className="mt-2 flex items-start gap-2 text-red-600 text-sm">
           <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {debugInfo && (
+        <div className="mt-2 p-2 bg-gray-100 border border-gray-200 rounded text-xs font-mono overflow-auto max-w-full">
+          <p>{debugInfo}</p>
         </div>
       )}
       

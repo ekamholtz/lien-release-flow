@@ -16,7 +16,7 @@ const corsHeaders = {
 // Environment
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID");
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
-// Set a fallback redirect URI if the environment variable is not set
+// Set a specific fallback redirect URI if the environment variable is not set
 const QBO_REDIRECT_URI = Deno.env.get("QBO_REDIRECT_URI") || 
   `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback`;
 
@@ -48,7 +48,10 @@ serve(async (req) => {
     );
     user_id = payload.sub;
     if (!user_id) throw new Error("Missing user_id from token");
+    
+    console.log("Successfully authenticated user:", user_id);
   } catch (e) {
+    console.error("Authentication error:", e);
     return new Response(JSON.stringify({ error: "Unauthorized: Invalid/missing authorization header" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -61,6 +64,7 @@ serve(async (req) => {
   console.log("INTUIT_ENVIRONMENT:", INTUIT_ENVIRONMENT);
 
   if (!INTUIT_CLIENT_ID) {
+    console.error("Missing INTUIT_CLIENT_ID environment variable");
     return new Response(JSON.stringify({ error: "Server configuration error: Missing Intuit client ID" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
