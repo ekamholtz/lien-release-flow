@@ -31,7 +31,7 @@ export function IntegrationsSettings() {
       .catch(() => setQboStatus("not_connected"));
   }, [user, session]);
 
-  const handleConnectQbo = () => {
+  const handleConnectQbo = async () => {
     if (!session) {
       toast({
         title: "Authentication Required",
@@ -40,18 +40,40 @@ export function IntegrationsSettings() {
       });
       return;
     }
-
     setConnecting(true);
+
     try {
-      window.location.href = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
-    } catch (error) {
+      // 1. Call qbo-authorize with Authorization header
+      const response = await fetch(
+        "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
+        {
+          method: "POST", // Use POST to avoid browser cache issues and allow CORS
+          headers: {
+            "Authorization": `Bearer ${session.access_token}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText);
+      }
+
+      const data = await response.json();
+      if (data?.intuit_oauth_url) {
+        // 2. Redirect user to Intuit OAuth
+        window.location.href = data.intuit_oauth_url;
+      } else {
+        throw new Error("Unexpected response. Could not start QuickBooks Online connection.");
+      }
+    } catch (error: any) {
       console.error("QBO connect error", error);
       toast({
         title: "Connection Error",
-        description: "Could not connect to QuickBooks Online. Please try again later.",
+        description: typeof error === "string" ? error : (error?.message || "Could not connect to QuickBooks Online. Please try again."),
         variant: "destructive"
       });
-    } finally {
       setConnecting(false);
     }
   };
@@ -69,8 +91,8 @@ export function IntegrationsSettings() {
               : <span className="text-red-600 font-medium">Not Connected</span>}
         </span>
         {qboStatus !== "connected" && (
-          <Button 
-            onClick={handleConnectQbo} 
+          <Button
+            onClick={handleConnectQbo}
             disabled={qboStatus === "loading" || connecting}
           >
             {connecting ? "Connecting..." : "Connect QuickBooks"}

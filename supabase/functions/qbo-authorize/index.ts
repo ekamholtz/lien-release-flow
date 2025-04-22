@@ -2,10 +2,16 @@
 /**
  * Edge function: qbo-authorize
  * - Verifies JWT (user must be signed-in)
- * - Redirects to Intuit OAuth2 authorize URL with scopes for QBO
+ * - Responds with Intuit OAuth2 authorize URL with scopes for QBO
  */
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 // Environment
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID");
@@ -22,8 +28,12 @@ const authorizeBase =
     ? "https://appcenter.intuit.com/connect/oauth2"
     : "https://sandbox.appcenter.intuit.com/connect/oauth2";
 
-// Handler
 serve(async (req) => {
+  // Handle CORS preflight request
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   // Parse user info from JWT claim
   // "sub" from the access_token is the user_id
   let user_id: string | undefined;
@@ -37,7 +47,10 @@ serve(async (req) => {
     user_id = payload.sub;
     if (!user_id) throw new Error("Missing user_id from token");
   } catch (e) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response(JSON.stringify({ error: "Unauthorized: Invalid/missing authorization header" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const params = new URLSearchParams({
@@ -48,11 +61,10 @@ serve(async (req) => {
     state: user_id, // for tying callback to user
   });
 
-  // Redirect
-  return new Response("", {
-    status: 302,
-    headers: {
-      "location": `${authorizeBase}?${params.toString()}`
-    }
+  const oauthUrl = `${authorizeBase}?${params.toString()}`;
+
+  return new Response(JSON.stringify({ intuit_oauth_url: oauthUrl }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
