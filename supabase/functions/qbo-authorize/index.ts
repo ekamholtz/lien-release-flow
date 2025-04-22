@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
-// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -17,50 +16,29 @@ const scopes = [
   "com.intuit.quickbooks.accounting"
 ];
 
-// Helper function to decode JWT payload
-function getUserId(token: string): string {
-  const [, payloadB64] = token.split(".");
-  const json = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
-  return (JSON.parse(json).sub as string);
-}
-
-// OAuth authorize endpoint
 const authorizeBase =
   INTUIT_ENVIRONMENT === "production"
     ? "https://appcenter.intuit.com/connect/oauth2"
     : "https://sandbox.appcenter.intuit.com/connect/oauth2";
 
-serve(async (req) => {
-  // Handle CORS preflight request
+/**
+ * Main handler
+ * Uses Supabase JWT verification (verify_jwt = true).
+ * Pulls user id from ctx.jwt.sub (set by edge runtime after valid Authorization: Bearer ...)
+ */
+serve(async (req, ctx) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // 1. Get the token from the query parameter first
-    const url = new URL(req.url);
-    const rawToken = url.searchParams.get("token");
-    
-    // Safety check: if no token is provided, return 400
-    if (!rawToken) {
+    // 1. Get user id from the verified JWT context
+    const userId = ctx?.jwt?.sub;
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: "missing token param" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Authorization required - invalid or missing JWT" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
-
-    // 2. Try to get user-id from the state query param if present
-    let userId = url.searchParams.get("state");
-
-    // 3. If no state parameter, decode the JWT token
-    if (!userId) {
-      userId = getUserId(rawToken);
-      console.log("Successfully extracted user ID from token:", userId);
-    }
-
-    // Ensure we have a user ID by this point
-    if (!userId) {
-      throw new Error("Cannot determine user identity");
     }
 
     // Log environment variables for debugging
@@ -77,22 +55,22 @@ serve(async (req) => {
       });
     }
 
-    // Build Intuit URL exactly as before, using userId as state
+    // Build Intuit URL, using userId as state
     const params = new URLSearchParams({
       client_id: INTUIT_CLIENT_ID,
       scope: scopes.join(" "),
       redirect_uri: QBO_REDIRECT_URI,
       response_type: "code",
-      state: userId, // Use userId as state to tie the callback to user
+      state: userId,
     });
 
     const oauthUrl = `${authorizeBase}?${params.toString()}`;
-    console.log("Redirecting to Intuit OAuth URL:", oauthUrl);
+    console.log("Returning Intuit OAuth URL:", oauthUrl);
 
-    // Return HTTP 302 redirect
-    return new Response(null, {
-      status: 302,
-      headers: { ...corsHeaders, Location: oauthUrl },
+    // New: Always return the OAuth URL as JSON (never redirect)
+    return new Response(JSON.stringify({ intuit_oauth_url: oauthUrl }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   } catch (error) {
     console.error("Authorization error:", error);
