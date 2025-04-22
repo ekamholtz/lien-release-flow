@@ -71,3 +71,25 @@ Yes it is!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Connect QuickBooks (sandbox test)
+
+**Phase 1–2 manual test checklist**
+1. Run the migration:  
+   `psql $DATABASE_URL < supabase/migrations/20250410_qbo_integration.sql`
+2. Deploy edge functions:  
+   `supabase functions deploy qbo-authorize`  
+   `supabase functions deploy qbo-callback`
+3. Set required env vars in the dashboard or `.env`:
+   - INTUIT_CLIENT_ID
+   - INTUIT_CLIENT_SECRET
+   - QBO_REDIRECT_URI (match your Supabase endpoint!)
+   - INTUIT_ENVIRONMENT (`sandbox`)
+4. In the app UI, go to Integrations:
+   - See “Not Connected” status.
+   - Click “Connect QuickBooks” – should redirect to Intuit OAuth sandbox.
+   - After successful authentication, should land back on /integrations with “Connected” status.
+5. Inspect tables (qbo_connections, qbo_logs) and Supabase logs for upserted token and log rows.
+6. Try revoking QBO access in the sandbox and repeat.
+
+See [Intuit sandbox docs](https://developer.intuit.com/app/developer/qbo/docs/develop/sandbox-test-accounts).
