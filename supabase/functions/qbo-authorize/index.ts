@@ -1,12 +1,5 @@
 
-/**
- * Edge function: qbo-authorize
- * - Accepts a JWT token as URL parameter (since verify_jwt is false)
- * - Responds with Intuit OAuth2 authorize URL with scopes for QBO (302 redirect)
- */
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { jwtVerify } from "https://deno.land/x/jose@v4.14.4/index.ts";
 
 // CORS headers
 const corsHeaders = {
@@ -23,6 +16,13 @@ const QBO_REDIRECT_URI = Deno.env.get("QBO_REDIRECT_URI") ||
 const scopes = [
   "com.intuit.quickbooks.accounting"
 ];
+
+// Helper function to decode JWT payload
+function getUserId(token: string): string {
+  const [, payloadB64] = token.split(".");
+  const json = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
+  return (JSON.parse(json).sub as string);
+}
 
 // OAuth authorize endpoint
 const authorizeBase =
@@ -43,26 +43,13 @@ serve(async (req) => {
 
     // 2. Fall-back: accept a ?token= query param and decode it
     if (!userId) {
-      const tokenParam = url.searchParams.get("token");
-      if (!tokenParam) {
+      const raw = url.searchParams.get("token");
+      if (!raw) {
         throw new Error("Missing token parameter");
       }
-
-      try {
-        // We only need the subject (user_id) - no signature verification needed
-        // since this is just for determining user identity
-        const { payload } = await jwtVerify(
-          tokenParam,
-          new TextEncoder().encode("unused"),  // Skip key check
-          { algorithms: ["none"], complete: true }
-        );
-        
-        userId = payload.sub as string;
-        console.log("Successfully extracted user ID from token:", userId);
-      } catch (jwtError) {
-        console.error("Error decoding JWT:", jwtError);
-        throw new Error("Invalid token format");
-      }
+      
+      userId = getUserId(raw);
+      console.log("Successfully extracted user ID from token:", userId);
     }
 
     // Ensure we have a user ID by this point
@@ -109,3 +96,4 @@ serve(async (req) => {
     });
   }
 });
+
