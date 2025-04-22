@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
 
 /**
  * Minimal UI for QBO connection status and connect button
@@ -31,9 +32,28 @@ export function IntegrationsSettings() {
   }, [user, session]);
 
   const handleConnectQbo = () => {
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in before connecting QuickBooks Online.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setConnecting(true);
-    // Redirect to edge function via GET, which will redirect onward to QBO OAuth
-    window.location.href = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
+    try {
+      window.location.href = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
+    } catch (error) {
+      console.error("QBO connect error", error);
+      toast({
+        title: "Connection Error",
+        description: "Could not connect to QuickBooks Online. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setConnecting(false);
+    }
   };
 
   return (
@@ -49,7 +69,10 @@ export function IntegrationsSettings() {
               : <span className="text-red-600 font-medium">Not Connected</span>}
         </span>
         {qboStatus !== "connected" && (
-          <Button onClick={handleConnectQbo} disabled={qboStatus === "loading" || connecting}>
+          <Button 
+            onClick={handleConnectQbo} 
+            disabled={qboStatus === "loading" || connecting}
+          >
             {connecting ? "Connecting..." : "Connect QuickBooks"}
           </Button>
         )}
