@@ -37,18 +37,24 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Try to get user-id from the state query param if present
+    // 1. Get the token from the query parameter first
     const url = new URL(req.url);
+    const rawToken = url.searchParams.get("token");
+    
+    // Safety check: if no token is provided, return 400
+    if (!rawToken) {
+      return new Response(
+        JSON.stringify({ error: "missing token param" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 2. Try to get user-id from the state query param if present
     let userId = url.searchParams.get("state");
 
-    // 2. Fall-back: accept a ?token= query param and decode it
+    // 3. If no state parameter, decode the JWT token
     if (!userId) {
-      const raw = url.searchParams.get("token");
-      if (!raw) {
-        throw new Error("Missing token parameter");
-      }
-      
-      userId = getUserId(raw);
+      userId = getUserId(rawToken);
       console.log("Successfully extracted user ID from token:", userId);
     }
 
@@ -96,4 +102,3 @@ serve(async (req) => {
     });
   }
 });
-
