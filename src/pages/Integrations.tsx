@@ -89,18 +89,33 @@ const Integrations = () => {
     try {
       // Get the current session token
       const { data } = await supabase.auth.getSession();
-      const sessionToken = data?.session?.access_token;
+      const jwt = data?.session?.access_token;
       
-      if (!sessionToken) {
+      if (!jwt) {
         console.error("No active session found");
         return;
       }
       
-      // Simple redirect with token as query param
-      const edgeUrl = `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize?token=${encodeURIComponent(sessionToken)}`;
+      // Call the qbo-authorize edge function with proper Authorization header
+      const res = await fetch(
+        "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
+        { 
+          headers: { 
+            Authorization: `Bearer ${jwt}` 
+          } 
+        }
+      );
       
-      // Direct redirect - the browser will handle the rest
-      window.location.href = edgeUrl;
+      if (!res.ok) {
+        console.error("Error connecting to QBO:", res.status, await res.text());
+        return;
+      }
+      
+      // Get the Intuit OAuth URL from the response
+      const { intuit_oauth_url } = await res.json();
+      
+      // Redirect to Intuit OAuth URL
+      window.location.href = intuit_oauth_url;
     } catch (error) {
       console.error("Error connecting to QBO:", error);
     }
