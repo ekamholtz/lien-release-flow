@@ -12,3 +12,4 @@ verify_jwt = false
 
 [functions.get-subscription]
 verify_jwt = true
+

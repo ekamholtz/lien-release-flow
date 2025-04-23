@@ -4,6 +4,8 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID");
@@ -21,36 +23,55 @@ const authorizeBase =
     : "https://sandbox.appcenter.intuit.com/connect/oauth2";
 
 serve(async (req, ctx) => {
-  // Log incoming request details
-  console.log("QBO authorize request:", {
+  // Log detailed request information for debugging
+  console.log("QBO authorize request details:", {
     method: req.method,
-    headers: Object.fromEntries(req.headers.entries()),
-    url: req.url
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries())
   });
 
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders 
+    });
   }
 
   try {
+    // Log JWT context
+    console.log("JWT context:", ctx?.jwt);
+    
     // Verify we have a user ID from the JWT context
     const userId = ctx?.jwt?.sub;
     console.log("User ID from JWT:", userId);
 
     if (!userId) {
+      console.error("No user ID found in JWT");
       return new Response(
-        JSON.stringify({ error: "Authorization required - invalid or missing JWT" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          error: "Authorization required - invalid or missing JWT",
+          debug: { 
+            headers: Object.fromEntries(req.headers.entries()),
+            jwt: ctx?.jwt 
+          }
+        }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
       );
     }
 
     // Verify required environment variables
     if (!INTUIT_CLIENT_ID) {
       console.error("Missing INTUIT_CLIENT_ID environment variable");
-      return new Response(JSON.stringify({ error: "Server configuration error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Server configuration error - missing client ID" }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
     }
 
     // Build Intuit URL with user ID as state
@@ -63,19 +84,29 @@ serve(async (req, ctx) => {
     });
 
     const oauthUrl = `${authorizeBase}?${params.toString()}`;
-    console.log("Generated Intuit OAuth URL (masked):", oauthUrl.replace(INTUIT_CLIENT_ID, "MASKED"));
+    console.log("Generated Intuit OAuth URL (masked):", 
+      oauthUrl.replace(INTUIT_CLIENT_ID, "MASKED"));
 
-    // Return the OAuth URL as JSON
-    return new Response(JSON.stringify({ intuit_oauth_url: oauthUrl }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+    // Return the OAuth URL
+    return new Response(
+      JSON.stringify({ intuit_oauth_url: oauthUrl }),
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
+    );
 
   } catch (error) {
     console.error("Error in qbo-authorize:", error);
-    return new Response(JSON.stringify({ error: error.message || "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || "Internal server error",
+        details: error.stack 
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
+    );
   }
 });

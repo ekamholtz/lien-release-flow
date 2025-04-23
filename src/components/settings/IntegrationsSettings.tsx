@@ -41,29 +41,24 @@ export function IntegrationsSettings() {
     setError(null);
 
     try {
-      // Get current session with fresh token
       const { data: { session: latestSession } } = await supabase.auth.getSession();
       const jwt = latestSession?.access_token;
       
       if (!jwt) {
-        setConnecting(false);
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in again before connecting QuickBooks Online.",
-          variant: "destructive"
-        });
-        return;
+        throw new Error("No active session found. Please sign in again.");
       }
 
-      console.log("Starting QBO connection with JWT:", jwt.substring(0, 20) + "...");
+      console.log("Starting QBO connection with token:", jwt.substring(0, 20) + "...");
       
       const res = await fetch(
         "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
         {
           method: "GET",
           mode: "cors",
+          credentials: 'include',
           headers: {
             Authorization: `Bearer ${jwt}`,
+            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
             "Content-Type": "application/json"
           },
         }
@@ -71,16 +66,18 @@ export function IntegrationsSettings() {
 
       if (!res.ok) {
         const errorText = await res.text();
-        setConnecting(false);
-        setError(`QBO connection failed: ${res.status} ${errorText}`);
-        console.error("QBO authorize error:", { status: res.status, body: errorText });
-        
-        toast({
-          title: "Could not start QuickBooks connection",
-          description: errorText || "Unknown error",
-          variant: "destructive"
+        console.error("QBO authorize error details:", {
+          status: res.status,
+          statusText: res.statusText,
+          headers: Object.fromEntries(res.headers.entries()),
+          body: errorText
         });
-        return;
+        
+        if (res.status === 401) {
+          throw new Error("Authentication failed. Please try signing out and back in.");
+        }
+        
+        throw new Error(`Connection failed: ${errorText || res.statusText}`);
       }
 
       const data = await res.json();
