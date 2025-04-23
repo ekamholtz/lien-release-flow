@@ -28,10 +28,11 @@ const scopes = [
   "com.intuit.quickbooks.accounting"
 ];
 
+// Check URLs based on documentation
 const authorizeBase =
   INTUIT_ENVIRONMENT === "production"
     ? "https://appcenter.intuit.com/connect/oauth2"
-    : "https://sandbox.appcenter.intuit.com/connect/oauth2";
+    : "https://appcenter.intuit.com/connect/oauth2"; // Changed from sandbox.appcenter to appcenter for sandbox too
 
 serve(async (req) => {
   // Add detailed request logging
@@ -118,7 +119,8 @@ serve(async (req) => {
         debug: {
           redirect_uri: QBO_REDIRECT_URI,
           possible_redirect_uris: possibleRedirectURIs,
-          environment: INTUIT_ENVIRONMENT
+          environment: INTUIT_ENVIRONMENT,
+          authorize_base: authorizeBase
         }
       }),
       { status: 200, headers: corsHeaders }

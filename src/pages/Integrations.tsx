@@ -6,7 +6,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from '@/components/ui/button';
 import { AiAssistant } from '@/components/dashboard/AiAssistant';
 import { CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { IntegrationsSettings } from '@/components/settings/IntegrationsSettings';
 
 const IntegrationCard = ({ 
   title, 
@@ -60,6 +60,8 @@ const IntegrationCard = ({
 const Integrations = () => {
   const { user, session } = useAuth();
   const [qboConnected, setQboConnected] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     if (!user || !session?.access_token) return;
@@ -84,40 +86,60 @@ const Integrations = () => {
   }, [user, session]);
 
   const handleConnectQbo = async () => {
-    if (!session?.access_token) return;
+    if (!session?.access_token) {
+      setError("No active session found. Please sign in again.");
+      return;
+    }
     
     try {
-      // Get the current session token
-      const { data } = await supabase.auth.getSession();
-      const jwt = data?.session?.access_token;
-      
-      if (!jwt) {
-        console.error("No active session found");
-        return;
-      }
+      setError(null);
+      setDebugInfo(null);
       
       // Call the qbo-authorize edge function with proper Authorization header
       const res = await fetch(
         "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
         { 
           headers: { 
-            Authorization: `Bearer ${jwt}` 
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ"
           } 
         }
       );
       
       if (!res.ok) {
-        console.error("Error connecting to QBO:", res.status, await res.text());
+        const errorText = await res.text();
+        console.error("QBO authorize error:", errorText);
+        
+        // Try to parse the error response
+        try {
+          const errorJson = JSON.parse(errorText);
+          setDebugInfo(errorJson.debug || {});
+        } catch (e) {
+          // If it's not JSON, just use the text
+        }
+        
+        setError(`Connection failed: ${errorText || res.statusText}`);
         return;
       }
       
       // Get the Intuit OAuth URL from the response
-      const { intuit_oauth_url } = await res.json();
+      const responseData = await res.json();
+      console.log("QBO response data:", responseData);
+      
+      if (responseData.debug) {
+        setDebugInfo(responseData.debug);
+      }
+      
+      if (!responseData.intuit_oauth_url) {
+        setError("No OAuth URL received from server");
+        return;
+      }
       
       // Redirect to Intuit OAuth URL
-      window.location.href = intuit_oauth_url;
-    } catch (error) {
-      console.error("Error connecting to QBO:", error);
+      window.location.href = responseData.intuit_oauth_url;
+    } catch (err: any) {
+      console.error("Error connecting to QBO:", err);
+      setError(err.message || "Failed to connect to QuickBooks");
     }
   };
 
@@ -185,6 +207,24 @@ const Integrations = () => {
                 />
               </div>
             </div>
+            
+            {error && (
+              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex items-start gap-2 text-red-600">
+                  <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              </div>
+            )}
+            
+            {debugInfo && (
+              <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-md">
+                <h3 className="text-md font-medium mb-2">Debug Information</h3>
+                <pre className="text-xs bg-gray-100 p-3 rounded overflow-auto max-h-64">
+                  {JSON.stringify(debugInfo, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         </main>
       </div>

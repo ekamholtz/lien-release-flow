@@ -20,11 +20,11 @@ const QBO_REDIRECT_URI = Deno.env.get("QBO_REDIRECT_URI") ||
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Token endpoint
+// Token endpoint - updated to use the correct URL
 const tokenBase =
   INTUIT_ENVIRONMENT === "production"
     ? "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
-    : "https://sandbox-accounts.platform.intuit.com/oauth2/v1/tokens/bearer";
+    : "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"; // Same URL for both production and sandbox
 
 serve(async (req) => {
   console.log("qbo-callback received request:", {
