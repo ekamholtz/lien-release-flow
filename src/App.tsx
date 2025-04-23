@@ -18,6 +18,7 @@ import Team from '@/pages/Team';
 import Reports from '@/pages/Reports';
 import Subscription from '@/pages/Subscription';
 import Documents from '@/pages/Documents';
+import ProjectDashboard from '@/pages/ProjectDashboard';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -126,6 +127,11 @@ function App() {
           <Route path="/documents" element={
             <ProtectedRoute>
               <Documents />
+            </ProtectedRoute>
+          } />
+          <Route path="/projects/:projectId" element={
+            <ProtectedRoute>
+              <ProjectDashboard />
             </ProtectedRoute>
           } />
 
