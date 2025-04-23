@@ -1,92 +1,96 @@
+
 import React, { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle } from "lucide-react";
+import { useSessionRefresh } from "@/hooks/useSessionRefresh";
 
 export function IntegrationsSettings() {
-  const { user, session } = useAuth();
   const [qboStatus, setQboStatus] = useState<"connected" | "not_connected" | "loading">("loading");
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { session, refreshSession } = useSessionRefresh();
 
   useEffect(() => {
-    if (!user) return;
-    setQboStatus("loading");
+    if (!session?.user) return;
+    checkQboConnection();
+  }, [session]);
+
+  const checkQboConnection = async () => {
+    if (!session?.user) return;
     
-    fetch(
-      `https://oknofqytitpxmlprvekn.supabase.co/rest/v1/qbo_connections?user_id=eq.${user.id}&select=id`,
-      {
-        headers: {
-          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
-          Authorization: session?.access_token ? `Bearer ${session.access_token}` : "",
+    try {
+      const response = await fetch(
+        `https://oknofqytitpxmlprvekn.supabase.co/rest/v1/qbo_connections?user_id=eq.${session.user.id}&select=id`,
+        {
+          headers: {
+            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
+            Authorization: session.access_token ? `Bearer ${session.access_token}` : "",
+          }
         }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to check QBO connection: ${response.statusText}`);
       }
-    )
-      .then((r) => r.ok ? r.json() : [])
-      .then((rows) => {
-        setQboStatus(Array.isArray(rows) && rows.length > 0 ? "connected" : "not_connected");
-        setError(null);
-      })
-      .catch((err) => {
-        console.error("Error checking QBO connection:", err);
-        setQboStatus("not_connected");
-        setError("Failed to check QuickBooks connection status");
-      });
-  }, [user, session]);
+
+      const data = await response.json();
+      setQboStatus(Array.isArray(data) && data.length > 0 ? "connected" : "not_connected");
+      setError(null);
+    } catch (err) {
+      console.error("Error checking QBO connection:", err);
+      setQboStatus("not_connected");
+      setError("Failed to check QuickBooks connection status");
+    }
+  };
 
   const handleConnectQbo = async () => {
     setConnecting(true);
     setError(null);
 
     try {
-      const { data: { session: latestSession } } = await supabase.auth.getSession();
-      const jwt = latestSession?.access_token;
+      // Refresh session before making the request
+      const currentSession = await refreshSession();
       
-      if (!jwt) {
+      if (!currentSession?.access_token) {
         throw new Error("No active session found. Please sign in again.");
       }
 
-      console.log("Starting QBO connection with token:", jwt.substring(0, 20) + "...");
-      
-      const res = await fetch(
+      const response = await fetch(
         "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
         {
           method: "GET",
           mode: "cors",
-          credentials: 'include',
           headers: {
-            Authorization: `Bearer ${jwt}`,
+            Authorization: `Bearer ${currentSession.access_token}`,
             apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
             "Content-Type": "application/json"
           },
         }
       );
 
-      if (!res.ok) {
-        const errorText = await res.text();
+      if (!response.ok) {
+        const errorText = await response.text();
         console.error("QBO authorize error details:", {
-          status: res.status,
-          statusText: res.statusText,
-          headers: Object.fromEntries(res.headers.entries()),
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
           body: errorText
         });
         
-        if (res.status === 401) {
+        if (response.status === 401) {
           throw new Error("Authentication failed. Please try signing out and back in.");
         }
         
-        throw new Error(`Connection failed: ${errorText || res.statusText}`);
+        throw new Error(`Connection failed: ${errorText || response.statusText}`);
       }
 
-      const data = await res.json();
+      const data = await response.json();
       
       if (!data.intuit_oauth_url) {
         throw new Error("No OAuth URL received from server");
       }
 
-      console.log("Redirecting to Intuit OAuth URL");
       window.location.href = data.intuit_oauth_url;
 
     } catch (error: any) {

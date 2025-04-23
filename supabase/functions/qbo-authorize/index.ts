@@ -6,6 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
   'Access-Control-Max-Age': '86400',
+  'Content-Type': 'application/json',
 };
 
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID");
@@ -33,6 +34,7 @@ serve(async (req, ctx) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
+      status: 204, 
       headers: corsHeaders 
     });
   }
@@ -57,7 +59,7 @@ serve(async (req, ctx) => {
         }),
         { 
           status: 401, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          headers: corsHeaders
         }
       );
     }
@@ -69,7 +71,7 @@ serve(async (req, ctx) => {
         JSON.stringify({ error: "Server configuration error - missing client ID" }),
         { 
           status: 500, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          headers: corsHeaders
         }
       );
     }
@@ -87,12 +89,12 @@ serve(async (req, ctx) => {
     console.log("Generated Intuit OAuth URL (masked):", 
       oauthUrl.replace(INTUIT_CLIENT_ID, "MASKED"));
 
-    // Return the OAuth URL
+    // Return the OAuth URL with CORS headers
     return new Response(
       JSON.stringify({ intuit_oauth_url: oauthUrl }),
       { 
         status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        headers: corsHeaders
       }
     );
 
@@ -105,7 +107,7 @@ serve(async (req, ctx) => {
       }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        headers: corsHeaders
       }
     );
   }
