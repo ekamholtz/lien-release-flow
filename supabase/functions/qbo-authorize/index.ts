@@ -6,7 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Environment
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID");
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
 const QBO_REDIRECT_URI = Deno.env.get("QBO_REDIRECT_URI") || 
@@ -21,19 +20,23 @@ const authorizeBase =
     ? "https://appcenter.intuit.com/connect/oauth2"
     : "https://sandbox.appcenter.intuit.com/connect/oauth2";
 
-/**
- * Main handler
- * Uses Supabase JWT verification (verify_jwt = true).
- * Pulls user id from ctx.jwt.sub (set by edge runtime after valid Authorization: Bearer ...)
- */
 serve(async (req, ctx) => {
-  if (req.method === "OPTIONS") {
+  // Log incoming request details
+  console.log("QBO authorize request:", {
+    method: req.method,
+    headers: Object.fromEntries(req.headers.entries()),
+    url: req.url
+  });
+
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // 1. Get user id from the verified JWT context
+    // Verify we have a user ID from the JWT context
     const userId = ctx?.jwt?.sub;
+    console.log("User ID from JWT:", userId);
+
     if (!userId) {
       return new Response(
         JSON.stringify({ error: "Authorization required - invalid or missing JWT" }),
@@ -41,21 +44,16 @@ serve(async (req, ctx) => {
       );
     }
 
-    // Log environment variables for debugging
-    console.log("INTUIT_CLIENT_ID:", INTUIT_CLIENT_ID ? "Set" : "Not set");
-    console.log("QBO_REDIRECT_URI:", QBO_REDIRECT_URI);
-    console.log("INTUIT_ENVIRONMENT:", INTUIT_ENVIRONMENT);
-    console.log("User ID for state:", userId);
-
+    // Verify required environment variables
     if (!INTUIT_CLIENT_ID) {
       console.error("Missing INTUIT_CLIENT_ID environment variable");
-      return new Response(JSON.stringify({ error: "Server configuration error: Missing Intuit client ID" }), {
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Build Intuit URL, using userId as state
+    // Build Intuit URL with user ID as state
     const params = new URLSearchParams({
       client_id: INTUIT_CLIENT_ID,
       scope: scopes.join(" "),
@@ -65,17 +63,18 @@ serve(async (req, ctx) => {
     });
 
     const oauthUrl = `${authorizeBase}?${params.toString()}`;
-    console.log("Returning Intuit OAuth URL:", oauthUrl);
+    console.log("Generated Intuit OAuth URL (masked):", oauthUrl.replace(INTUIT_CLIENT_ID, "MASKED"));
 
-    // New: Always return the OAuth URL as JSON (never redirect)
+    // Return the OAuth URL as JSON
     return new Response(JSON.stringify({ intuit_oauth_url: oauthUrl }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
+
   } catch (error) {
-    console.error("Authorization error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Unknown error" }), {
-      status: 400,
+    console.error("Error in qbo-authorize:", error);
+    return new Response(JSON.stringify({ error: error.message || "Internal server error" }), {
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

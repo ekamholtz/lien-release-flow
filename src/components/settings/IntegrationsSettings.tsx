@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -6,19 +5,16 @@ import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle } from "lucide-react";
 
-/**
- * Minimal UI for QBO connection status and connect button
- */
 export function IntegrationsSettings() {
   const { user, session } = useAuth();
   const [qboStatus, setQboStatus] = useState<"connected" | "not_connected" | "loading">("loading");
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     setQboStatus("loading");
+    
     fetch(
       `https://oknofqytitpxmlprvekn.supabase.co/rest/v1/qbo_connections?user_id=eq.${user.id}&select=id`,
       {
@@ -40,16 +36,15 @@ export function IntegrationsSettings() {
       });
   }, [user, session]);
 
-  // Handler: fetch to the edge function (Bearer JWT), redirect to Intuit
   const handleConnectQbo = async () => {
     setConnecting(true);
     setError(null);
-    setDebugInfo(null);
 
     try {
-      // 1. Get current session / access token
+      // Get current session with fresh token
       const { data: { session: latestSession } } = await supabase.auth.getSession();
       const jwt = latestSession?.access_token;
+      
       if (!jwt) {
         setConnecting(false);
         toast({
@@ -60,61 +55,51 @@ export function IntegrationsSettings() {
         return;
       }
 
-      // 2. Call the protected edge function with the Authorization header
+      console.log("Starting QBO connection with JWT:", jwt.substring(0, 20) + "...");
+      
       const res = await fetch(
         "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
         {
+          method: "GET",
+          mode: "cors",
           headers: {
             Authorization: `Bearer ${jwt}`,
-          }
+            "Content-Type": "application/json"
+          },
         }
       );
 
       if (!res.ok) {
-        const msg = await res.text();
+        const errorText = await res.text();
         setConnecting(false);
-        setError(`authorize failed: ${res.status} ${msg}`);
+        setError(`QBO connection failed: ${res.status} ${errorText}`);
+        console.error("QBO authorize error:", { status: res.status, body: errorText });
+        
         toast({
           title: "Could not start QuickBooks connection",
-          description: msg || "Unknown error.",
+          description: errorText || "Unknown error",
           variant: "destructive"
         });
         return;
       }
 
-      // 3. Expect either JSON or a 302 redirect, depending on backend logic. Handle both possibilities.
-      let intuitUrl: string | undefined;
-      const contentType = res.headers.get("content-type") || "";
-      if (res.redirected && res.url) {
-        intuitUrl = res.url;
-      } else if (contentType.includes("application/json")) {
-        const body = await res.json();
-        if (body && body.intuit_oauth_url) {
-          intuitUrl = body.intuit_oauth_url;
-        }
+      const data = await res.json();
+      
+      if (!data.intuit_oauth_url) {
+        throw new Error("No OAuth URL received from server");
       }
 
-      if (!intuitUrl) {
-        setConnecting(false);
-        setError("Failed to get Intuit URL from authorize response");
-        toast({
-          title: "Could not start QuickBooks connection",
-          description: "Failed to get Intuit authorization URL.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // 4. Redirect the browser to the Intuit authorization URL
-      window.location.replace(intuitUrl);
+      console.log("Redirecting to Intuit OAuth URL");
+      window.location.href = data.intuit_oauth_url;
 
     } catch (error: any) {
-      console.error("QBO connect error:", error);
+      console.error("QBO connection error:", error);
       setConnecting(false);
-      setError("Could not start QuickBooks connection");
+      setError(error.message || String(error));
+      
       toast({
-        title: "Could not start QuickBooks connection",
-        description: error.message || String(error),
+        title: "Connection Error",
+        description: error.message || "Failed to connect to QuickBooks Online",
         variant: "destructive"
       });
     }
@@ -146,12 +131,6 @@ export function IntegrationsSettings() {
         <div className="mt-2 flex items-start gap-2 text-red-600 text-sm">
           <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
-        </div>
-      )}
-
-      {debugInfo && (
-        <div className="mt-2 p-2 bg-gray-100 border border-gray-200 rounded text-xs font-mono overflow-auto max-w-full">
-          <p>{debugInfo}</p>
         </div>
       )}
       
