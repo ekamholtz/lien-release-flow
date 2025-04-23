@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
@@ -11,7 +10,8 @@ import {
   BarChart3, 
   Mail,
   LogOut,
-  Files
+  Files,
+  LayoutDashboard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ export function AppSidebar() {
   
   const links = [
     { to: '/dashboard', icon: <Home className="h-5 w-5" />, text: 'Dashboard' },
+    { to: '/projects', icon: <LayoutDashboard className="h-5 w-5" />, text: 'Projects' },
     { to: '/accounts-payable', icon: <ArrowLeftRight className="h-5 w-5" />, text: 'Accounts Payable' },
     { to: '/accounts-receivable', icon: <ArrowDownToLine className="h-5 w-5" />, text: 'Accounts Receivable' },
     { to: '/lien-release', icon: <FileText className="h-5 w-5" />, text: 'Lien Release' },
