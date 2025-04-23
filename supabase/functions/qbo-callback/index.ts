@@ -14,7 +14,9 @@ import { upsertQboConnection, logQboAction } from "../helpers/qbo.ts";
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID")!;
 const INTUIT_CLIENT_SECRET = Deno.env.get("INTUIT_CLIENT_SECRET")!;
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
-const QBO_REDIRECT_URI = Deno.env.get("QBO_REDIRECT_URI")!;
+// Use the same redirect URI as in qbo-authorize
+const QBO_REDIRECT_URI = Deno.env.get("QBO_REDIRECT_URI") || 
+  `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback`;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -31,15 +33,15 @@ serve(async (req) => {
     headers: Object.fromEntries(req.headers.entries())
   });
   
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
+  };
+  
   try {
     if (req.method === "OPTIONS") {
-      return new Response(null, { 
-        headers: { 
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-          "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
-        } 
-      });
+      return new Response(null, { headers: corsHeaders });
     }
     
     // Parse code, state (user_id) and realmId
@@ -52,11 +54,25 @@ serve(async (req) => {
     console.log("Callback parameters:", { code: !!code, user_id, realm_id, error });
     
     if (error) {
-      return new Response(`Authorization denied: ${error}`, { status: 400 });
+      return new Response(`Authorization denied: ${error}`, { 
+        status: 400,
+        headers: corsHeaders  
+      });
     }
     
     if (!code || !user_id || !realm_id) {
-      return new Response("Missing code/user/realm", { status: 400 });
+      return new Response("Missing code/user/realm", { 
+        status: 400,
+        headers: corsHeaders 
+      });
+    }
+
+    if (!INTUIT_CLIENT_ID || !INTUIT_CLIENT_SECRET) {
+      console.error("Missing required environment variables for token exchange");
+      return new Response("Server configuration error", { 
+        status: 500,
+        headers: corsHeaders 
+      });
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -87,7 +103,10 @@ serve(async (req) => {
         function_name: "qbo-callback",
         error: "Token exchange failed: " + errString
       });
-      return new Response(errString, { status: 502 });
+      return new Response(errString, { 
+        status: 502,
+        headers: corsHeaders 
+      });
     }
 
     const data = await tokenResp.json();
@@ -107,7 +126,10 @@ serve(async (req) => {
         function_name: "qbo-callback",
         error: "Upsert qbo_connection failed: " + error.message
       });
-      return new Response("DB error", { status: 500 });
+      return new Response("DB error", { 
+        status: 500,
+        headers: corsHeaders 
+      });
     }
 
     await logQboAction(supabase, {
@@ -119,7 +141,10 @@ serve(async (req) => {
     // redirect to /integrations (frontend)
     return new Response(undefined, {
       status: 302,
-      headers: { location: "/integrations" }
+      headers: { 
+        ...corsHeaders,
+        location: "/integrations" 
+      }
     });
   } catch (error) {
     // Log unexpected error
@@ -127,7 +152,7 @@ serve(async (req) => {
     try {
       const { user_id } = Object.fromEntries(new URL(req.url).searchParams.entries());
       await logQboAction(
-        new createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY),
+        createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY),
         {
           user_id,
           function_name: "qbo-callback",
@@ -137,6 +162,9 @@ serve(async (req) => {
     } catch (e) {
       console.error("Failed to log error:", e);
     }
-    return new Response("Internal error", { status: 500 });
+    return new Response("Internal error", { 
+      status: 500,
+      headers: corsHeaders 
+    });
   }
 });

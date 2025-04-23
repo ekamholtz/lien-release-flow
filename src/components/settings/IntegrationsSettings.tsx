@@ -54,7 +54,8 @@ export function IntegrationsSettings() {
 
     try {
       // Force a complete session refresh to get a fresh token
-      await supabase.auth.refreshSession();
+      await refreshSession();
+      
       const sessionResult = await supabase.auth.getSession();
       const currentSession = sessionResult.data.session;
       
@@ -65,7 +66,7 @@ export function IntegrationsSettings() {
       const bearer = `Bearer ${currentSession.access_token}`;
       console.log("Auth header (first 30 chars):", bearer.slice(0, 30) + "...");
 
-      // Try both possible function URLs
+      // Try the function URL
       const functionUrl = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
       
       console.log("Calling function URL:", functionUrl);
@@ -111,6 +112,7 @@ export function IntegrationsSettings() {
         throw new Error("No OAuth URL received from server");
       }
 
+      // Redirect to Intuit's OAuth URL
       window.location.href = responseData.intuit_oauth_url;
 
     } catch (error: any) {
@@ -157,9 +159,12 @@ export function IntegrationsSettings() {
       
       <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-md">
         <p className="text-sm text-amber-700">
-          <strong>Note:</strong> Make sure that your Intuit Developer account has this redirect URI configured:
+          <strong>Note:</strong> Make sure that your Intuit Developer account has these redirect URIs configured:
           <code className="block mt-1 p-2 bg-white rounded border border-amber-100">
             https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback
+          </code>
+          <code className="block mt-1 p-2 bg-white rounded border border-amber-100">
+            https://oknofqytitpxmlprvekn.supabase.co/functions/v1/qbo-callback
           </code>
         </p>
       </div>

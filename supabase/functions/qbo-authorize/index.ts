@@ -14,13 +14,15 @@ const corsHeaders = {
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID");
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
 
-// Define possible redirect URIs - we'll try to match against what's configured in Intuit
+// Define the canonical redirect URI we'll use
+const QBO_REDIRECT_URI = Deno.env.get("QBO_REDIRECT_URI") || 
+  `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback`;
+
+// List all possible redirect URIs for debugging
 const possibleRedirectURIs = [
   `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback`,
   `https://oknofqytitpxmlprvekn.supabase.co/functions/v1/qbo-callback`,
 ];
-// Use this as default if none are specified
-const QBO_REDIRECT_URI = Deno.env.get("QBO_REDIRECT_URI") || possibleRedirectURIs[0];
 
 const scopes = [
   "com.intuit.quickbooks.accounting"
@@ -87,7 +89,8 @@ serve(async (req) => {
           debug: {
             env: {
               INTUIT_ENVIRONMENT,
-              QBO_REDIRECT_URI: QBO_REDIRECT_URI || "not set"
+              QBO_REDIRECT_URI: QBO_REDIRECT_URI || "not set",
+              possibleRedirectURIs
             }
           }
         }),
