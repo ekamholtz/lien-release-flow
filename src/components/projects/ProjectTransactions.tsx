@@ -19,6 +19,13 @@ type ExtendedInvoice = DbInvoice & {
   };
 };
 
+// Define extended bill type that includes the project name from the join
+type ExtendedBill = DbBill & {
+  projects?: { 
+    name: string;
+  };
+};
+
 export function ProjectTransactions({ project }: ProjectTransactionsProps) {
   const { data: invoices = [], refetch: refetchInvoices } = useQuery({
     queryKey: ['project-invoices', project.id],
