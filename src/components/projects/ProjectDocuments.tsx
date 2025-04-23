@@ -1,16 +1,20 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { DbProject } from '@/lib/supabase';
 import { DocumentsList } from '@/components/documents/DocumentsList';
+import { toast } from 'sonner';
+import { Document } from '@/hooks/useDocuments';
 
 interface ProjectDocumentsProps {
   project: DbProject;
 }
 
 export function ProjectDocuments({ project }: ProjectDocumentsProps) {
-  const { data: documents = [] } = useQuery({
+  const [loading, setLoading] = useState(false);
+
+  const { data: documents = [], refetch } = useQuery({
     queryKey: ['project-documents', project.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -22,10 +26,63 @@ export function ProjectDocuments({ project }: ProjectDocumentsProps) {
     }
   });
 
+  // Handler to delete documents
+  const handleDeleteDocument = async (id: string, filePath: string) => {
+    setLoading(true);
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('documents')
+        .remove([filePath]);
+      
+      if (storageError) throw storageError;
+      
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', id);
+      
+      if (dbError) throw dbError;
+      
+      // Refresh documents list
+      await refetch();
+      
+      return { success: true };
+    } catch (err) {
+      console.error('Error deleting document:', err);
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Failed to delete document' 
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handler to get document URL
+  const getDocumentUrl = async (filePath: string) => {
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .createSignedUrl(filePath, 3600); // URL valid for 1 hour
+    
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      return null;
+    }
+    
+    return data?.signedUrl;
+  };
+
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <h2 className="text-lg font-semibold mb-4">Documents</h2>
-      <DocumentsList documents={documents} />
+      <DocumentsList 
+        documents={documents as Document[]}
+        loading={loading}
+        onDeleteDocument={handleDeleteDocument}
+        getDocumentUrl={getDocumentUrl}
+      />
     </div>
   );
 }
