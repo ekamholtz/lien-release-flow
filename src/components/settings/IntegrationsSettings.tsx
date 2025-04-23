@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { AlertCircle } from "lucide-react";
 import { useSessionRefresh } from "@/hooks/useSessionRefresh";
+import { supabase } from "@/integrations/supabase/client";
 
 export function IntegrationsSettings() {
   const [qboStatus, setQboStatus] = useState<"connected" | "not_connected" | "loading">("loading");
@@ -49,23 +50,26 @@ export function IntegrationsSettings() {
     setError(null);
 
     try {
-      // Refresh session before making the request
+      // Explicitly refresh the session before making the request
       const currentSession = await refreshSession();
       
       if (!currentSession?.access_token) {
         throw new Error("No active session found. Please sign in again.");
       }
 
+      const bearer = `Bearer ${currentSession.access_token}`;
+      console.log("Auth header (first 30 chars):", bearer.slice(0, 30));
+
       const response = await fetch(
         "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
         {
           method: "GET",
-          mode: "cors",
           headers: {
-            Authorization: `Bearer ${currentSession.access_token}`,
+            Authorization: bearer,
             apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
             "Content-Type": "application/json"
           },
+          mode: "cors"
         }
       );
 
@@ -77,10 +81,6 @@ export function IntegrationsSettings() {
           headers: Object.fromEntries(response.headers.entries()),
           body: errorText
         });
-        
-        if (response.status === 401) {
-          throw new Error("Authentication failed. Please try signing out and back in.");
-        }
         
         throw new Error(`Connection failed: ${errorText || response.statusText}`);
       }

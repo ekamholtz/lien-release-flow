@@ -24,11 +24,13 @@ const authorizeBase =
     : "https://sandbox.appcenter.intuit.com/connect/oauth2";
 
 serve(async (req, ctx) => {
-  // Log detailed request information for debugging
-  console.log("QBO authorize request details:", {
+  // Add detailed request logging
+  console.log("qbo-authorize request details:", {
     method: req.method,
-    url: req.url,
-    headers: Object.fromEntries(req.headers.entries())
+    headers: {
+      auth: req.headers.get("authorization")?.slice(0, 30),
+      all: Object.fromEntries(req.headers.entries())
+    }
   });
 
   // Handle CORS preflight
