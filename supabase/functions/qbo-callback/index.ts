@@ -1,4 +1,3 @@
-
 /**
  * Edge function: qbo-callback
  * - exchanges code for tokens, stores in qbo_connections (upsert on user_id+realm)
@@ -14,17 +13,15 @@ import { upsertQboConnection, logQboAction } from "../helpers/qbo.ts";
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID")!;
 const INTUIT_CLIENT_SECRET = Deno.env.get("INTUIT_CLIENT_SECRET")!;
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
-// Use the same redirect URI as in qbo-authorize
-const QBO_REDIRECT_URI = Deno.env.get("QBO_REDIRECT_URI") || 
-  `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback`;
+// Use fixed redirect URI
+const QBO_REDIRECT_URI = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Token endpoint - updated to use the correct URL
 const tokenBase =
   INTUIT_ENVIRONMENT === "production"
     ? "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
-    : "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"; // Same URL for both production and sandbox
+    : "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
 
 serve(async (req) => {
   console.log("qbo-callback received request:", {
@@ -77,7 +74,7 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Exchange code for tokens
+    // Exchange code for tokens with fixed redirect URI
     const basicAuth = 'Basic ' + btoa(`${INTUIT_CLIENT_ID}:${INTUIT_CLIENT_SECRET}`);
     console.log("Requesting token exchange with redirect URI:", QBO_REDIRECT_URI);
     

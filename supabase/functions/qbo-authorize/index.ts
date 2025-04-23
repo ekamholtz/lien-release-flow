@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import * as jose from "https://deno.land/x/jose@v4.14.4/index.ts";
 
@@ -14,25 +13,23 @@ const corsHeaders = {
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID");
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
 
-// Define the canonical redirect URI we'll use
-const QBO_REDIRECT_URI = Deno.env.get("QBO_REDIRECT_URI") || 
-  `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback`;
+// Define the canonical redirect URI
+const QBO_REDIRECT_URI = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback";
 
-// List all possible redirect URIs for debugging
+// List redirect URIs for debugging
 const possibleRedirectURIs = [
-  `https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback`,
-  `https://oknofqytitpxmlprvekn.supabase.co/functions/v1/qbo-callback`,
+  "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback",
+  "https://oknofqytitpxmlprvekn.supabase.co/functions/v1/qbo-callback",
 ];
 
 const scopes = [
   "com.intuit.quickbooks.accounting"
 ];
 
-// Check URLs based on documentation
 const authorizeBase =
   INTUIT_ENVIRONMENT === "production"
     ? "https://appcenter.intuit.com/connect/oauth2"
-    : "https://appcenter.intuit.com/connect/oauth2"; // Changed from sandbox.appcenter to appcenter for sandbox too
+    : "https://appcenter.intuit.com/connect/oauth2";
 
 serve(async (req) => {
   // Add detailed request logging
@@ -90,7 +87,7 @@ serve(async (req) => {
           debug: {
             env: {
               INTUIT_ENVIRONMENT,
-              QBO_REDIRECT_URI: QBO_REDIRECT_URI || "not set",
+              QBO_REDIRECT_URI,
               possibleRedirectURIs
             }
           }
@@ -99,7 +96,7 @@ serve(async (req) => {
       );
     }
 
-    // Build Intuit URL - use userId as state if available
+    // Build Intuit URL with fixed redirect URI
     const params = new URLSearchParams({
       client_id: INTUIT_CLIENT_ID,
       scope: scopes.join(" "),
