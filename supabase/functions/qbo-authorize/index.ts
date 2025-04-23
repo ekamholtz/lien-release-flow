@@ -49,7 +49,10 @@ serve(async (req) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.error("No authorization header found or invalid format");
       return new Response(
-        JSON.stringify({ error: "Authorization required - missing or invalid format" }),
+        JSON.stringify({ 
+          error: "Authorization required - missing or invalid format",
+          debug: { headers: Object.fromEntries(req.headers.entries()) }
+        }),
         { status: 401, headers: corsHeaders }
       );
     }

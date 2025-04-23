@@ -35,8 +35,8 @@ export function IntegrationsSettings() {
         throw new Error(`Failed to check QBO connection: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      setQboStatus(Array.isArray(data) && data.length > 0 ? "connected" : "not_connected");
+      const connectionData = await response.json();
+      setQboStatus(Array.isArray(connectionData) && connectionData.length > 0 ? "connected" : "not_connected");
       setError(null);
     } catch (err) {
       console.error("Error checking QBO connection:", err);
@@ -52,8 +52,8 @@ export function IntegrationsSettings() {
     try {
       // Force a complete session refresh to get a fresh token
       await supabase.auth.refreshSession();
-      const { data } = await supabase.auth.getSession();
-      const currentSession = data.session;
+      const sessionResult = await supabase.auth.getSession();
+      const currentSession = sessionResult.data.session;
       
       if (!currentSession?.access_token) {
         throw new Error("No active session found. Please sign in again.");
@@ -87,13 +87,13 @@ export function IntegrationsSettings() {
         throw new Error(`Connection failed: ${errorText || response.statusText}`);
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
       
-      if (!data.intuit_oauth_url) {
+      if (!responseData.intuit_oauth_url) {
         throw new Error("No OAuth URL received from server");
       }
 
-      window.location.href = data.intuit_oauth_url;
+      window.location.href = responseData.intuit_oauth_url;
 
     } catch (error: any) {
       console.error("QBO connection error:", error);
