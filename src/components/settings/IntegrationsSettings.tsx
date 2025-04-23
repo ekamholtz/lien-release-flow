@@ -50,8 +50,10 @@ export function IntegrationsSettings() {
     setError(null);
 
     try {
-      // Explicitly refresh the session before making the request
-      const currentSession = await refreshSession();
+      // Force a complete session refresh to get a fresh token
+      await supabase.auth.refreshSession();
+      const { data } = await supabase.auth.getSession();
+      const currentSession = data.session;
       
       if (!currentSession?.access_token) {
         throw new Error("No active session found. Please sign in again.");

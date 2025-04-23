@@ -2,7 +2,7 @@
 project_id = "oknofqytitpxmlprvekn"
 
 [functions.qbo-authorize]
-verify_jwt = true
+verify_jwt = false
 
 [functions.qbo-callback]
 verify_jwt = false
@@ -12,4 +12,3 @@ verify_jwt = false
 
 [functions.get-subscription]
 verify_jwt = true
-
