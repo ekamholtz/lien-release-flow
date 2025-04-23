@@ -25,21 +25,46 @@ const tokenBase =
     : "https://sandbox-accounts.platform.intuit.com/oauth2/v1/tokens/bearer";
 
 serve(async (req) => {
+  console.log("qbo-callback received request:", {
+    url: req.url,
+    method: req.method,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+  
   try {
     if (req.method === "OPTIONS") {
-      return new Response(null, { headers: { "Access-Control-Allow-Origin": "*" } });
+      return new Response(null, { 
+        headers: { 
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+          "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
+        } 
+      });
     }
+    
     // Parse code, state (user_id) and realmId
     const url = new URL(req.url);
     const code = url.searchParams.get("code");
     const user_id = url.searchParams.get("state");
     const realm_id = url.searchParams.get("realmId");
+    const error = url.searchParams.get("error");
+    
+    console.log("Callback parameters:", { code: !!code, user_id, realm_id, error });
+    
+    if (error) {
+      return new Response(`Authorization denied: ${error}`, { status: 400 });
+    }
+    
     if (!code || !user_id || !realm_id) {
       return new Response("Missing code/user/realm", { status: 400 });
     }
 
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     // Exchange code for tokens
     const basicAuth = 'Basic ' + btoa(`${INTUIT_CLIENT_ID}:${INTUIT_CLIENT_SECRET}`);
+    console.log("Requesting token exchange with redirect URI:", QBO_REDIRECT_URI);
+    
     const tokenResp = await fetch(tokenBase, {
       method: "POST",
       headers: {
@@ -56,7 +81,8 @@ serve(async (req) => {
 
     if (!tokenResp.ok) {
       const errString = await tokenResp.text();
-      await logQboAction(new createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY), {
+      console.error("Token exchange failed:", errString);
+      await logQboAction(supabase, {
         user_id,
         function_name: "qbo-callback",
         error: "Token exchange failed: " + errString
@@ -65,9 +91,9 @@ serve(async (req) => {
     }
 
     const data = await tokenResp.json();
+    console.log("Token exchange successful:", { access_token: "***", refresh_token: "***", expires_in: data.expires_in });
+    
     // Store tokens + expires_at (properly using expires_in)
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
     const error = await upsertQboConnection(supabase, user_id, realm_id, {
       access_token: data.access_token,
       refresh_token: data.refresh_token,
@@ -87,7 +113,7 @@ serve(async (req) => {
     await logQboAction(supabase, {
       user_id,
       function_name: "qbo-callback",
-      payload: { realm_id, ...data }
+      payload: { realm_id, success: true }
     });
 
     // redirect to /integrations (frontend)
@@ -97,6 +123,7 @@ serve(async (req) => {
     });
   } catch (error) {
     // Log unexpected error
+    console.error("Unexpected error in qbo-callback:", error);
     try {
       const { user_id } = Object.fromEntries(new URL(req.url).searchParams.entries());
       await logQboAction(
@@ -107,7 +134,9 @@ serve(async (req) => {
           error: "Unexpected: " + (error?.message || String(error))
         }
       );
-    } catch {}
+    } catch (e) {
+      console.error("Failed to log error:", e);
+    }
     return new Response("Internal error", { status: 500 });
   }
 });
