@@ -1,3 +1,4 @@
+
 /**
  * Edge function: qbo-callback
  * - exchanges code for tokens, stores in qbo_connections (upsert on user_id+realm)
@@ -46,12 +47,12 @@ serve(async (req) => {
     const code = url.searchParams.get("code");
     const user_id = url.searchParams.get("state");
     const realm_id = url.searchParams.get("realmId");
-    const error = url.searchParams.get("error");
+    const authError = url.searchParams.get("error");
     
-    console.log("Callback parameters:", { code: !!code, user_id, realm_id, error });
+    console.log("Callback parameters:", { code: !!code, user_id, realm_id, error: authError });
     
-    if (error) {
-      return new Response(`Authorization denied: ${error}`, { 
+    if (authError) {
+      return new Response(`Authorization denied: ${authError}`, { 
         status: 400,
         headers: corsHeaders  
       });
@@ -110,18 +111,18 @@ serve(async (req) => {
     console.log("Token exchange successful:", { access_token: "***", refresh_token: "***", expires_in: data.expires_in });
     
     // Store tokens + expires_at (properly using expires_in)
-    const error = await upsertQboConnection(supabase, user_id, realm_id, {
+    const dbError = await upsertQboConnection(supabase, user_id, realm_id, {
       access_token: data.access_token,
       refresh_token: data.refresh_token,
       scope: data.scope,
       expires_in: data.expires_in
     });
 
-    if (error) {
+    if (dbError) {
       await logQboAction(supabase, {
         user_id,
         function_name: "qbo-callback",
-        error: "Upsert qbo_connection failed: " + error.message
+        error: "Upsert qbo_connection failed: " + dbError.message
       });
       return new Response("DB error", { 
         status: 500,
@@ -143,9 +144,9 @@ serve(async (req) => {
         location: "/integrations" 
       }
     });
-  } catch (error) {
+  } catch (err) {
     // Log unexpected error
-    console.error("Unexpected error in qbo-callback:", error);
+    console.error("Unexpected error in qbo-callback:", err);
     try {
       const { user_id } = Object.fromEntries(new URL(req.url).searchParams.entries());
       await logQboAction(
@@ -153,7 +154,7 @@ serve(async (req) => {
         {
           user_id,
           function_name: "qbo-callback",
-          error: "Unexpected: " + (error?.message || String(error))
+          error: "Unexpected: " + (err?.message || String(err))
         }
       );
     } catch (e) {
