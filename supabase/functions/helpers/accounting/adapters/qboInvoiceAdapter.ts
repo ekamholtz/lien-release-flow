@@ -55,34 +55,64 @@ export async function createInvoice(
   }
 
   try {
-    // Get user's QBO tokens
-    const tokens = await ensureQboTokens(
-      supabase,
-      formattedInvoice.user_id,
-      environmentVars
-    );
+    // Get user's QBO tokens with network error handling
+    let tokens;
+    try {
+      tokens = await ensureQboTokens(
+        supabase,
+        formattedInvoice.user_id,
+        environmentVars
+      );
+    } catch (error) {
+      if (error.message && error.message.includes('sending request for url')) {
+        throw new Error(`QuickBooks connectivity issue: Unable to reach QuickBooks servers. Please check your internet connection and try again later.`);
+      } else if (error.message && error.message.includes('No QuickBooks connection found')) {
+        throw new Error(`QuickBooks not connected: Please connect your QuickBooks account in the Integrations settings.`);
+      } else {
+        throw error;
+      }
+    }
 
     // Get or create QBO customer
-    const qboCustomerId = await getOrCreateCustomer(
-      supabase,
-      formattedInvoice.user_id,
-      {
-        external_id: formattedInvoice.client_email,
-        display_name: formattedInvoice.client_name,
-        email: formattedInvoice.client_email
-      },
-      tokens,
-      { INTUIT_ENVIRONMENT: environmentVars.INTUIT_ENVIRONMENT }
-    );
+    let qboCustomerId;
+    try {
+      qboCustomerId = await getOrCreateCustomer(
+        supabase,
+        formattedInvoice.user_id,
+        {
+          external_id: formattedInvoice.client_email,
+          display_name: formattedInvoice.client_name,
+          email: formattedInvoice.client_email
+        },
+        tokens,
+        { INTUIT_ENVIRONMENT: environmentVars.INTUIT_ENVIRONMENT }
+      );
+    } catch (error) {
+      if (error.message && error.message.includes('sending request for url')) {
+        throw new Error(`QuickBooks connectivity issue: Unable to create or find the customer in QuickBooks. Please try again later.`);
+      } else {
+        throw error;
+      }
+    }
 
     // Map and create invoice in QBO
     const qboInvoice = mapInvoiceToQbo(formattedInvoice, qboCustomerId);
-    const qboResponses = await batchCreateInQbo(
-      [qboInvoice],
-      'Invoice',
-      tokens,
-      { INTUIT_ENVIRONMENT: environmentVars.INTUIT_ENVIRONMENT }
-    );
+    let qboResponses;
+    
+    try {
+      qboResponses = await batchCreateInQbo(
+        [qboInvoice],
+        'Invoice',
+        tokens,
+        { INTUIT_ENVIRONMENT: environmentVars.INTUIT_ENVIRONMENT }
+      );
+    } catch (error) {
+      if (error.message && error.message.includes('sending request for url')) {
+        throw new Error(`QuickBooks connectivity issue: Unable to create the invoice in QuickBooks. Please try again later.`);
+      } else {
+        throw error;
+      }
+    }
     
     if (!qboResponses.length || !qboResponses[0].Invoice?.Id) {
       throw new Error('QBO did not return an invoice ID');

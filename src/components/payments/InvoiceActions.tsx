@@ -44,12 +44,15 @@ export function InvoiceActions({
 }: InvoiceActionsProps) {
   const { session } = useAuth();
   const [isSyncing, setIsSyncing] = React.useState(false);
+  const [syncError, setSyncError] = React.useState<string | null>(null);
   
   const handleSyncToQbo = async () => {
     if (!session?.access_token || isSyncing) return;
     
     try {
       setIsSyncing(true);
+      setSyncError(null);
+      
       toast({
         title: "Syncing invoice...",
         description: `Starting sync for invoice ${invoice.invoice_number} to QuickBooks`,
@@ -102,40 +105,68 @@ export function InvoiceActions({
         if (syncError) throw syncError;
       }
       
-      const response = await fetch(
-        'https://oknofqytitpxmlprvekn.functions.supabase.co/sync-invoice',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ invoice_id: invoice.id })
+      try {
+        const response = await fetch(
+          'https://oknofqytitpxmlprvekn.functions.supabase.co/sync-invoice',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ invoice_id: invoice.id })
+          }
+        );
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Network error: ${response.status} ${errorText}`);
         }
-      );
-      
-      const result = await response.json();
-      
-      if (result.error || (result.results && result.results[0]?.error)) {
-        const errorMsg = result.error || result.results[0]?.error || 'Sync failed';
+        
+        const result = await response.json();
+        
+        if (result.error || (result.results && result.results[0]?.error)) {
+          const errorMsg = result.error || result.results[0]?.error || 'Sync failed';
+          
+          // Check for specific QuickBooks connectivity issues
+          if (errorMsg.includes('sending request for url') || errorMsg.includes('QuickBooks connectivity issue')) {
+            setSyncError('QuickBooks connection issue. Please try again later.');
+            toast({
+              title: "QuickBooks Connection Issue",
+              description: "Unable to connect to QuickBooks servers. This may be a temporary network issue. Please try again later.",
+              variant: "destructive"
+            });
+          } else {
+            setSyncError(errorMsg);
+            toast({
+              title: "Sync failed",
+              description: errorMsg,
+              variant: "destructive"
+            });
+          }
+        } else {
+          toast({
+            title: "Sync successful",
+            description: "Invoice successfully synced to QuickBooks!"
+          });
+          
+          // Optionally refresh the page or update the UI to show the new sync status
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }
+      } catch (fetchError: any) {
+        console.error('Network error syncing invoice:', fetchError);
+        setSyncError('Network connection issue. Please check your internet connection and try again.');
         toast({
-          title: "Sync failed",
-          description: errorMsg,
+          title: "Network Error",
+          description: "Unable to connect to sync service. Please check your internet connection and try again.",
           variant: "destructive"
         });
-      } else {
-        toast({
-          title: "Sync successful",
-          description: "Invoice successfully synced to QuickBooks!"
-        });
-        
-        // Optionally refresh the page or update the UI to show the new sync status
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
       }
     } catch (err: any) {
       console.error('Error syncing invoice:', err);
+      setSyncError(err.message || 'Unknown error occurred');
       toast({
         title: "Sync failed",
         description: err.message || 'Unknown error occurred',
@@ -185,6 +216,12 @@ export function InvoiceActions({
             'Sync to QBO'
           )}
         </Button>
+      )}
+      
+      {syncError && (
+        <div className="text-xs text-red-500" title={syncError}>
+          Sync error
+        </div>
       )}
       
       <DropdownMenu>

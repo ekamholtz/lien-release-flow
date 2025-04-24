@@ -25,8 +25,35 @@ serve(async (req) => {
       INTUIT_ENVIRONMENT: Deno.env.get('INTUIT_ENVIRONMENT') || 'sandbox'
     };
 
+    // Log environment vars to debug (removing sensitive values)
+    console.log('Environment config:', {
+      hasIntuitClientId: !!environmentVars.INTUIT_CLIENT_ID,
+      hasIntuitClientSecret: !!environmentVars.INTUIT_CLIENT_SECRET,
+      intuitEnvironment: environmentVars.INTUIT_ENVIRONMENT,
+    });
+
+    // Verify required environment variables
+    if (!environmentVars.INTUIT_CLIENT_ID || !environmentVars.INTUIT_CLIENT_SECRET) {
+      console.error('Missing required environment variables: INTUIT_CLIENT_ID and/or INTUIT_CLIENT_SECRET');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error: Missing QBO credentials' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const requestData = await req.json();
+    let requestData;
+    
+    try {
+      requestData = await req.json();
+    } catch (parseError) {
+      console.error('Error parsing request JSON:', parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     console.log('Received request data:', requestData);
     
     const invoiceIds = requestData.invoice_ids || (requestData.invoice_id ? [requestData.invoice_id] : []);
@@ -98,10 +125,17 @@ serve(async (req) => {
         results.push({ ...result, invoice_id: invoiceId });
       } catch (error) {
         console.error(`Error in sync-invoice for ${invoiceId}:`, error);
+        
+        // Format network connectivity errors for better user feedback
+        let errorMessage = error.message;
+        if (errorMessage && errorMessage.includes('sending request for url')) {
+          errorMessage = 'QuickBooks connectivity issue: Unable to reach QuickBooks servers. Please check your internet connection and try again later.';
+        }
+        
         results.push({ 
           invoice_id: invoiceId, 
           success: false, 
-          error: error.message 
+          error: errorMessage
         });
         
         // Update sync status to error
@@ -118,8 +152,8 @@ serve(async (req) => {
             p_entity_id: invoiceId,
             p_provider: 'qbo',
             p_status: 'error',
-            p_error: { message: error.message },
-            p_error_message: error.message,
+            p_error: { message: errorMessage },
+            p_error_message: errorMessage,
             p_user_id: invoice?.user_id
           });
         } catch (updateError) {
