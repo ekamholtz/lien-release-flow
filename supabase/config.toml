@@ -35,3 +35,9 @@ verify_jwt = true
 [edge_functions.qbo-alert]
 verify_jwt = false
 
+[edge_functions.qbo-authorize]
+verify_jwt = true
+
+[edge_functions.qbo-callback]
+verify_jwt = true
+
