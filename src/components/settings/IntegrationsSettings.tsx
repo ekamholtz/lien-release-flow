@@ -52,19 +52,21 @@ export function IntegrationsSettings() {
     
     try {
       setIsRefreshingStats(true);
-      const { data: invoices, error } = await supabase
-        .from('invoices')
-        .select('qbo_sync_status')
-        .not('qbo_sync_status', 'is', null);
+      // Query the accounting_sync table instead of invoices
+      const { data: syncRecords, error } = await supabase
+        .from('accounting_sync')
+        .select('*')
+        .eq('entity_type', 'invoice')
+        .eq('provider', 'qbo');
 
       if (error) throw error;
 
-      const stats = invoices.reduce((acc, inv) => ({
-        total: acc.total + 1,
-        synced: acc.synced + (inv.qbo_sync_status === 'success' ? 1 : 0),
-        failed: acc.failed + (inv.qbo_sync_status === 'error' ? 1 : 0),
-        pending: acc.pending + (['pending', 'processing'].includes(inv.qbo_sync_status) ? 1 : 0)
-      }), { total: 0, synced: 0, failed: 0, pending: 0 });
+      const stats = {
+        total: syncRecords.length,
+        synced: syncRecords.filter(rec => rec.status === 'success').length,
+        failed: syncRecords.filter(rec => rec.status === 'error').length,
+        pending: syncRecords.filter(rec => ['pending', 'processing'].includes(rec.status || '')).length
+      };
 
       setSyncStats(stats);
     } catch (err) {
