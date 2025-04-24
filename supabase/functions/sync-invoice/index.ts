@@ -10,6 +10,8 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Starting sync-invoice function');
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -25,6 +27,8 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const requestData = await req.json();
+    console.log('Received request data:', requestData);
+    
     const invoiceIds = requestData.invoice_ids || (requestData.invoice_id ? [requestData.invoice_id] : []);
     
     if (invoiceIds.length === 0) {
@@ -40,6 +44,7 @@ serve(async (req) => {
       if (pendingSync?.length) {
         invoiceIds.push(pendingSync[0].entity_id);
       } else {
+        console.log('No pending invoices found');
         return new Response(
           JSON.stringify({ message: 'No pending invoices found' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -47,6 +52,7 @@ serve(async (req) => {
       }
     }
     
+    console.log('Processing invoices:', invoiceIds);
     const results = [];
     for (const invoiceId of invoiceIds) {
       try {
@@ -62,6 +68,7 @@ serve(async (req) => {
       }
     }
 
+    console.log('Sync results:', results);
     return new Response(
       JSON.stringify({ success: results.every(r => r.success), results }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

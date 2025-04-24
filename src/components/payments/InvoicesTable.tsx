@@ -58,7 +58,6 @@ export function InvoicesTable({ invoices, onUpdateStatus, onPayInvoice, onViewDe
               <TableCell>{invoice.client_name}</TableCell>
               <TableCell>
                 {invoice.project_id ? (
-                  // @ts-ignore - projects is returned from the join
                   invoice.projects?.name || 'Unknown Project'
                 ) : 'No Project'}
               </TableCell>

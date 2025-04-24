@@ -10,7 +10,6 @@ import { InvoicesTable } from '@/components/payments/InvoicesTable';
 import { PayInvoice } from '@/components/payments/PayInvoice';
 import { InvoiceDetailsModal } from '@/components/payments/InvoiceDetailsModal';
 
-// Define an extended invoice type that includes the project name from the join
 type ExtendedInvoice = DbInvoice & {
   projects?: { 
     name: string;
@@ -30,14 +29,23 @@ const AccountsReceivable = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('invoices')
-        .select('*, projects(name)')
+        .select(`
+          *,
+          projects(name),
+          accounting_sync!invoice_sync_fkey (
+            status,
+            error,
+            retries,
+            last_synced_at
+          )
+        `)
         .order('created_at', { ascending: false });
       
       if (error) {
         throw error;
       }
       
-      console.log('Invoices data:', data);
+      console.log('Invoices data with sync status:', data);
       setInvoices(data as ExtendedInvoice[] || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);

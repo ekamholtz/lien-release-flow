@@ -23,6 +23,7 @@ export type Database = {
           retries: number | null
           status: Database["public"]["Enums"]["sync_status"] | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -37,6 +38,7 @@ export type Database = {
           retries?: number | null
           status?: Database["public"]["Enums"]["sync_status"] | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -51,6 +53,7 @@ export type Database = {
           retries?: number | null
           status?: Database["public"]["Enums"]["sync_status"] | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -63,10 +66,6 @@ export type Database = {
           id: string
           project_id: string | null
           qbo_bill_id: string | null
-          qbo_error: Json | null
-          qbo_last_synced_at: string | null
-          qbo_retries: number | null
-          qbo_sync_status: Database["public"]["Enums"]["qbo_sync_status"] | null
           status: string
           vendor_email: string
           vendor_name: string
@@ -79,12 +78,6 @@ export type Database = {
           id?: string
           project_id?: string | null
           qbo_bill_id?: string | null
-          qbo_error?: Json | null
-          qbo_last_synced_at?: string | null
-          qbo_retries?: number | null
-          qbo_sync_status?:
-            | Database["public"]["Enums"]["qbo_sync_status"]
-            | null
           status?: string
           vendor_email: string
           vendor_name: string
@@ -97,12 +90,6 @@ export type Database = {
           id?: string
           project_id?: string | null
           qbo_bill_id?: string | null
-          qbo_error?: Json | null
-          qbo_last_synced_at?: string | null
-          qbo_retries?: number | null
-          qbo_sync_status?:
-            | Database["public"]["Enums"]["qbo_sync_status"]
-            | null
           status?: string
           vendor_email?: string
           vendor_name?: string
@@ -181,11 +168,7 @@ export type Database = {
           invoice_number: string
           payment_method: string
           project_id: string | null
-          qbo_error: Json | null
           qbo_invoice_id: string | null
-          qbo_last_synced_at: string | null
-          qbo_retries: number | null
-          qbo_sync_status: Database["public"]["Enums"]["qbo_sync_status"] | null
           status: string
         }
         Insert: {
@@ -198,13 +181,7 @@ export type Database = {
           invoice_number: string
           payment_method?: string
           project_id?: string | null
-          qbo_error?: Json | null
           qbo_invoice_id?: string | null
-          qbo_last_synced_at?: string | null
-          qbo_retries?: number | null
-          qbo_sync_status?:
-            | Database["public"]["Enums"]["qbo_sync_status"]
-            | null
           status?: string
         }
         Update: {
@@ -217,13 +194,7 @@ export type Database = {
           invoice_number?: string
           payment_method?: string
           project_id?: string | null
-          qbo_error?: Json | null
           qbo_invoice_id?: string | null
-          qbo_last_synced_at?: string | null
-          qbo_retries?: number | null
-          qbo_sync_status?:
-            | Database["public"]["Enums"]["qbo_sync_status"]
-            | null
           status?: string
         }
         Relationships: [

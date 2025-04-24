@@ -3,58 +3,30 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { createInvoice as createQboInvoice } from "../accounting/adapters/qboInvoiceAdapter.ts";
 import { logQboAction } from "../qbo.ts";
 
-interface SyncResult {
-  invoice_id: string;
-  success: boolean;
-  qbo_invoice_id?: string;
-  error?: string;
-}
-
-/**
- * Lock an invoice for syncing
- */
-export async function lockInvoice(supabase: ReturnType<typeof createClient>, invoiceId: string) {
-  const { data: invoice, error: invoiceError } = await supabase
-    .from('invoices')
-    .select('*, projects(*)')
-    .eq('id', invoiceId)
-    .single();
+export async function lockSyncRow(supabase: ReturnType<typeof createClient>, entityType: string, entityId: string) {
+  console.log(`Locking sync row for ${entityType}:${entityId}`);
   
-  if (invoiceError || !invoice) {
-    throw new Error(`Failed to fetch invoice: ${invoiceError?.message || 'Not found'}`);
-  }
-
-  // Create or update sync record
-  const { data: syncRecord } = await supabase
+  // Get or create sync record
+  const { data: syncRecord, error: syncError } = await supabase
     .from('accounting_sync')
     .upsert({
-      entity_type: 'invoice',
-      entity_id: invoiceId,
+      entity_type: entityType,
+      entity_id: entityId,
       provider: 'qbo',
       status: 'processing',
       last_synced_at: new Date().toISOString()
     })
-    .select()
+    .select('*')
     .single();
 
-  return { invoice, syncRecord };
-}
-
-/**
- * Get the appropriate accounting provider adapter
- */
-function getAccountingProvider(provider: string = 'qbo') {
-  switch (provider) {
-    case 'qbo':
-      return { createInvoice: createQboInvoice };
-    default:
-      throw new Error(`Unsupported accounting provider: ${provider}`);
+  if (syncError || !syncRecord) {
+    console.error('Error locking sync record:', syncError);
+    throw new Error(`Failed to lock sync record: ${syncError?.message || 'Not found'}`);
   }
+
+  return syncRecord;
 }
 
-/**
- * Process an invoice sync operation
- */
 export async function processInvoiceSync(
   supabase: ReturnType<typeof createClient>,
   invoiceId: string,
@@ -63,28 +35,57 @@ export async function processInvoiceSync(
     INTUIT_CLIENT_SECRET: string;
     INTUIT_ENVIRONMENT: string;
   }
-): Promise<SyncResult> {
+): Promise<{ success: boolean; error?: string }> {
+  console.log('Starting invoice sync process for:', invoiceId);
+  
   try {
-    // Lock the invoice for syncing
-    const { invoice, syncRecord } = await lockInvoice(supabase, invoiceId);
-
-    // Get the appropriate provider adapter (only QBO for now)
-    const adapter = getAccountingProvider('qbo');
+    // Get invoice data first
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .select('*, projects(*)')
+      .eq('id', invoiceId)
+      .single();
     
-    // Create invoice in provider
-    const result = await adapter.createInvoice(supabase, invoice, environmentVars);
+    if (invoiceError || !invoice) {
+      throw new Error(`Failed to fetch invoice: ${invoiceError?.message || 'Not found'}`);
+    }
 
+    // Lock the sync record and get user_id
+    const syncRecord = await lockSyncRow(supabase, 'invoice', invoiceId);
+    console.log('Obtained sync record:', syncRecord);
+
+    if (!syncRecord.user_id) {
+      throw new Error('No user_id associated with sync record');
+    }
+
+    // Create invoice in QBO
+    const adapter = await createQboInvoice(supabase, invoice, environmentVars);
+    
     // Record success
-    await recordSyncResult(supabase, syncRecord.id, true, {
-      providerRef: result.providerRef,
-      providerMeta: result.providerMeta
+    await supabase
+      .from('accounting_sync')
+      .update({
+        status: 'success',
+        provider_ref: adapter.qboInvoiceId,
+        provider_meta: adapter.providerMeta,
+        error: null,
+        last_synced_at: new Date().toISOString()
+      })
+      .eq('entity_type', 'invoice')
+      .eq('entity_id', invoiceId);
+
+    await logQboAction(supabase, {
+      user_id: syncRecord.user_id,
+      function_name: 'sync-invoice',
+      payload: { 
+        invoice_id: invoiceId,
+        qbo_invoice_id: adapter.qboInvoiceId,
+        http_status: 200
+      },
+      severity: 'info'
     });
 
-    return { 
-      invoice_id: invoice.id, 
-      success: true, 
-      qbo_invoice_id: result.qboInvoiceId 
-    };
+    return { success: true };
     
   } catch (error) {
     console.error(`Error processing invoice ${invoiceId}:`, error);
@@ -95,12 +96,11 @@ export async function processInvoiceSync(
       .update({
         status: 'error',
         error: { message: error.message },
-        retries: supabase.rpc('increment_retries', { invoice_id: invoiceId }),
+        retries: supabase.rpc('increment_retries', { entity_id: invoiceId }),
         last_synced_at: new Date().toISOString()
       })
       .eq('entity_type', 'invoice')
-      .eq('entity_id', invoiceId)
-      .eq('provider', 'qbo');
+      .eq('entity_id', invoiceId);
     
     await logQboAction(supabase, {
       function_name: 'sync-invoice',
@@ -109,47 +109,6 @@ export async function processInvoiceSync(
       severity: 'error'
     });
     
-    return { 
-      invoice_id: invoiceId, 
-      success: false, 
-      error: error.message 
-    };
-  }
-}
-
-/**
- * Record the result of a sync operation
- */
-export async function recordSyncResult(
-  supabase: ReturnType<typeof createClient>,
-  syncRecordId: string,
-  success: boolean,
-  result: {
-    providerRef?: string;
-    providerMeta?: any;
-    error?: string;
-  }
-) {
-  if (success) {
-    await supabase
-      .from('accounting_sync')
-      .update({
-        status: 'success',
-        provider_ref: result.providerRef,
-        provider_meta: result.providerMeta,
-        error: null,
-        last_synced_at: new Date().toISOString()
-      })
-      .eq('id', syncRecordId);
-  } else {
-    await supabase
-      .from('accounting_sync')
-      .update({
-        status: 'error',
-        error: { message: result.error },
-        retries: supabase.rpc('increment_retries', { invoice_id: null }),
-        last_synced_at: new Date().toISOString()
-      })
-      .eq('id', syncRecordId);
+    return { success: false, error: error.message };
   }
 }
