@@ -2,7 +2,6 @@
 import React from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { LienReleaseForm } from '@/components/payments/LienReleaseForm';
-import { AiAssistant } from '@/components/dashboard/AiAssistant';
 
 const LienRelease = () => {
   return (
@@ -14,7 +13,6 @@ const LienRelease = () => {
           <LienReleaseForm />
         </div>
       </div>
-      <AiAssistant />
     </AppLayout>
   );
 };

@@ -2,7 +2,6 @@
 import React from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { BillForm } from '@/components/payments/BillForm';
-import { AiAssistant } from '@/components/dashboard/AiAssistant';
 
 const CreateBill = () => {
   return (
@@ -14,7 +13,6 @@ const CreateBill = () => {
           <BillForm />
         </div>
       </div>
-      <AiAssistant />
     </AppLayout>
   );
 };

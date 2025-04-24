@@ -1,12 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppHeader } from '@/components/AppHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from '@/components/ui/button';
-import { AiAssistant } from '@/components/dashboard/AiAssistant';
 import { CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
-import { IntegrationsSettings } from '@/components/settings/IntegrationsSettings';
 
 const IntegrationCard = ({ 
   title, 
@@ -228,7 +225,6 @@ const Integrations = () => {
           </div>
         </main>
       </div>
-      <AiAssistant />
     </div>
   );
 };

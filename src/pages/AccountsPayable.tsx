@@ -1,7 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
-import { AiAssistant } from '@/components/dashboard/AiAssistant';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
@@ -162,8 +160,6 @@ const AccountsPayable = () => {
           />
         </>
       )}
-      
-      <AiAssistant />
     </AppLayout>
   );
 };

@@ -2,7 +2,6 @@
 import React from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { InvoiceForm } from '@/components/payments/InvoiceForm';
-import { AiAssistant } from '@/components/dashboard/AiAssistant';
 
 const CreateInvoice = () => {
   return (
@@ -14,7 +13,6 @@ const CreateInvoice = () => {
           <InvoiceForm />
         </div>
       </div>
-      <AiAssistant />
     </AppLayout>
   );
 };

@@ -5,7 +5,6 @@ import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
 import { ActionButtons } from '@/components/dashboard/ActionButtons';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { PendingApprovals } from '@/components/dashboard/PendingApprovals';
-import { AiAssistant } from '@/components/dashboard/AiAssistant';
 
 const Dashboard = () => {
   return (
@@ -27,7 +26,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-      <AiAssistant />
     </AppLayout>
   );
 };
