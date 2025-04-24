@@ -1,13 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-import { 
-  ensureQboTokens, 
-  getOrCreateCustomer, 
-  mapInvoiceToQbo,
-  batchCreateInQbo, 
-  logQboAction 
-} from "../helpers/qbo.ts";
+import { processInvoiceSync } from "../helpers/sync/processInvoiceSync.ts";
+import { logQboAction } from "../helpers/qbo.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +22,12 @@ serve(async (req) => {
     const INTUIT_CLIENT_ID = Deno.env.get('INTUIT_CLIENT_ID')!;
     const INTUIT_CLIENT_SECRET = Deno.env.get('INTUIT_CLIENT_SECRET')!;
     const INTUIT_ENVIRONMENT = Deno.env.get('INTUIT_ENVIRONMENT') || 'sandbox';
+
+    const environmentVars = {
+      INTUIT_CLIENT_ID,
+      INTUIT_CLIENT_SECRET,
+      INTUIT_ENVIRONMENT
+    };
 
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
@@ -57,113 +58,10 @@ serve(async (req) => {
     const results = [];
     for (const invoiceId of invoiceIds) {
       try {
-        // Get invoice data
-        const { data: invoice, error: invoiceError } = await supabase
-          .from('invoices')
-          .select('*, projects(*)')
-          .eq('id', invoiceId)
-          .single();
-        
-        if (invoiceError || !invoice) {
-          throw new Error(`Failed to fetch invoice: ${invoiceError?.message || 'Not found'}`);
-        }
-
-        // Create or update sync record
-        const { data: syncRecord } = await supabase
-          .from('accounting_sync')
-          .upsert({
-            entity_type: 'invoice',
-            entity_id: invoiceId,
-            provider: 'qbo',
-            status: 'processing',
-            last_synced_at: new Date().toISOString()
-          })
-          .select()
-          .single();
-
-        // Get user's QBO tokens
-        const tokens = await ensureQboTokens(
-          supabase,
-          invoice.user_id,
-          { INTUIT_CLIENT_ID, INTUIT_CLIENT_SECRET, INTUIT_ENVIRONMENT }
-        );
-
-        // Get or create QBO customer
-        const qboCustomerId = await getOrCreateCustomer(
-          supabase,
-          invoice.user_id,
-          {
-            external_id: invoice.client_email,
-            display_name: invoice.client_name,
-            email: invoice.client_email
-          },
-          tokens,
-          { INTUIT_ENVIRONMENT }
-        );
-
-        // Map and create invoice in QBO
-        const qboInvoice = mapInvoiceToQbo(invoice, qboCustomerId);
-        const qboResponses = await batchCreateInQbo(
-          [qboInvoice],
-          'Invoice',
-          tokens,
-          { INTUIT_ENVIRONMENT }
-        );
-        
-        if (!qboResponses.length || !qboResponses[0].Invoice?.Id) {
-          throw new Error('QBO did not return an invoice ID');
-        }
-
-        const qboInvoiceId = qboResponses[0].Invoice.Id;
-
-        // Update sync record with success
-        await supabase
-          .from('accounting_sync')
-          .update({
-            status: 'success',
-            provider_ref: qboInvoiceId,
-            provider_meta: qboResponses[0],
-            error: null,
-            last_synced_at: new Date().toISOString()
-          })
-          .eq('id', syncRecord.id);
-
-        await logQboAction(supabase, {
-          user_id: invoice.user_id,
-          function_name: 'sync-invoice',
-          payload: { invoice_id: invoice.id, qbo_invoice_id: qboInvoiceId },
-          severity: 'info'
-        });
-
-        results.push({ 
-          invoice_id: invoice.id, 
-          success: true, 
-          qbo_invoice_id: qboInvoiceId 
-        });
-        
+        const result = await processInvoiceSync(supabase, invoiceId, environmentVars);
+        results.push(result);
       } catch (error) {
-        console.error(`Error processing invoice ${invoiceId}:`, error);
-        
-        // Update sync record with error
-        await supabase
-          .from('accounting_sync')
-          .update({
-            status: 'error',
-            error: { message: error.message },
-            retries: supabase.rpc('increment_retries', { invoice_id: invoiceId }),
-            last_synced_at: new Date().toISOString()
-          })
-          .eq('entity_type', 'invoice')
-          .eq('entity_id', invoiceId)
-          .eq('provider', 'qbo');
-        
-        await logQboAction(supabase, {
-          function_name: 'sync-invoice',
-          payload: { invoice_id: invoiceId },
-          error: error.message,
-          severity: 'error'
-        });
-        
+        console.error(`Unhandled error in sync-invoice for ${invoiceId}:`, error);
         results.push({ 
           invoice_id: invoiceId, 
           success: false, 
