@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +15,12 @@ type ExtendedInvoice = DbInvoice & {
   projects?: { 
     name: string;
   };
+  accounting_sync?: {
+    status: string;
+    error: { message: string } | null;
+    retries: number;
+    last_synced_at: string | null;
+  } | null;
 };
 
 const AccountsReceivable = () => {
@@ -27,26 +34,42 @@ const AccountsReceivable = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // First get all invoices with their project information
+      const { data: invoicesData, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
           *,
-          projects(name),
-          accounting_sync!invoice_sync_fkey (
-            status,
-            error,
-            retries,
-            last_synced_at
-          )
+          projects(name)
         `)
         .order('created_at', { ascending: false });
       
-      if (error) {
-        throw error;
+      if (invoicesError) {
+        throw invoicesError;
       }
       
-      console.log('Invoices data with sync status:', data);
-      setInvoices(data as ExtendedInvoice[] || []);
+      // Then get all accounting sync records for invoices
+      const { data: syncData, error: syncError } = await supabase
+        .from('accounting_sync')
+        .select('*')
+        .eq('entity_type', 'invoice')
+        .eq('provider', 'qbo');
+        
+      if (syncError) {
+        throw syncError;
+      }
+      
+      // Combine the data
+      const combinedData = invoicesData.map(invoice => {
+        const syncRecord = syncData?.find(sync => sync.entity_id === invoice.id);
+        return {
+          ...invoice,
+          accounting_sync: syncRecord || null
+        };
+      });
+      
+      console.log('Invoices data with sync status:', combinedData);
+      setInvoices(combinedData as ExtendedInvoice[] || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
       toast({

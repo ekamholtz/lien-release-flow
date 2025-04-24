@@ -62,7 +62,8 @@ export function InvoiceActions({
           entity_type: 'invoice',
           entity_id: invoice.id,
           provider: 'qbo',
-          status: 'pending'
+          status: 'pending',
+          user_id: session.user.id
         });
         
       if (syncError) throw syncError;
