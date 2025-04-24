@@ -32,7 +32,8 @@ serve(async (req) => {
     const invoiceIds = requestData.invoice_ids || (requestData.invoice_id ? [requestData.invoice_id] : []);
     
     if (invoiceIds.length === 0) {
-      const { data: pendingSync } = await supabase
+      // Find pending invoices that need to be synced
+      const { data: pendingSync, error: pendingError } = await supabase
         .from('accounting_sync')
         .select('entity_id')
         .eq('entity_type', 'invoice')
@@ -40,6 +41,10 @@ serve(async (req) => {
         .eq('status', 'pending')
         .order('created_at', { ascending: true })
         .limit(1);
+        
+      if (pendingError) {
+        throw pendingError;
+      }
 
       if (pendingSync?.length) {
         invoiceIds.push(pendingSync[0].entity_id);
@@ -56,8 +61,30 @@ serve(async (req) => {
     const results = [];
     for (const invoiceId of invoiceIds) {
       try {
+        // First check if we have an existing sync record in a non-pending state
+        const { data: existingSync } = await supabase
+          .from('accounting_sync')
+          .select('status')
+          .eq('entity_type', 'invoice')
+          .eq('entity_id', invoiceId)
+          .eq('provider', 'qbo')
+          .not('status', 'eq', 'pending')
+          .single();
+          
+        // If there's already a successful or processing sync, skip it
+        if (existingSync && existingSync.status === 'success') {
+          console.log(`Invoice ${invoiceId} already synced successfully, skipping`);
+          results.push({
+            invoice_id: invoiceId,
+            success: true,
+            message: 'Invoice already synced'
+          });
+          continue;
+        }
+        
+        // Process the sync
         const result = await processInvoiceSync(supabase, invoiceId, environmentVars);
-        results.push(result);
+        results.push({ ...result, invoice_id: invoiceId });
       } catch (error) {
         console.error(`Error in sync-invoice for ${invoiceId}:`, error);
         results.push({ 

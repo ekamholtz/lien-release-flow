@@ -55,18 +55,50 @@ export function InvoiceActions({
         description: `Starting sync for invoice ${invoice.invoice_number} to QuickBooks`,
       });
       
-      // Create/update sync record
-      const { error: syncError } = await supabase
+      // First check if there's already a sync record for this invoice
+      const { data: existingSync, error: checkError } = await supabase
         .from('accounting_sync')
-        .upsert({
-          entity_type: 'invoice',
-          entity_id: invoice.id,
-          provider: 'qbo',
-          status: 'pending',
-          user_id: session.user.id
-        });
+        .select('*')
+        .eq('entity_type', 'invoice')
+        .eq('entity_id', invoice.id)
+        .eq('provider', 'qbo')
+        .single();
         
-      if (syncError) throw syncError;
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+      
+      // If there's an existing record in error state, update it to pending
+      // If no record exists, create a new one
+      if (existingSync) {
+        if (existingSync.status === 'error') {
+          const { error: updateError } = await supabase
+            .from('accounting_sync')
+            .update({
+              status: 'pending',
+              error: null,
+              error_message: null
+            })
+            .eq('id', existingSync.id);
+            
+          if (updateError) throw updateError;
+        } else if (existingSync.status !== 'error' && existingSync.status !== 'pending') {
+          throw new Error(`Invoice is already in ${existingSync.status} state`);
+        }
+      } else {
+        // Create new sync record
+        const { error: syncError } = await supabase
+          .from('accounting_sync')
+          .insert({
+            entity_type: 'invoice',
+            entity_id: invoice.id,
+            provider: 'qbo',
+            status: 'pending',
+            user_id: session.user.id
+          });
+            
+        if (syncError) throw syncError;
+      }
       
       const response = await fetch(
         'https://oknofqytitpxmlprvekn.functions.supabase.co/sync-invoice',

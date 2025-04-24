@@ -22,28 +22,34 @@ export async function createInvoice(
     INTUIT_ENVIRONMENT: string;
   }
 ): Promise<QboInvoiceResult> {
+  // Format the due_date to ensure it's in YYYY-MM-DD format
+  const formattedInvoice = {
+    ...invoice,
+    due_date: invoice.due_date ? invoice.due_date.split('T')[0] : invoice.due_date
+  };
+  
   // Get user's QBO tokens
   const tokens = await ensureQboTokens(
     supabase,
-    invoice.user_id,
+    formattedInvoice.user_id,
     environmentVars
   );
 
   // Get or create QBO customer
   const qboCustomerId = await getOrCreateCustomer(
     supabase,
-    invoice.user_id,
+    formattedInvoice.user_id,
     {
-      external_id: invoice.client_email,
-      display_name: invoice.client_name,
-      email: invoice.client_email
+      external_id: formattedInvoice.client_email,
+      display_name: formattedInvoice.client_name,
+      email: formattedInvoice.client_email
     },
     tokens,
     { INTUIT_ENVIRONMENT: environmentVars.INTUIT_ENVIRONMENT }
   );
 
   // Map and create invoice in QBO
-  const qboInvoice = mapInvoiceToQbo(invoice, qboCustomerId);
+  const qboInvoice = mapInvoiceToQbo(formattedInvoice, qboCustomerId);
   const qboResponses = await batchCreateInQbo(
     [qboInvoice],
     'Invoice',

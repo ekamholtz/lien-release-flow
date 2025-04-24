@@ -41,8 +41,14 @@ export async function processInvoiceSync(
 
     console.log('Set sync status to processing for invoice:', invoiceId);
 
-    // Create invoice in QBO
-    const adapter = await createQboInvoice(supabase, invoice, environmentVars);
+    // Format date properly for QBO - ensure it's in YYYY-MM-DD format
+    const formattedInvoice = {
+      ...invoice,
+      due_date: invoice.due_date ? invoice.due_date.split('T')[0] : invoice.due_date
+    };
+
+    // Create invoice in QBO with properly formatted date
+    const adapter = await createQboInvoice(supabase, formattedInvoice, environmentVars);
     
     // Record success using the new upsert function with user_id
     await supabase.rpc('update_sync_status', {
