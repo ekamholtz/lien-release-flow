@@ -82,6 +82,17 @@ serve(async (req) => {
           continue;
         }
         
+        // Before processing the sync, let's get the invoice to verify data integrity
+        const { data: invoice, error: invoiceError } = await supabase
+          .from('invoices')
+          .select('*')
+          .eq('id', invoiceId)
+          .single();
+        
+        if (invoiceError || !invoice) {
+          throw new Error(`Failed to fetch invoice: ${invoiceError?.message || 'Not found'}`);
+        }
+        
         // Process the sync
         const result = await processInvoiceSync(supabase, invoiceId, environmentVars);
         results.push({ ...result, invoice_id: invoiceId });

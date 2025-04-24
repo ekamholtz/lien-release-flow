@@ -1,446 +1,369 @@
-
-/**
- * Helper utilities for QuickBooks Online OAuth2 + logging
- */
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 
-/**
- * Upsert QBO connection info for a user/realm.
- * @param supabase Supabase admin client
- * @param userId string
- * @param realmId string
- * @param tokenData { access_token, refresh_token, scope, expires_in }
- */
 export async function upsertQboConnection(
-  supabase: any,
-  userId: string,
-  realmId: string,
-  tokenData: { access_token: string, refresh_token: string, scope?: string, expires_in: number }
+  supabase: ReturnType<typeof createClient>,
+  user_id: string,
+  realm_id: string,
+  access_token: string,
+  refresh_token: string,
+  expires_in: number,
+  scope?: string
 ) {
-  // Compute expires_at from expires_in
-  const expires_at = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString();
-  const payload = {
-    user_id: userId,
-    realm_id: realmId,
-    access_token: tokenData.access_token,
-    refresh_token: tokenData.refresh_token,
-    scope: tokenData.scope || "",
-    expires_at,
-    updated_at: new Date().toISOString()
-  };
-
-  // Try upsert on (user_id, realm_id)
-  const { error } = await supabase
+  // Calculate expires_at safely to avoid invalid time value errors
+  let expires_at;
+  try {
+    // Create a new Date object, add the expires_in seconds
+    const now = new Date();
+    expires_at = new Date(now.getTime() + (expires_in * 1000));
+    
+    // Validate the date is valid before proceeding
+    if (isNaN(expires_at.getTime())) {
+      console.warn('Invalid expires_at date calculated, using default expiration');
+      // Use a default expiration of 55 minutes from now as fallback
+      expires_at = new Date(now.getTime() + (55 * 60 * 1000));
+    }
+  } catch (error) {
+    console.warn('Error calculating expires_at:', error);
+    // Fallback to a simple timestamp 55 minutes from now
+    expires_at = new Date(Date.now() + (55 * 60 * 1000));
+  }
+  
+  const { data, error } = await supabase
     .from('qbo_connections')
-    .upsert(payload, { onConflict: ['user_id', 'realm_id'] });
-
-  return error;
+    .upsert({
+      user_id,
+      realm_id,
+      access_token,
+      refresh_token,
+      expires_at: expires_at.toISOString(),
+      scope
+    }, {
+      onConflict: 'user_id,realm_id',
+      returning: 'minimal'
+    });
+    
+  if (error) {
+    throw error;
+  }
+  
+  return true;
 }
 
-/**
- * Refresh the QBO access_token if expired, using refresh_token.
- * Returns { access_token, refresh_token, expires_in } or error.
- */
-export async function refreshQboToken(
-  env: { INTUIT_CLIENT_ID: string; INTUIT_CLIENT_SECRET: string; INTUIT_ENVIRONMENT: string; },
-  refresh_token: string
+export async function getOrCreateCustomer(
+  supabase: ReturnType<typeof createClient>,
+  user_id: string,
+  customer: {
+    external_id: string;
+    display_name: string;
+    email: string;
+  },
+  tokens: {
+    access_token: string;
+    refresh_token: string;
+    realm_id: string;
+  },
+  environmentVars: {
+    INTUIT_ENVIRONMENT: string;
+  }
 ) {
-  const base = env.INTUIT_ENVIRONMENT === "production"
-    ? "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
-    : "https://sandbox-accounts.platform.intuit.com/oauth2/v1/tokens/bearer";
+  const { access_token, realm_id } = tokens;
+  const { external_id, display_name, email } = customer;
 
-  const basicAuth = 'Basic ' + btoa(`${env.INTUIT_CLIENT_ID}:${env.INTUIT_CLIENT_SECRET}`);
+  // Check if customer exists in cache
+  const { data: cachedCustomer, error: cacheError } = await supabase
+    .from('qbo_contacts_cache')
+    .select('qbo_id')
+    .eq('user_id', user_id)
+    .eq('contact_type', 'customer')
+    .eq('external_id', external_id)
+    .single();
 
-  const response = await fetch(base, {
-    method: "POST",
+  if (cacheError && cacheError.code !== 'PGRST116') {
+    console.error('Error checking customer cache:', cacheError);
+    throw cacheError;
+  }
+
+  if (cachedCustomer?.qbo_id) {
+    console.log(`Customer ${external_id} found in cache with QBO ID ${cachedCustomer.qbo_id}`);
+    return cachedCustomer.qbo_id;
+  }
+
+  // If not in cache, check if customer exists in QBO
+  const qboBaseUrl = environmentVars.INTUIT_ENVIRONMENT === 'production'
+    ? 'https://quickbooks.api.intuit.com'
+    : 'https://sandbox.quickbooks.api.intuit.com';
+  const qboQueryUrl = `${qboBaseUrl}/v3/company/${realm_id}/query?query=select * from Customer where FullyQualifiedName = '${display_name}'&minorversion=65`;
+
+  const qboCustomerSearchResponse = await fetch(qboQueryUrl, {
     headers: {
-      'Authorization': basicAuth,
-      'Accept': 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token
-    }).toString()
+      'Authorization': `Bearer ${access_token}`,
+      'Accept': 'application/json'
+    }
   });
 
-  if (!response.ok) {
-    return { error: await response.text() };
+  if (!qboCustomerSearchResponse.ok) {
+    console.error('Error searching for customer in QBO:', qboCustomerSearchResponse.status, await qboCustomerSearchResponse.text());
+    throw new Error(`Failed to search for customer in QBO: ${qboCustomerSearchResponse.status}`);
   }
-  return await response.json();
-}
 
-/**
- * Log a QBO action (success/error) to qbo_logs with severity.
- */
-export async function logQboAction(
-  supabase: any,
-  params: { 
-    user_id?: string, 
-    function_name: string, 
-    payload?: any, 
-    error?: string,
-    severity?: 'info' | 'warning' | 'error' 
+  const qboCustomerSearchData = await qboCustomerSearchResponse.json();
+
+  if (qboCustomerSearchData.QueryResponse?.Customer?.length > 0) {
+    const existingQboCustomerId = qboCustomerSearchData.QueryResponse.Customer[0].Id;
+    console.log(`Customer ${display_name} found in QBO with ID ${existingQboCustomerId}`);
+
+    // Cache the found customer
+    await supabase
+      .from('qbo_contacts_cache')
+      .insert({
+        user_id: user_id,
+        contact_type: 'customer',
+        external_id: external_id,
+        qbo_id: existingQboCustomerId,
+        data: qboCustomerSearchData.QueryResponse.Customer[0]
+      });
+
+    return existingQboCustomerId;
   }
-) {
-  const severity = params.error ? (params.severity || 'error') : (params.severity || 'info');
-  
-  await supabase.from('qbo_logs').insert([{
-    user_id: params.user_id || null,
-    function_name: params.function_name,
-    payload: params.payload ? JSON.stringify(params.payload) : null,
-    error: params.error || null,
-    severity,
-    created_at: new Date().toISOString(),
-  }]);
-  
-  // If critical error (severity='error' AND error message exists), consider triggering alert
-  if (severity === 'error' && params.error) {
-    try {
-      // Non-blocking call to alert webhook
-      const retryCount = params?.payload?.retry_count || 0;
-      if (retryCount >= 3) {
-        fetch(
-          'https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-alert',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              function_name: params.function_name,
-              error: params.error,
-              user_id: params.user_id,
-              retry_count: retryCount,
-              payload: params.payload
-            })
-          }
-        ).catch(console.error); // Don't wait for response or let it block
+
+  // If not in QBO, create the customer
+  const qboCreateUrl = `${qboBaseUrl}/v3/company/${realm_id}/customer?minorversion=65`;
+  const qboCustomerCreateResponse = await fetch(qboCreateUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${access_token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      DisplayName: display_name,
+      FullyQualifiedName: display_name,
+      PrimaryEmailAddr: {
+        Address: email
       }
-    } catch (e) {
-      console.error("Failed to trigger alert:", e);
-    }
-  }
-}
-
-/**
- * Ensure QBO tokens are valid, refresh if needed
- */
-export async function ensureQboTokens(
-  supabase: any,
-  userId: string,
-  env: { INTUIT_CLIENT_ID: string; INTUIT_CLIENT_SECRET: string; INTUIT_ENVIRONMENT: string }
-) {
-  // Get current connection
-  const { data: connections } = await supabase
-    .from('qbo_connections')
-    .select('*')
-    .eq('user_id', userId)
-    .limit(1);
-
-  if (!connections?.length) {
-    throw new Error('No QBO connection found');
-  }
-
-  const connection = connections[0];
-  const now = new Date();
-  const expiresAt = new Date(connection.expires_at);
-
-  // Check if token needs refresh (within 5 minutes of expiry)
-  if (expiresAt.getTime() - now.getTime() <= 300000) {
-    const tokens = await refreshQboToken(env, connection.refresh_token);
-    if (tokens.error) {
-      throw new Error(`Token refresh failed: ${tokens.error}`);
-    }
-
-    await upsertQboConnection(supabase, userId, connection.realm_id, {
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      scope: tokens.scope,
-      expires_in: tokens.expires_in
-    });
-
-    return { 
-      access_token: tokens.access_token, 
-      realm_id: connection.realm_id 
-    };
-  }
-
-  return { 
-    access_token: connection.access_token, 
-    realm_id: connection.realm_id 
-  };
-}
-
-/**
- * Get or create a customer in QBO, with caching
- */
-export async function getOrCreateCustomer(
-  supabase: any,
-  userId: string,
-  customerData: {
-    external_id: string;
-    display_name: string;
-    email?: string;
-  },
-  tokens: { access_token: string; realm_id: string },
-  env: { INTUIT_ENVIRONMENT: string }
-) {
-  // Check cache first
-  const { data: cached } = await supabase
-    .from('qbo_contacts_cache')
-    .select('qbo_id')
-    .match({ 
-      user_id: userId, 
-      external_id: customerData.external_id,
-      contact_type: 'customer'
     })
-    .single();
+  });
 
-  if (cached?.qbo_id) {
-    return cached.qbo_id;
+  if (!qboCustomerCreateResponse.ok) {
+    console.error('Error creating customer in QBO:', qboCustomerCreateResponse.status, await qboCustomerCreateResponse.text());
+    throw new Error(`Failed to create customer in QBO: ${qboCustomerCreateResponse.status}`);
   }
 
-  const apiBase = env.INTUIT_ENVIRONMENT === 'production'
-    ? 'https://quickbooks.api.intuit.com'
-    : 'https://sandbox-quickbooks.api.intuit.com';
+  const qboCustomerCreateData = await qboCustomerCreateResponse.json();
+  const newQboCustomerId = qboCustomerCreateData.Customer.Id;
+  console.log(`Customer ${display_name} created in QBO with ID ${newQboCustomerId}`);
 
-  // Search for existing customer
-  const searchResp = await fetch(
-    `${apiBase}/v3/company/${tokens.realm_id}/query?query=` + 
-    encodeURIComponent(`select * from Customer where DisplayName = '${customerData.display_name}'`),
-    {
-      headers: {
-        'Authorization': `Bearer ${tokens.access_token}`,
-        'Accept': 'application/json'
-      }
-    }
-  );
-
-  if (!searchResp.ok) {
-    throw new Error(`Customer search failed: ${await searchResp.text()}`);
-  }
-
-  const searchData = await searchResp.json();
-  let qboId;
-
-  if (searchData.QueryResponse.Customer?.length) {
-    qboId = searchData.QueryResponse.Customer[0].Id;
-  } else {
-    // Create new customer
-    const createResp = await fetch(
-      `${apiBase}/v3/company/${tokens.realm_id}/customer`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${tokens.access_token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          DisplayName: customerData.display_name,
-          PrimaryEmailAddr: customerData.email ? { Address: customerData.email } : undefined
-        })
-      }
-    );
-
-    if (!createResp.ok) {
-      throw new Error(`Customer creation failed: ${await createResp.text()}`);
-    }
-
-    const createData = await createResp.json();
-    qboId = createData.Customer.Id;
-  }
-
-  // Cache the result
+  // Cache the new customer
   await supabase
     .from('qbo_contacts_cache')
     .insert({
-      user_id: userId,
-      external_id: customerData.external_id,
-      qbo_id: qboId,
+      user_id: user_id,
       contact_type: 'customer',
-      data: customerData
+      external_id: external_id,
+      qbo_id: newQboCustomerId,
+      data: qboCustomerCreateData.Customer
     });
 
-  return qboId;
+  return newQboCustomerId;
 }
 
-/**
- * Get or create a vendor in QBO, with caching
- */
-export async function getOrCreateVendor(
-  supabase: any,
-  userId: string,
-  vendorData: {
-    external_id: string;
-    display_name: string;
-    email?: string;
-  },
-  tokens: { access_token: string; realm_id: string },
-  env: { INTUIT_ENVIRONMENT: string }
-) {
-  // Check cache first
-  const { data: cached } = await supabase
-    .from('qbo_contacts_cache')
-    .select('qbo_id')
-    .match({ 
-      user_id: userId, 
-      external_id: vendorData.external_id,
-      contact_type: 'vendor'
-    })
-    .single();
-
-  if (cached?.qbo_id) {
-    return cached.qbo_id;
-  }
-
-  const apiBase = env.INTUIT_ENVIRONMENT === 'production'
-    ? 'https://quickbooks.api.intuit.com'
-    : 'https://sandbox-quickbooks.api.intuit.com';
-
-  // Search for existing vendor
-  const searchResp = await fetch(
-    `${apiBase}/v3/company/${tokens.realm_id}/query?query=` + 
-    encodeURIComponent(`select * from Vendor where DisplayName = '${vendorData.display_name}'`),
-    {
-      headers: {
-        'Authorization': `Bearer ${tokens.access_token}`,
-        'Accept': 'application/json'
-      }
-    }
-  );
-
-  if (!searchResp.ok) {
-    throw new Error(`Vendor search failed: ${await searchResp.text()}`);
-  }
-
-  const searchData = await searchResp.json();
-  let qboId;
-
-  if (searchData.QueryResponse.Vendor?.length) {
-    qboId = searchData.QueryResponse.Vendor[0].Id;
-  } else {
-    // Create new vendor
-    const createResp = await fetch(
-      `${apiBase}/v3/company/${tokens.realm_id}/vendor`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${tokens.access_token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          DisplayName: vendorData.display_name,
-          PrimaryEmailAddr: vendorData.email ? { Address: vendorData.email } : undefined
-        })
-      }
-    );
-
-    if (!createResp.ok) {
-      throw new Error(`Vendor creation failed: ${await createResp.text()}`);
-    }
-
-    const createData = await createResp.json();
-    qboId = createData.Vendor.Id;
-  }
-
-  // Cache the result
-  await supabase
-    .from('qbo_contacts_cache')
-    .insert({
-      user_id: userId,
-      external_id: vendorData.external_id,
-      qbo_id: qboId,
-      contact_type: 'vendor',
-      data: vendorData
-    });
-
-  return qboId;
-}
-
-/**
- * Map invoice data to QBO format
- */
-export function mapInvoiceToQbo(invoice: any, customerId: string) {
-  // Simple mapping for now - can be expanded based on requirements
+export function mapInvoiceToQbo(invoice: any, qboCustomerId: string) {
   return {
-    CustomerRef: { value: customerId },
-    DocNumber: invoice.invoice_number,
-    DueDate: invoice.due_date,
-    Line: [{
-      Amount: invoice.amount,
+    CustomerRef: {
+      value: qboCustomerId
+    },
+    Line: invoice.line_items.map((item: any) => ({
+      Description: item.description,
+      Amount: item.amount,
       DetailType: "SalesItemLineDetail",
       SalesItemLineDetail: {
-        ItemRef: { value: "1" } // Using default item - may need to be configured
+        UnitPrice: item.amount,
+        Qty: 1,
+        ItemRef: {
+          name: "Services", // Replace with actual item name if needed
+          value: "1" // Replace with actual item ID if needed
+        }
       }
-    }]
+    })),
+    DueDate: invoice.due_date,
+    TotalAmt: invoice.amount,
+    CustomField: [
+      {
+        DefinitionId: "1",
+        Name: "InvoiceId",
+        Type: "StringType",
+        StringValue: invoice.id
+      }
+    ]
   };
 }
 
-/**
- * Map bill data to QBO format
- */
-export function mapBillToQbo(bill: any, vendorId: string) {
-  return {
-    VendorRef: { value: vendorId },
-    DocNumber: bill.bill_number,
-    DueDate: bill.due_date,
-    Line: [{
-      Amount: bill.amount,
-      DetailType: "AccountBasedExpenseLineDetail",
-      AccountBasedExpenseLineDetail: {
-        AccountRef: { value: "1" }, // Using default account - may need to be configured
-      }
-    }]
-  };
-}
-
-/**
- * Batch create entities in QBO
- */
 export async function batchCreateInQbo(
-  items: any[],
-  entityType: 'Invoice' | 'Bill' | 'Customer' | 'Vendor',
-  tokens: { access_token: string; realm_id: string },
-  env: { INTUIT_ENVIRONMENT: string },
-  batchSize = 50
-) {
-  if (!items.length) return [];
-  
-  const apiBase = env.INTUIT_ENVIRONMENT === 'production'
-    ? 'https://quickbooks.api.intuit.com'
-    : 'https://sandbox-quickbooks.api.intuit.com';
-    
-  // Process in batches
-  const batches = [];
-  for (let i = 0; i < items.length; i += batchSize) {
-    batches.push(items.slice(i, i + batchSize));
+  entities: any[],
+  entityType: string,
+  tokens: {
+    access_token: string;
+    refresh_token: string;
+    realm_id: string;
+  },
+  environmentVars: {
+    INTUIT_ENVIRONMENT: string;
   }
-  
-  const results = [];
-  for (const batch of batches) {
-    // For now, we'll just process one by one, but structure allows for batching later
-    for (const item of batch) {
-      const endpoint = `${apiBase}/v3/company/${tokens.realm_id}/${entityType.toLowerCase()}`;
-      const response = await fetch(endpoint, {
+) {
+  const { access_token, realm_id } = tokens;
+  const qboBaseUrl = environmentVars.INTUIT_ENVIRONMENT === 'production'
+    ? 'https://quickbooks.api.intuit.com'
+    : 'https://sandbox.quickbooks.api.intuit.com';
+  const qboBatchUrl = `${qboBaseUrl}/v3/company/${realm_id}/batch?minorversion=65`;
+
+  const batchRequestBody = {
+    BatchItemRequest: entities.map((entity, index) => ({
+      bId: String(index + 1),
+      operation: 'create',
+      body: entity,
+      IntuitObject: entityType
+    }))
+  };
+
+  const qboBatchResponse = await fetch(qboBatchUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${access_token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify(batchRequestBody)
+  });
+
+  if (!qboBatchResponse.ok) {
+    console.error('Error creating batch in QBO:', qboBatchResponse.status, await qboBatchResponse.text());
+    throw new Error(`Failed to create batch in QBO: ${qboBatchResponse.status}`);
+  }
+
+  const qboBatchData = await qboBatchResponse.json();
+
+  return qboBatchData.BatchItemResponse.map((item: any) => {
+    if (item.Fault) {
+      console.error(`Error creating ${entityType} in QBO:`, item.Fault);
+      return { [entityType]: null, error: item.Fault };
+    }
+    return { [entityType]: item.IntuitObject };
+  });
+}
+
+export async function logQboAction(
+  supabase: ReturnType<typeof createClient>,
+  {
+    function_name,
+    payload = null,
+    error = null,
+    user_id = null,
+    severity = 'info'
+  }: {
+    function_name: string;
+    payload?: any;
+    error?: string | null;
+    user_id?: string | null;
+    severity?: 'info' | 'error';
+  }
+) {
+  try {
+    await supabase
+      .from('qbo_logs')
+      .insert({
+        function_name,
+        payload,
+        error,
+        user_id
+      });
+  } catch (err) {
+    console.error('Failed to log QBO action:', err);
+  }
+}
+
+export async function ensureQboTokens(
+  supabase: ReturnType<typeof createClient>,
+  user_id: string,
+  environmentVars: {
+    INTUIT_CLIENT_ID: string;
+    INTUIT_CLIENT_SECRET: string;
+    INTUIT_ENVIRONMENT: string;
+  },
+) {
+  try {
+    // Get the user's QBO tokens
+    const { data: tokens, error } = await supabase
+      .from('qbo_connections')
+      .select('access_token, refresh_token, expires_at, realm_id')
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      throw new Error(`No QuickBooks connection found for user ${user_id}`);
+    }
+
+    // Check if tokens need to be refreshed (expire in next 5 minutes or already expired)
+    const expiresAt = new Date(tokens.expires_at);
+    const now = new Date();
+    const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+    
+    // Only refresh if there's a valid expiration date
+    if (!isNaN(expiresAt.getTime()) && expiresAt < fiveMinutesFromNow) {
+      console.log('QBO tokens expired or will expire soon, refreshing...');
+      
+      // Refresh the tokens
+      const tokenEndpoint = environmentVars.INTUIT_ENVIRONMENT === 'production'
+        ? 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer'
+        : 'https://oauth.sandbox.intuit.com/oauth2/v1/tokens/bearer';
+        
+      const response = await fetch(tokenEndpoint, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${tokens.access_token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${btoa(`${environmentVars.INTUIT_CLIENT_ID}:${environmentVars.INTUIT_CLIENT_SECRET}`)}`
         },
-        body: JSON.stringify(item)
+        body: new URLSearchParams({
+          'grant_type': 'refresh_token',
+          'refresh_token': tokens.refresh_token
+        }).toString()
       });
       
       if (!response.ok) {
-        throw new Error(`${entityType} creation failed: ${await response.text()}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to refresh QBO tokens: ${response.status} ${errorText}`);
       }
       
-      const result = await response.json();
-      results.push(result);
+      const refreshData = await response.json();
+      
+      // Update tokens in database
+      await upsertQboConnection(
+        supabase,
+        user_id,
+        tokens.realm_id,
+        refreshData.access_token,
+        refreshData.refresh_token || tokens.refresh_token, // Use new refresh token if provided, otherwise keep the old one
+        refreshData.expires_in || 3600,
+        refreshData.scope
+      );
+      
+      // Return the new tokens
+      return {
+        access_token: refreshData.access_token,
+        refresh_token: refreshData.refresh_token || tokens.refresh_token,
+        realm_id: tokens.realm_id
+      };
     }
+    
+    // Tokens still valid, return them
+    return {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      realm_id: tokens.realm_id
+    };
+  } catch (error) {
+    console.error('Error ensuring QBO tokens:', error);
+    throw error;
   }
-  
-  return results;
 }
