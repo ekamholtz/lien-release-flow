@@ -15,6 +15,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           error: Json | null
+          error_message: string | null
           id: string
           last_synced_at: string | null
           provider: string
@@ -30,6 +31,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           error?: Json | null
+          error_message?: string | null
           id?: string
           last_synced_at?: string | null
           provider: string
@@ -45,6 +47,7 @@ export type Database = {
           entity_id?: string
           entity_type?: string
           error?: Json | null
+          error_message?: string | null
           id?: string
           last_synced_at?: string | null
           provider?: string
@@ -463,6 +466,19 @@ export type Database = {
       is_platform_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      update_sync_status: {
+        Args: {
+          p_entity_type: string
+          p_entity_id: string
+          p_provider: string
+          p_status: string
+          p_provider_ref?: string
+          p_provider_meta?: Json
+          p_error?: Json
+          p_error_message?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

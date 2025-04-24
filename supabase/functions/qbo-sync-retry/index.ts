@@ -3,63 +3,58 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { logQboAction } from "../helpers/qbo.ts";
 
-serve(async (_req) => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Get failed syncs with retry attempts < 5
-    const { data: failedInvoices, error: queryError } = await supabase
-      .from('invoices')
-      .select('id, qbo_retries')
-      .eq('qbo_sync_status', 'error')
-      .lt('qbo_retries', 5)
-      .limit(10);
+    const { data: failedSyncs, error: queryError } = await supabase
+      .from('accounting_sync')
+      .select('entity_id, retries')
+      .eq('entity_type', 'invoice')
+      .eq('provider', 'qbo')
+      .eq('status', 'error')
+      .lt('retries', 5)
+      .order('last_synced_at', { ascending: true });
 
-    if (queryError) {
-      throw queryError;
-    }
+    if (queryError) throw queryError;
 
-    if (!failedInvoices?.length) {
-      return new Response(JSON.stringify({ message: 'No failed syncs to retry' }));
+    if (!failedSyncs?.length) {
+      return new Response(
+        JSON.stringify({ message: 'No failed syncs to retry' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Calculate delay for each retry based on exponential backoff
-    // Formula: base_delay * 2^retry_count (in seconds)
     const BASE_DELAY = 60; // 1 minute base delay
     
-    // Process each failed invoice with appropriate backoff
     const results = await Promise.all(
-      failedInvoices.map(async (invoice) => {
-        const retryCount = invoice.qbo_retries || 0;
+      failedSyncs.map(async (sync) => {
+        const retryCount = sync.retries || 0;
         const backoffSeconds = BASE_DELAY * Math.pow(2, retryCount);
         
-        // Calculate if enough time has passed since last sync attempt
-        const { data: lastSync } = await supabase
-          .from('invoices')
-          .select('qbo_last_synced_at')
-          .eq('id', invoice.id)
-          .single();
-          
-        if (lastSync?.qbo_last_synced_at) {
-          const lastSyncTime = new Date(lastSync.qbo_last_synced_at).getTime();
-          const now = Date.now();
-          const elapsedSeconds = (now - lastSyncTime) / 1000;
-          
-          // Skip if not enough time has passed according to backoff
-          if (elapsedSeconds < backoffSeconds) {
-            return {
-              invoice_id: invoice.id,
-              status: 'skipped',
-              reason: `Backoff in progress (${Math.round(backoffSeconds - elapsedSeconds)}s remaining)`
-            };
-          }
-        }
-        
-        // Trigger sync for this invoice
         try {
+          // Mark as pending before retry
+          await supabase.rpc('update_sync_status', {
+            p_entity_type: 'invoice',
+            p_entity_id: sync.entity_id,
+            p_provider: 'qbo',
+            p_status: 'pending'
+          });
+          
           const response = await fetch(
             'https://oknofqytitpxmlprvekn.functions.supabase.co/sync-invoice',
             {
@@ -68,20 +63,20 @@ serve(async (_req) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
               },
-              body: JSON.stringify({ invoice_id: invoice.id })
+              body: JSON.stringify({ invoice_id: sync.entity_id })
             }
           );
           
           const result = await response.json();
           
           return {
-            invoice_id: invoice.id,
+            invoice_id: sync.entity_id,
             status: result.success ? 'retried' : 'failed',
             result
           };
         } catch (error) {
           return {
-            invoice_id: invoice.id,
+            invoice_id: sync.entity_id,
             status: 'error',
             error: error.message
           };
@@ -89,13 +84,11 @@ serve(async (_req) => {
       })
     );
 
-    // Log the retry attempt summary
     await logQboAction(supabase, {
       function_name: 'qbo-sync-retry',
       payload: { 
         processed: results.length,
         retried: results.filter(r => r.status === 'retried').length,
-        skipped: results.filter(r => r.status === 'skipped').length,
         failed: results.filter(r => r.status === 'failed' || r.status === 'error').length
       },
       severity: 'info'
@@ -103,15 +96,17 @@ serve(async (_req) => {
 
     return new Response(
       JSON.stringify({ 
-        processed: failedInvoices.length,
+        processed: failedSyncs.length,
         results
-      })
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
+    console.error('Error in sync-retry:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500 }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

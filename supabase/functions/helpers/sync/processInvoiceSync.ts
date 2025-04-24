@@ -3,30 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { createInvoice as createQboInvoice } from "../accounting/adapters/qboInvoiceAdapter.ts";
 import { logQboAction } from "../qbo.ts";
 
-export async function lockSyncRow(supabase: ReturnType<typeof createClient>, entityType: string, entityId: string) {
-  console.log(`Locking sync row for ${entityType}:${entityId}`);
-  
-  // Get or create sync record
-  const { data: syncRecord, error: syncError } = await supabase
-    .from('accounting_sync')
-    .upsert({
-      entity_type: entityType,
-      entity_id: entityId,
-      provider: 'qbo',
-      status: 'processing',
-      last_synced_at: new Date().toISOString()
-    })
-    .select('*')
-    .single();
-
-  if (syncError || !syncRecord) {
-    console.error('Error locking sync record:', syncError);
-    throw new Error(`Failed to lock sync record: ${syncError?.message || 'Not found'}`);
-  }
-
-  return syncRecord;
-}
-
 export async function processInvoiceSync(
   supabase: ReturnType<typeof createClient>,
   invoiceId: string,
@@ -50,32 +26,32 @@ export async function processInvoiceSync(
       throw new Error(`Failed to fetch invoice: ${invoiceError?.message || 'Not found'}`);
     }
 
-    // Lock the sync record and get user_id
-    const syncRecord = await lockSyncRow(supabase, 'invoice', invoiceId);
-    console.log('Obtained sync record:', syncRecord);
+    // Mark as processing using the new upsert function
+    await supabase.rpc('update_sync_status', {
+      p_entity_type: 'invoice',
+      p_entity_id: invoiceId,
+      p_provider: 'qbo',
+      p_status: 'processing'
+    });
 
-    if (!syncRecord.user_id) {
-      throw new Error('No user_id associated with sync record');
-    }
+    console.log('Set sync status to processing for invoice:', invoiceId);
 
     // Create invoice in QBO
     const adapter = await createQboInvoice(supabase, invoice, environmentVars);
     
-    // Record success
-    await supabase
-      .from('accounting_sync')
-      .update({
-        status: 'success',
-        provider_ref: adapter.qboInvoiceId,
-        provider_meta: adapter.providerMeta,
-        error: null,
-        last_synced_at: new Date().toISOString()
-      })
-      .eq('entity_type', 'invoice')
-      .eq('entity_id', invoiceId);
+    // Record success using the new upsert function
+    await supabase.rpc('update_sync_status', {
+      p_entity_type: 'invoice',
+      p_entity_id: invoiceId,
+      p_provider: 'qbo',
+      p_status: 'success',
+      p_provider_ref: adapter.qboInvoiceId,
+      p_provider_meta: adapter.providerMeta,
+      p_error: null,
+      p_error_message: null
+    });
 
     await logQboAction(supabase, {
-      user_id: syncRecord.user_id,
       function_name: 'sync-invoice',
       payload: { 
         invoice_id: invoiceId,
@@ -90,17 +66,15 @@ export async function processInvoiceSync(
   } catch (error) {
     console.error(`Error processing invoice ${invoiceId}:`, error);
     
-    // Update sync record with error
-    await supabase
-      .from('accounting_sync')
-      .update({
-        status: 'error',
-        error: { message: error.message },
-        retries: supabase.rpc('increment_retries', { entity_id: invoiceId }),
-        last_synced_at: new Date().toISOString()
-      })
-      .eq('entity_type', 'invoice')
-      .eq('entity_id', invoiceId);
+    // Update sync record with error using the new upsert function
+    await supabase.rpc('update_sync_status', {
+      p_entity_type: 'invoice',
+      p_entity_id: invoiceId,
+      p_provider: 'qbo',
+      p_status: 'error',
+      p_error: { message: error.message },
+      p_error_message: error.message
+    });
     
     await logQboAction(supabase, {
       function_name: 'sync-invoice',
