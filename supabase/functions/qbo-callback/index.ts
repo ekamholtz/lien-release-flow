@@ -1,4 +1,3 @@
-
 /**
  * Edge function: qbo-callback
  * - exchanges code for tokens, stores in qbo_connections (upsert on user_id+realm)
@@ -14,7 +13,7 @@ import { upsertQboConnection, logQboAction } from "../helpers/qbo.ts";
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID")!;
 const INTUIT_CLIENT_SECRET = Deno.env.get("INTUIT_CLIENT_SECRET")!;
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
-// Use fixed redirect URI
+const APP_URL = Deno.env.get("APP_URL")!;
 const QBO_REDIRECT_URI = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -52,24 +51,34 @@ serve(async (req) => {
     console.log("Callback parameters:", { code: !!code, user_id, realm_id, error: authError });
     
     if (authError) {
-      return new Response(`Authorization denied: ${authError}`, { 
-        status: 400,
-        headers: corsHeaders  
+      // Redirect to frontend with error parameter
+      return new Response(null, {
+        status: 302,
+        headers: { 
+          ...corsHeaders,
+          location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent(authError)}` 
+        }
       });
     }
     
     if (!code || !user_id || !realm_id) {
-      return new Response("Missing code/user/realm", { 
-        status: 400,
-        headers: corsHeaders 
+      return new Response(null, {
+        status: 302,
+        headers: { 
+          ...corsHeaders,
+          location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent("Missing code/user/realm")}` 
+        }
       });
     }
 
-    if (!INTUIT_CLIENT_ID || !INTUIT_CLIENT_SECRET) {
-      console.error("Missing required environment variables for token exchange");
-      return new Response("Server configuration error", { 
-        status: 500,
-        headers: corsHeaders 
+    if (!INTUIT_CLIENT_ID || !INTUIT_CLIENT_SECRET || !APP_URL) {
+      console.error("Missing required environment variables");
+      return new Response(null, {
+        status: 302,
+        headers: { 
+          ...corsHeaders,
+          location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent("Server configuration error")}` 
+        }
       });
     }
 
@@ -124,9 +133,12 @@ serve(async (req) => {
         function_name: "qbo-callback",
         error: "Upsert qbo_connection failed: " + dbError.message
       });
-      return new Response("DB error", { 
-        status: 500,
-        headers: corsHeaders 
+      return new Response(null, {
+        status: 302,
+        headers: { 
+          ...corsHeaders,
+          location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent("Database error")}` 
+        }
       });
     }
 
@@ -136,12 +148,12 @@ serve(async (req) => {
       payload: { realm_id, success: true }
     });
 
-    // redirect to /integrations (frontend)
-    return new Response(undefined, {
+    // Redirect to frontend settings page with success parameter
+    return new Response(null, {
       status: 302,
       headers: { 
         ...corsHeaders,
-        location: "/integrations" 
+        location: `${APP_URL}/settings?connected=qbo` 
       }
     });
   } catch (err) {
@@ -160,9 +172,12 @@ serve(async (req) => {
     } catch (e) {
       console.error("Failed to log error:", e);
     }
-    return new Response("Internal error", { 
-      status: 500,
-      headers: corsHeaders 
+    return new Response(null, {
+      status: 302,
+      headers: { 
+        ...corsHeaders,
+        location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent("Internal error")}` 
+      }
     });
   }
 });

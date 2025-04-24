@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { AlertCircle, Info } from "lucide-react";
 import { useSessionRefresh } from "@/hooks/useSessionRefresh";
 import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 export function IntegrationsSettings() {
   const [qboStatus, setQboStatus] = useState<"connected" | "not_connected" | "loading">("loading");
@@ -12,6 +12,31 @@ export function IntegrationsSettings() {
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const { session, refreshSession } = useSessionRefresh();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    const error = searchParams.get("error");
+    const message = searchParams.get("message");
+
+    if (connected === "qbo") {
+      setQboStatus("connected");
+      toast({
+        title: "QuickBooks Connected",
+        description: "Successfully connected to QuickBooks Online",
+      });
+      navigate("/settings", { replace: true });
+    } else if (error === "qbo") {
+      setError(message || "Failed to connect to QuickBooks");
+      toast({
+        title: "Connection Error",
+        description: message || "Failed to connect to QuickBooks Online",
+        variant: "destructive"
+      });
+      navigate("/settings", { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   useEffect(() => {
     if (!session?.user) return;
@@ -53,7 +78,6 @@ export function IntegrationsSettings() {
     setDebugInfo(null);
 
     try {
-      // Force a complete session refresh to get a fresh token
       await refreshSession();
       
       const sessionResult = await supabase.auth.getSession();
@@ -64,9 +88,6 @@ export function IntegrationsSettings() {
       }
 
       const bearer = `Bearer ${currentSession.access_token}`;
-      console.log("Auth header (first 30 chars):", bearer.slice(0, 30) + "...");
-
-      // Try the function URL
       const functionUrl = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
       
       console.log("Calling function URL:", functionUrl);
@@ -90,7 +111,6 @@ export function IntegrationsSettings() {
           body: errorText
         });
         
-        // Try to parse the error response
         try {
           const errorJson = JSON.parse(errorText);
           setDebugInfo(errorJson.debug || {});
@@ -112,7 +132,6 @@ export function IntegrationsSettings() {
         throw new Error("No OAuth URL received from server");
       }
 
-      // Redirect to Intuit's OAuth URL
       window.location.href = responseData.intuit_oauth_url;
 
     } catch (error: any) {
@@ -151,9 +170,22 @@ export function IntegrationsSettings() {
       </div>
       
       {error && (
-        <div className="mt-2 flex items-start gap-2 text-red-600 text-sm">
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>{error}</span>
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex items-start gap-2 text-red-600">
+            <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium">Connection Error</p>
+              <p className="text-sm mt-1">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={handleConnectQbo}
+              >
+                Retry Connection
+              </Button>
+            </div>
+          </div>
         </div>
       )}
       
