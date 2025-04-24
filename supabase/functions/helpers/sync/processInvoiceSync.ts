@@ -1,6 +1,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-import { createQboInvoice } from "../accounting/providers/qbo.ts";
+import { createInvoice as createQboInvoice } from "../accounting/adapters/qboInvoiceAdapter.ts";
 import { logQboAction } from "../qbo.ts";
 
 interface SyncResult {
@@ -38,43 +38,6 @@ export async function lockInvoice(supabase: ReturnType<typeof createClient>, inv
     .single();
 
   return { invoice, syncRecord };
-}
-
-/**
- * Record the result of a sync operation
- */
-export async function recordSyncResult(
-  supabase: ReturnType<typeof createClient>,
-  syncRecordId: string,
-  success: boolean,
-  result: {
-    providerRef?: string;
-    providerMeta?: any;
-    error?: string;
-  }
-) {
-  if (success) {
-    await supabase
-      .from('accounting_sync')
-      .update({
-        status: 'success',
-        provider_ref: result.providerRef,
-        provider_meta: result.providerMeta,
-        error: null,
-        last_synced_at: new Date().toISOString()
-      })
-      .eq('id', syncRecordId);
-  } else {
-    await supabase
-      .from('accounting_sync')
-      .update({
-        status: 'error',
-        error: { message: result.error },
-        retries: supabase.rpc('increment_retries', { invoice_id: null }),
-        last_synced_at: new Date().toISOString()
-      })
-      .eq('id', syncRecordId);
-  }
 }
 
 /**
@@ -151,5 +114,42 @@ export async function processInvoiceSync(
       success: false, 
       error: error.message 
     };
+  }
+}
+
+/**
+ * Record the result of a sync operation
+ */
+export async function recordSyncResult(
+  supabase: ReturnType<typeof createClient>,
+  syncRecordId: string,
+  success: boolean,
+  result: {
+    providerRef?: string;
+    providerMeta?: any;
+    error?: string;
+  }
+) {
+  if (success) {
+    await supabase
+      .from('accounting_sync')
+      .update({
+        status: 'success',
+        provider_ref: result.providerRef,
+        provider_meta: result.providerMeta,
+        error: null,
+        last_synced_at: new Date().toISOString()
+      })
+      .eq('id', syncRecordId);
+  } else {
+    await supabase
+      .from('accounting_sync')
+      .update({
+        status: 'error',
+        error: { message: result.error },
+        retries: supabase.rpc('increment_retries', { invoice_id: null }),
+        last_synced_at: new Date().toISOString()
+      })
+      .eq('id', syncRecordId);
   }
 }

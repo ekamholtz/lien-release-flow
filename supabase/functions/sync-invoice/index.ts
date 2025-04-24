@@ -14,22 +14,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  let supabase;
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const INTUIT_CLIENT_ID = Deno.env.get('INTUIT_CLIENT_ID')!;
-    const INTUIT_CLIENT_SECRET = Deno.env.get('INTUIT_CLIENT_SECRET')!;
-    const INTUIT_ENVIRONMENT = Deno.env.get('INTUIT_ENVIRONMENT') || 'sandbox';
-
     const environmentVars = {
-      INTUIT_CLIENT_ID,
-      INTUIT_CLIENT_SECRET,
-      INTUIT_ENVIRONMENT
+      INTUIT_CLIENT_ID: Deno.env.get('INTUIT_CLIENT_ID')!,
+      INTUIT_CLIENT_SECRET: Deno.env.get('INTUIT_CLIENT_SECRET')!,
+      INTUIT_ENVIRONMENT: Deno.env.get('INTUIT_ENVIRONMENT') || 'sandbox'
     };
 
-    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const requestData = await req.json();
     const invoiceIds = requestData.invoice_ids || (requestData.invoice_id ? [requestData.invoice_id] : []);
     
@@ -77,10 +71,7 @@ serve(async (req) => {
     console.error('Error in sync-invoice:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

@@ -27,8 +27,8 @@ vi.mock('https://esm.sh/@supabase/supabase-js@2.21.0', async () => {
   };
 });
 
-vi.mock('../supabase/functions/helpers/accounting/providers/qbo', () => ({
-  createQboInvoice: vi.fn().mockResolvedValue({
+vi.mock('../supabase/functions/helpers/accounting/adapters/qboInvoiceAdapter', () => ({
+  createInvoice: vi.fn().mockResolvedValue({
     qboInvoiceId: 'qbo-123',
     providerRef: 'qbo-123',
     providerMeta: { Invoice: { Id: 'qbo-123' } }
@@ -61,5 +61,5 @@ describe('processInvoiceSync', () => {
     });
   });
   
-  // Additional tests can be added here for error handling, etc.
+  // Add more test cases here for error scenarios and edge cases
 });
