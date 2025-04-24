@@ -9,6 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      accounting_sync: {
+        Row: {
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          error: Json | null
+          id: string
+          last_synced_at: string | null
+          provider: string
+          provider_meta: Json | null
+          provider_ref: string | null
+          retries: number | null
+          status: Database["public"]["Enums"]["sync_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          error?: Json | null
+          id?: string
+          last_synced_at?: string | null
+          provider: string
+          provider_meta?: Json | null
+          provider_ref?: string | null
+          retries?: number | null
+          status?: Database["public"]["Enums"]["sync_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          error?: Json | null
+          id?: string
+          last_synced_at?: string | null
+          provider?: string
+          provider_meta?: Json | null
+          provider_ref?: string | null
+          retries?: number | null
+          status?: Database["public"]["Enums"]["sync_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       bills: {
         Row: {
           amount: number
@@ -451,6 +496,7 @@ export type Database = {
     }
     Enums: {
       qbo_sync_status: "pending" | "success" | "error"
+      sync_status: "pending" | "processing" | "success" | "error"
       user_role: "platform_admin" | "account_admin" | "user" | "guest"
     }
     CompositeTypes: {
@@ -568,6 +614,7 @@ export const Constants = {
   public: {
     Enums: {
       qbo_sync_status: ["pending", "success", "error"],
+      sync_status: ["pending", "processing", "success", "error"],
       user_role: ["platform_admin", "account_admin", "user", "guest"],
     },
   },

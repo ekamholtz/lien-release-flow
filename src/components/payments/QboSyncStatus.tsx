@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertCircle, CheckCircle2, Clock, RefreshCw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sync_status } from '@/integrations/supabase/types';
 
-type QboSyncStatus = 'pending' | 'processing' | 'success' | 'error' | null;
+type QboSyncStatus = sync_status | null;
 
 interface QboSyncStatusBadgeProps {
   status: QboSyncStatus;

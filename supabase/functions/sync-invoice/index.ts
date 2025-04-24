@@ -22,7 +22,6 @@ serve(async (req) => {
 
   let supabase;
   try {
-    // Get environment variables
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const INTUIT_CLIENT_ID = Deno.env.get('INTUIT_CLIENT_ID')!;
@@ -31,63 +30,57 @@ serve(async (req) => {
 
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Parse request
     const requestData = await req.json();
-    
-    // Handle both single invoice_id and array of ids
     const invoiceIds = requestData.invoice_ids || (requestData.invoice_id ? [requestData.invoice_id] : []);
     
     if (invoiceIds.length === 0) {
-      // If no IDs provided, attempt to find pending invoices to process
-      const { data: selectedInvoice, error: lockError } = await supabase.rpc('lock_next_pending_invoice');
-      
-      if (lockError) {
-        throw new Error(`Failed to lock pending invoice: ${lockError.message}`);
-      }
-      
-      if (!selectedInvoice) {
+      // Find pending syncs to process
+      const { data: pendingSync } = await supabase
+        .from('accounting_sync')
+        .select('entity_id')
+        .eq('entity_type', 'invoice')
+        .eq('provider', 'qbo')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      if (pendingSync?.length) {
+        invoiceIds.push(pendingSync[0].entity_id);
+      } else {
         return new Response(
           JSON.stringify({ message: 'No pending invoices found' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
-      invoiceIds.push(selectedInvoice.id);
     }
     
-    // Process each invoice
     const results = [];
     for (const invoiceId of invoiceIds) {
       try {
-        // Get invoice data - only if not already selected via RPC
-        let invoice;
-        if (invoiceIds.length > 1 || !selectedInvoice) {
-          // Attempt to lock invoice for processing
-          const { data: lockedInvoice, error: lockError } = await supabase.rpc('lock_invoice_for_sync', { invoice_id: invoiceId });
-          
-          if (lockError || !lockedInvoice) {
-            results.push({ 
-              invoice_id: invoiceId, 
-              success: false, 
-              error: `Failed to lock invoice: ${lockError?.message || 'Already being processed or not found'}`
-            });
-            continue;
-          }
-          
-          invoice = lockedInvoice;
-        } else {
-          invoice = selectedInvoice;
+        // Get invoice data
+        const { data: invoice, error: invoiceError } = await supabase
+          .from('invoices')
+          .select('*, projects(*)')
+          .eq('id', invoiceId)
+          .single();
+        
+        if (invoiceError || !invoice) {
+          throw new Error(`Failed to fetch invoice: ${invoiceError?.message || 'Not found'}`);
         }
 
-        if (!invoice) {
-          results.push({ 
-            invoice_id: invoiceId, 
-            success: false, 
-            error: "Invoice not found or already being processed" 
-          });
-          continue;
-        }
-        
+        // Create or update sync record
+        const { data: syncRecord } = await supabase
+          .from('accounting_sync')
+          .upsert({
+            entity_type: 'invoice',
+            entity_id: invoiceId,
+            provider: 'qbo',
+            status: 'processing',
+            last_synced_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
         // Get user's QBO tokens
         const tokens = await ensureQboTokens(
           supabase,
@@ -108,10 +101,8 @@ serve(async (req) => {
           { INTUIT_ENVIRONMENT }
         );
 
-        // Map invoice to QBO format
+        // Map and create invoice in QBO
         const qboInvoice = mapInvoiceToQbo(invoice, qboCustomerId);
-
-        // Create invoice in QBO
         const qboResponses = await batchCreateInQbo(
           [qboInvoice],
           'Invoice',
@@ -125,16 +116,17 @@ serve(async (req) => {
 
         const qboInvoiceId = qboResponses[0].Invoice.Id;
 
-        // Update invoice with QBO ID and status
+        // Update sync record with success
         await supabase
-          .from('invoices')
+          .from('accounting_sync')
           .update({
-            qbo_invoice_id: qboInvoiceId,
-            qbo_sync_status: 'success',
-            qbo_error: null,
-            qbo_last_synced_at: new Date().toISOString()
+            status: 'success',
+            provider_ref: qboInvoiceId,
+            provider_meta: qboResponses[0],
+            error: null,
+            last_synced_at: new Date().toISOString()
           })
-          .eq('id', invoice.id);
+          .eq('id', syncRecord.id);
 
         await logQboAction(supabase, {
           user_id: invoice.user_id,
@@ -152,21 +144,22 @@ serve(async (req) => {
       } catch (error) {
         console.error(`Error processing invoice ${invoiceId}:`, error);
         
-        // Update invoice with error status
+        // Update sync record with error
         await supabase
-          .from('invoices')
+          .from('accounting_sync')
           .update({
-            qbo_sync_status: 'error',
-            qbo_error: { message: error.message },
-            qbo_last_synced_at: new Date().toISOString(),
-            qbo_retries: supabase.rpc('increment_retries', { invoice_id: invoiceId })
+            status: 'error',
+            error: { message: error.message },
+            retries: supabase.rpc('increment_retries', { invoice_id: invoiceId }),
+            last_synced_at: new Date().toISOString()
           })
-          .eq('id', invoiceId);
+          .eq('entity_type', 'invoice')
+          .eq('entity_id', invoiceId)
+          .eq('provider', 'qbo');
         
-        // Log error with severity
         await logQboAction(supabase, {
           function_name: 'sync-invoice',
-          payload: { invoice_id: invoiceId, retry_count: invoice?.qbo_retries || 0 },
+          payload: { invoice_id: invoiceId },
           error: error.message,
           severity: 'error'
         });

@@ -13,18 +13,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { QboSyncStatusBadge } from './QboSyncStatus';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { sync_status } from '@/integrations/supabase/types';
 
-// Define an extended invoice type that includes the project name from the join
-// and QBO sync fields
 type ExtendedInvoice = DbInvoice & {
   projects?: { 
     name: string;
   };
-  qbo_sync_status?: 'pending' | 'processing' | 'success' | 'error' | null;
-  qbo_error?: { message: string } | null;
-  qbo_invoice_id?: string | null;
-  qbo_retries?: number;
-  qbo_last_synced_at?: string | null;
+  accounting_sync?: {
+    status: sync_status;
+    error: { message: string } | null;
+    retries: number;
+    last_synced_at: string | null;
+  } | null;
 };
 
 interface InvoiceActionsProps {
@@ -50,14 +50,17 @@ export function InvoiceActions({
       setIsSyncing(true);
       toast.info(`Syncing invoice ${invoice.invoice_number} to QuickBooks...`);
       
-      const { error } = await supabase
-        .from('invoices')
-        .update({
-          qbo_sync_status: 'pending',
-        })
-        .eq('id', invoice.id);
+      // Create/update sync record
+      const { error: syncError } = await supabase
+        .from('accounting_sync')
+        .upsert({
+          entity_type: 'invoice',
+          entity_id: invoice.id,
+          provider: 'qbo',
+          status: 'pending'
+        });
         
-      if (error) throw error;
+      if (syncError) throw syncError;
       
       const response = await fetch(
         'https://oknofqytitpxmlprvekn.functions.supabase.co/sync-invoice',
@@ -89,14 +92,14 @@ export function InvoiceActions({
   
   return (
     <div className="flex items-center justify-end gap-2">
-      {invoice.qbo_sync_status && (
+      {invoice.accounting_sync && (
         <QboSyncStatusBadge
-          status={invoice.qbo_sync_status}
-          errorMessage={invoice.qbo_error?.message}
-          retries={invoice.qbo_retries}
-          lastSynced={invoice.qbo_last_synced_at}
+          status={invoice.accounting_sync.status}
+          errorMessage={invoice.accounting_sync.error?.message}
+          retries={invoice.accounting_sync.retries}
+          lastSynced={invoice.accounting_sync.last_synced_at}
           showLabel={false}
-          onRetry={invoice.qbo_sync_status === 'error' ? handleSyncToQbo : undefined}
+          onRetry={invoice.accounting_sync.status === 'error' ? handleSyncToQbo : undefined}
         />
       )}
       
@@ -110,7 +113,7 @@ export function InvoiceActions({
         </Button>
       )}
       
-      {(invoice.qbo_sync_status === null || invoice.qbo_sync_status === 'error') && (
+      {(!invoice.accounting_sync || invoice.accounting_sync.status === 'error') && (
         <Button 
           variant="outline" 
           size="sm"

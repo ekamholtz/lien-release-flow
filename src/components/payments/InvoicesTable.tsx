@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileText } from "lucide-react";
@@ -7,18 +6,18 @@ import { InvoiceStatusBadge } from './InvoiceStatusBadge';
 import { InvoiceActions } from './InvoiceActions';
 import { DbInvoice, InvoiceStatus } from '@/lib/supabase';
 import { QboSyncStatusBadge } from './QboSyncStatus';
+import { sync_status } from '@/integrations/supabase/types';
 
-// Define an extended invoice type that includes the project name from the join
-// and QBO sync fields
 type ExtendedInvoice = DbInvoice & {
   projects?: { 
     name: string;
   };
-  qbo_sync_status?: 'pending' | 'processing' | 'success' | 'error' | null;
-  qbo_error?: { message: string } | null;
-  qbo_invoice_id?: string | null;
-  qbo_retries?: number;
-  qbo_last_synced_at?: string | null;
+  accounting_sync?: {
+    status: sync_status;
+    error: { message: string } | null;
+    retries: number;
+    last_synced_at: string | null;
+  } | null;
 };
 
 interface InvoicesTableProps {
@@ -66,12 +65,12 @@ export function InvoicesTable({ invoices, onUpdateStatus, onPayInvoice, onViewDe
                 <InvoiceStatusBadge status={invoice.status as InvoiceStatus} />
               </TableCell>
               <TableCell>
-                {invoice.qbo_sync_status !== undefined && (
+                {invoice.accounting_sync && (
                   <QboSyncStatusBadge 
-                    status={invoice.qbo_sync_status} 
-                    errorMessage={invoice.qbo_error?.message}
-                    retries={invoice.qbo_retries}
-                    lastSynced={invoice.qbo_last_synced_at}
+                    status={invoice.accounting_sync.status}
+                    errorMessage={invoice.accounting_sync.error?.message}
+                    retries={invoice.accounting_sync.retries}
+                    lastSynced={invoice.accounting_sync.last_synced_at}
                   />
                 )}
               </TableCell>
