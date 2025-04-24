@@ -71,7 +71,7 @@ serve(async (req) => {
           .not('status', 'eq', 'pending')
           .single();
           
-        // If there's already a successful or processing sync, skip it
+        // If there's already a successful sync, skip it
         if (existingSync && existingSync.status === 'success') {
           console.log(`Invoice ${invoiceId} already synced successfully, skipping`);
           results.push({

@@ -22,10 +22,11 @@ export async function createInvoice(
     INTUIT_ENVIRONMENT: string;
   }
 ): Promise<QboInvoiceResult> {
-  // Format the due_date to ensure it's in YYYY-MM-DD format
+  // Ensure all date values are properly formatted
   const formattedInvoice = {
     ...invoice,
-    due_date: invoice.due_date ? invoice.due_date.split('T')[0] : invoice.due_date
+    due_date: invoice.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : null,
+    created_at: invoice.created_at ? new Date(invoice.created_at).toISOString() : null
   };
   
   // Get user's QBO tokens

@@ -11,7 +11,7 @@ export async function processInvoiceSync(
     INTUIT_CLIENT_SECRET: string;
     INTUIT_ENVIRONMENT: string;
   }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; qbo_invoice_id?: string }> {
   console.log('Starting invoice sync process for:', invoiceId);
   
   try {
@@ -41,10 +41,11 @@ export async function processInvoiceSync(
 
     console.log('Set sync status to processing for invoice:', invoiceId);
 
-    // Format date properly for QBO - ensure it's in YYYY-MM-DD format
+    // Ensure all date properties are properly formatted before passing to the adapter
     const formattedInvoice = {
       ...invoice,
-      due_date: invoice.due_date ? invoice.due_date.split('T')[0] : invoice.due_date
+      due_date: invoice.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : null,
+      created_at: invoice.created_at ? new Date(invoice.created_at).toISOString() : null
     };
 
     // Create invoice in QBO with properly formatted date
@@ -74,7 +75,10 @@ export async function processInvoiceSync(
       severity: 'info'
     });
 
-    return { success: true };
+    return { 
+      success: true,
+      qbo_invoice_id: adapter.qboInvoiceId
+    };
     
   } catch (error) {
     console.error(`Error processing invoice ${invoiceId}:`, error);
