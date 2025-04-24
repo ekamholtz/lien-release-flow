@@ -1,4 +1,3 @@
-
 /**
  * Helper utilities for QuickBooks Online OAuth2 + logging
  */
@@ -87,3 +86,145 @@ export async function logQboAction(
   }]);
 }
 
+/**
+ * Ensure QBO tokens are valid, refresh if needed
+ */
+export async function ensureQboTokens(
+  supabase: any,
+  userId: string,
+  env: { INTUIT_CLIENT_ID: string; INTUIT_CLIENT_SECRET: string; INTUIT_ENVIRONMENT: string }
+) {
+  // Get current connection
+  const { data: connections } = await supabase
+    .from('qbo_connections')
+    .select('*')
+    .eq('user_id', userId)
+    .limit(1);
+
+  if (!connections?.length) {
+    throw new Error('No QBO connection found');
+  }
+
+  const connection = connections[0];
+  const now = new Date();
+  const expiresAt = new Date(connection.expires_at);
+
+  // Check if token needs refresh (within 5 minutes of expiry)
+  if (expiresAt.getTime() - now.getTime() <= 300000) {
+    const tokens = await refreshQboToken(env, connection.refresh_token);
+    if (tokens.error) {
+      throw new Error(`Token refresh failed: ${tokens.error}`);
+    }
+
+    await upsertQboConnection(supabase, userId, connection.realm_id, {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      scope: tokens.scope,
+      expires_in: tokens.expires_in
+    });
+
+    return { 
+      access_token: tokens.access_token, 
+      realm_id: connection.realm_id 
+    };
+  }
+
+  return { 
+    access_token: connection.access_token, 
+    realm_id: connection.realm_id 
+  };
+}
+
+/**
+ * Get or create a customer in QBO, with caching
+ */
+export async function getOrCreateCustomer(
+  supabase: any,
+  userId: string,
+  customerData: {
+    external_id: string;
+    display_name: string;
+    email?: string;
+  },
+  tokens: { access_token: string; realm_id: string },
+  env: { INTUIT_ENVIRONMENT: string }
+) {
+  // Check cache first
+  const { data: cached } = await supabase
+    .from('qbo_contacts_cache')
+    .select('qbo_id')
+    .match({ 
+      user_id: userId, 
+      external_id: customerData.external_id,
+      contact_type: 'customer'
+    })
+    .single();
+
+  if (cached?.qbo_id) {
+    return cached.qbo_id;
+  }
+
+  const apiBase = env.INTUIT_ENVIRONMENT === 'production'
+    ? 'https://quickbooks.api.intuit.com'
+    : 'https://sandbox-quickbooks.api.intuit.com';
+
+  // Search for existing customer
+  const searchResp = await fetch(
+    `${apiBase}/v3/company/${tokens.realm_id}/query?query=` + 
+    encodeURIComponent(`select * from Customer where DisplayName = '${customerData.display_name}'`),
+    {
+      headers: {
+        'Authorization': `Bearer ${tokens.access_token}`,
+        'Accept': 'application/json'
+      }
+    }
+  );
+
+  if (!searchResp.ok) {
+    throw new Error(`Customer search failed: ${await searchResp.text()}`);
+  }
+
+  const searchData = await searchResp.json();
+  let qboId;
+
+  if (searchData.QueryResponse.Customer?.length) {
+    qboId = searchData.QueryResponse.Customer[0].Id;
+  } else {
+    // Create new customer
+    const createResp = await fetch(
+      `${apiBase}/v3/company/${tokens.realm_id}/customer`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${tokens.access_token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          DisplayName: customerData.display_name,
+          PrimaryEmailAddr: customerData.email ? { Address: customerData.email } : undefined
+        })
+      }
+    );
+
+    if (!createResp.ok) {
+      throw new Error(`Customer creation failed: ${await createResp.text()}`);
+    }
+
+    const createData = await createResp.json();
+    qboId = createData.Customer.Id;
+  }
+
+  // Cache the result
+  await supabase
+    .from('qbo_contacts_cache')
+    .insert({
+      user_id: userId,
+      external_id: customerData.external_id,
+      qbo_id: qboId,
+      contact_type: 'customer',
+      data: customerData
+    });
+
+  return qboId;
+}

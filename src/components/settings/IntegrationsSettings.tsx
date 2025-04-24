@@ -11,6 +11,11 @@ export function IntegrationsSettings() {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [syncStats, setSyncStats] = useState<{
+    total: number;
+    synced: number;
+    failed: number;
+  }>({ total: 0, synced: 0, failed: 0 });
   const { session, refreshSession } = useSessionRefresh();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -41,7 +46,31 @@ export function IntegrationsSettings() {
   useEffect(() => {
     if (!session?.user) return;
     checkQboConnection();
+    fetchSyncStats();
   }, [session]);
+
+  const fetchSyncStats = async () => {
+    if (!session?.user) return;
+    
+    try {
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('qbo_sync_status')
+        .not('qbo_sync_status', 'is', null);
+
+      if (error) throw error;
+
+      const stats = invoices.reduce((acc, inv) => ({
+        total: acc.total + 1,
+        synced: acc.synced + (inv.qbo_sync_status === 'success' ? 1 : 0),
+        failed: acc.failed + (inv.qbo_sync_status === 'error' ? 1 : 0)
+      }), { total: 0, synced: 0, failed: 0 });
+
+      setSyncStats(stats);
+    } catch (err) {
+      console.error('Error fetching sync stats:', err);
+    }
+  };
 
   const checkQboConnection = async () => {
     if (!session?.user) return;
@@ -200,6 +229,30 @@ export function IntegrationsSettings() {
           </code>
         </p>
       </div>
+      
+      {qboStatus === "connected" && (
+        <div className="mt-4 p-4 bg-white border rounded-md">
+          <h3 className="text-sm font-medium text-gray-900">Sync Status</h3>
+          <dl className="mt-2 grid grid-cols-3 gap-4">
+            <div>
+              <dt className="text-sm text-gray-500">Total Invoices</dt>
+              <dd className="mt-1 text-lg font-semibold">{syncStats.total}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Synced</dt>
+              <dd className="mt-1 text-lg font-semibold text-green-600">
+                {syncStats.synced}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Failed</dt>
+              <dd className="mt-1 text-lg font-semibold text-red-600">
+                {syncStats.failed}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
       
       {debugInfo && (
         <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">

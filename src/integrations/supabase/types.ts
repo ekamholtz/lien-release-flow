@@ -17,6 +17,11 @@ export type Database = {
           due_date: string
           id: string
           project_id: string | null
+          qbo_bill_id: string | null
+          qbo_error: Json | null
+          qbo_last_synced_at: string | null
+          qbo_retries: number | null
+          qbo_sync_status: Database["public"]["Enums"]["qbo_sync_status"] | null
           status: string
           vendor_email: string
           vendor_name: string
@@ -28,6 +33,13 @@ export type Database = {
           due_date: string
           id?: string
           project_id?: string | null
+          qbo_bill_id?: string | null
+          qbo_error?: Json | null
+          qbo_last_synced_at?: string | null
+          qbo_retries?: number | null
+          qbo_sync_status?:
+            | Database["public"]["Enums"]["qbo_sync_status"]
+            | null
           status?: string
           vendor_email: string
           vendor_name: string
@@ -39,6 +51,13 @@ export type Database = {
           due_date?: string
           id?: string
           project_id?: string | null
+          qbo_bill_id?: string | null
+          qbo_error?: Json | null
+          qbo_last_synced_at?: string | null
+          qbo_retries?: number | null
+          qbo_sync_status?:
+            | Database["public"]["Enums"]["qbo_sync_status"]
+            | null
           status?: string
           vendor_email?: string
           vendor_name?: string
@@ -117,6 +136,11 @@ export type Database = {
           invoice_number: string
           payment_method: string
           project_id: string | null
+          qbo_error: Json | null
+          qbo_invoice_id: string | null
+          qbo_last_synced_at: string | null
+          qbo_retries: number | null
+          qbo_sync_status: Database["public"]["Enums"]["qbo_sync_status"] | null
           status: string
         }
         Insert: {
@@ -129,6 +153,13 @@ export type Database = {
           invoice_number: string
           payment_method?: string
           project_id?: string | null
+          qbo_error?: Json | null
+          qbo_invoice_id?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_retries?: number | null
+          qbo_sync_status?:
+            | Database["public"]["Enums"]["qbo_sync_status"]
+            | null
           status?: string
         }
         Update: {
@@ -141,6 +172,13 @@ export type Database = {
           invoice_number?: string
           payment_method?: string
           project_id?: string | null
+          qbo_error?: Json | null
+          qbo_invoice_id?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_retries?: number | null
+          qbo_sync_status?:
+            | Database["public"]["Enums"]["qbo_sync_status"]
+            | null
           status?: string
         }
         Relationships: [
@@ -241,6 +279,39 @@ export type Database = {
           realm_id?: string
           refresh_token?: string
           scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      qbo_contacts_cache: {
+        Row: {
+          contact_type: string
+          created_at: string
+          data: Json | null
+          external_id: string
+          id: string
+          qbo_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_type: string
+          created_at?: string
+          data?: Json | null
+          external_id: string
+          id?: string
+          qbo_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_type?: string
+          created_at?: string
+          data?: Json | null
+          external_id?: string
+          id?: string
+          qbo_id?: string
           updated_at?: string
           user_id?: string
         }
@@ -379,6 +450,7 @@ export type Database = {
       }
     }
     Enums: {
+      qbo_sync_status: "pending" | "success" | "error"
       user_role: "platform_admin" | "account_admin" | "user" | "guest"
     }
     CompositeTypes: {
@@ -495,6 +567,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      qbo_sync_status: ["pending", "success", "error"],
       user_role: ["platform_admin", "account_admin", "user", "guest"],
     },
   },
