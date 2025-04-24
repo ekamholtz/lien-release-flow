@@ -6,12 +6,19 @@ import { format } from 'date-fns';
 import { InvoiceStatusBadge } from './InvoiceStatusBadge';
 import { InvoiceActions } from './InvoiceActions';
 import { DbInvoice, InvoiceStatus } from '@/lib/supabase';
+import { QboSyncStatusBadge } from './QboSyncStatus';
 
 // Define an extended invoice type that includes the project name from the join
+// and QBO sync fields
 type ExtendedInvoice = DbInvoice & {
   projects?: { 
     name: string;
   };
+  qbo_sync_status?: 'pending' | 'processing' | 'success' | 'error' | null;
+  qbo_error?: { message: string } | null;
+  qbo_invoice_id?: string | null;
+  qbo_retries?: number;
+  qbo_last_synced_at?: string | null;
 };
 
 interface InvoicesTableProps {
@@ -33,6 +40,7 @@ export function InvoicesTable({ invoices, onUpdateStatus, onPayInvoice, onViewDe
             <TableHead>Amount</TableHead>
             <TableHead>Due Date</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>QBO Sync</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -55,7 +63,17 @@ export function InvoicesTable({ invoices, onUpdateStatus, onPayInvoice, onViewDe
               <TableCell>${invoice.amount.toFixed(2)}</TableCell>
               <TableCell>{format(new Date(invoice.due_date), 'MMM d, yyyy')}</TableCell>
               <TableCell>
-                <InvoiceStatusBadge status={invoice.status} />
+                <InvoiceStatusBadge status={invoice.status as InvoiceStatus} />
+              </TableCell>
+              <TableCell>
+                {invoice.qbo_sync_status !== undefined && (
+                  <QboSyncStatusBadge 
+                    status={invoice.qbo_sync_status} 
+                    errorMessage={invoice.qbo_error?.message}
+                    retries={invoice.qbo_retries}
+                    lastSynced={invoice.qbo_last_synced_at}
+                  />
+                )}
               </TableCell>
               <TableCell className="text-right">
                 <InvoiceActions 

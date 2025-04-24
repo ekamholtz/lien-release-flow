@@ -1,10 +1,13 @@
+
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
-import { AlertCircle, Info } from "lucide-react";
+import { toast } from "sonner";
+import { AlertCircle, Info, RefreshCw } from "lucide-react";
 import { useSessionRefresh } from "@/hooks/useSessionRefresh";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 
 export function IntegrationsSettings() {
   const [qboStatus, setQboStatus] = useState<"connected" | "not_connected" | "loading">("loading");
@@ -15,7 +18,9 @@ export function IntegrationsSettings() {
     total: number;
     synced: number;
     failed: number;
-  }>({ total: 0, synced: 0, failed: 0 });
+    pending: number;
+  }>({ total: 0, synced: 0, failed: 0, pending: 0 });
+  const [isRefreshingStats, setIsRefreshingStats] = useState(false);
   const { session, refreshSession } = useSessionRefresh();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -27,18 +32,11 @@ export function IntegrationsSettings() {
 
     if (connected === "qbo") {
       setQboStatus("connected");
-      toast({
-        title: "QuickBooks Connected",
-        description: "Successfully connected to QuickBooks Online",
-      });
+      toast.success("Successfully connected to QuickBooks Online");
       navigate("/settings", { replace: true });
     } else if (error === "qbo") {
       setError(message || "Failed to connect to QuickBooks");
-      toast({
-        title: "Connection Error",
-        description: message || "Failed to connect to QuickBooks Online",
-        variant: "destructive"
-      });
+      toast.error(message || "Failed to connect to QuickBooks Online");
       navigate("/settings", { replace: true });
     }
   }, [searchParams, navigate]);
@@ -53,6 +51,7 @@ export function IntegrationsSettings() {
     if (!session?.user) return;
     
     try {
+      setIsRefreshingStats(true);
       const { data: invoices, error } = await supabase
         .from('invoices')
         .select('qbo_sync_status')
@@ -63,12 +62,62 @@ export function IntegrationsSettings() {
       const stats = invoices.reduce((acc, inv) => ({
         total: acc.total + 1,
         synced: acc.synced + (inv.qbo_sync_status === 'success' ? 1 : 0),
-        failed: acc.failed + (inv.qbo_sync_status === 'error' ? 1 : 0)
-      }), { total: 0, synced: 0, failed: 0 });
+        failed: acc.failed + (inv.qbo_sync_status === 'error' ? 1 : 0),
+        pending: acc.pending + (['pending', 'processing'].includes(inv.qbo_sync_status) ? 1 : 0)
+      }), { total: 0, synced: 0, failed: 0, pending: 0 });
 
       setSyncStats(stats);
     } catch (err) {
       console.error('Error fetching sync stats:', err);
+      toast.error('Failed to load QBO sync statistics');
+    } finally {
+      setIsRefreshingStats(false);
+    }
+  };
+
+  const handleRefreshStats = () => {
+    fetchSyncStats();
+  };
+  
+  const handleRetryFailedSyncs = async () => {
+    if (!session?.access_token) return;
+    
+    try {
+      toast.info('Retrying failed QBO syncs...');
+      
+      const response = await fetch(
+        'https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-sync-retry',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({})
+        }
+      );
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to trigger retry: ${error}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.processed > 0) {
+        toast.success(`Scheduled retry for ${result.processed} failed syncs`);
+      } else {
+        toast.info('No failed syncs found to retry');
+      }
+      
+      // Refresh stats after a short delay
+      setTimeout(() => {
+        fetchSyncStats();
+      }, 2000);
+      
+    } catch (err: any) {
+      console.error('Error retrying syncs:', err);
+      toast.error(`Retry error: ${err.message}`);
     }
   };
 
@@ -168,11 +217,7 @@ export function IntegrationsSettings() {
       setConnecting(false);
       setError(error.message || String(error));
       
-      toast({
-        title: "Connection Error",
-        description: error.message || "Failed to connect to QuickBooks Online",
-        variant: "destructive"
-      });
+      toast.error(error.message || "Failed to connect to QuickBooks Online");
     }
   };
 
@@ -193,29 +238,30 @@ export function IntegrationsSettings() {
             onClick={handleConnectQbo}
             disabled={qboStatus === "loading" || connecting}
           >
-            {connecting ? "Connecting..." : "Connect QuickBooks"}
+            {connecting ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Connecting...
+              </>
+            ) : "Connect QuickBooks"}
           </Button>
         )}
       </div>
       
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <div className="flex items-start gap-2 text-red-600">
-            <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-medium">Connection Error</p>
-              <p className="text-sm mt-1">{error}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={handleConnectQbo}
-              >
-                Retry Connection
-              </Button>
-            </div>
-          </div>
-        </div>
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Connection Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={handleConnectQbo}
+          >
+            Retry Connection
+          </Button>
+        </Alert>
       )}
       
       <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-md">
@@ -231,27 +277,91 @@ export function IntegrationsSettings() {
       </div>
       
       {qboStatus === "connected" && (
-        <div className="mt-4 p-4 bg-white border rounded-md">
-          <h3 className="text-sm font-medium text-gray-900">Sync Status</h3>
-          <dl className="mt-2 grid grid-cols-3 gap-4">
-            <div>
-              <dt className="text-sm text-gray-500">Total Invoices</dt>
-              <dd className="mt-1 text-lg font-semibold">{syncStats.total}</dd>
+        <>
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">QBO Sync Status</h3>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshStats}
+                  disabled={isRefreshingStats}
+                >
+                  {isRefreshingStats ? (
+                    <>
+                      <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                      Refreshing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-3 w-3" />
+                      Refresh Stats
+                    </>
+                  )}
+                </Button>
+                {syncStats.failed > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={handleRetryFailedSyncs}
+                  >
+                    Retry Failed Syncs
+                  </Button>
+                )}
+              </div>
             </div>
-            <div>
-              <dt className="text-sm text-gray-500">Synced</dt>
-              <dd className="mt-1 text-lg font-semibold text-green-600">
-                {syncStats.synced}
-              </dd>
+            
+            <div className="mt-4 bg-white border rounded-md shadow-sm">
+              <dl className="grid grid-cols-4 gap-4 p-4">
+                <div>
+                  <dt className="text-sm text-gray-500">Total Invoices</dt>
+                  <dd className="mt-1 text-lg font-semibold">{syncStats.total}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-gray-500">Synced</dt>
+                  <dd className="mt-1 text-lg font-semibold text-green-600">
+                    {syncStats.synced}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-gray-500">Pending</dt>
+                  <dd className="mt-1 text-lg font-semibold text-blue-600">
+                    {syncStats.pending}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-gray-500">Failed</dt>
+                  <dd className="mt-1 text-lg font-semibold text-red-600">
+                    {syncStats.failed}
+                  </dd>
+                </div>
+              </dl>
+              
+              {syncStats.total > 0 && (
+                <div className="px-4 pb-4">
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                    <span>Sync Progress</span>
+                    <span>{Math.round((syncStats.synced / syncStats.total) * 100)}%</span>
+                  </div>
+                  <Progress 
+                    value={(syncStats.synced / syncStats.total) * 100}
+                    className="h-2"
+                  />
+                </div>
+              )}
             </div>
-            <div>
-              <dt className="text-sm text-gray-500">Failed</dt>
-              <dd className="mt-1 text-lg font-semibold text-red-600">
-                {syncStats.failed}
-              </dd>
-            </div>
-          </dl>
-        </div>
+          </div>
+          
+          <div className="mt-6">
+            <h3 className="text-lg font-medium mb-2">Sync to QBO</h3>
+            <p className="text-sm text-gray-600">
+              All invoices created will automatically sync to QuickBooks Online. 
+              You can also manually sync invoices from the invoices table by clicking the "Sync to QBO" button.
+            </p>
+          </div>
+        </>
       )}
       
       {debugInfo && (
