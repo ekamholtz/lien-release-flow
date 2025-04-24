@@ -11,7 +11,7 @@ import { MoreHorizontal, RefreshCw } from "lucide-react";
 import { DbInvoice, InvoiceStatus } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { QboSyncStatusBadge } from './QboSyncStatus';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 // Define sync_status as a string union
@@ -50,7 +50,10 @@ export function InvoiceActions({
     
     try {
       setIsSyncing(true);
-      toast.info(`Syncing invoice ${invoice.invoice_number} to QuickBooks...`);
+      toast({
+        title: "Syncing invoice...",
+        description: `Starting sync for invoice ${invoice.invoice_number} to QuickBooks`,
+      });
       
       // Create/update sync record
       const { error: syncError } = await supabase
@@ -80,13 +83,24 @@ export function InvoiceActions({
       
       if (result.error || (result.results && result.results[0]?.error)) {
         const errorMsg = result.error || result.results[0]?.error || 'Sync failed';
-        toast.error(`Failed to sync: ${errorMsg}`);
+        toast({
+          title: "Sync failed",
+          description: errorMsg,
+          variant: "destructive"
+        });
       } else {
-        toast.success('Invoice successfully synced to QuickBooks!');
+        toast({
+          title: "Sync successful",
+          description: "Invoice successfully synced to QuickBooks!"
+        });
       }
     } catch (err: any) {
       console.error('Error syncing invoice:', err);
-      toast.error(`Sync error: ${err.message || 'Unknown error'}`);
+      toast({
+        title: "Sync failed",
+        description: err.message || 'Unknown error occurred',
+        variant: "destructive"
+      });
     } finally {
       setIsSyncing(false);
     }
