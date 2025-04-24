@@ -2,7 +2,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { processInvoiceSync } from "../helpers/sync/processInvoiceSync.ts";
-import { logQboAction } from "../helpers/qbo.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,7 +34,6 @@ serve(async (req) => {
     const invoiceIds = requestData.invoice_ids || (requestData.invoice_id ? [requestData.invoice_id] : []);
     
     if (invoiceIds.length === 0) {
-      // Find pending syncs to process
       const { data: pendingSync } = await supabase
         .from('accounting_sync')
         .select('entity_id')
@@ -61,7 +59,7 @@ serve(async (req) => {
         const result = await processInvoiceSync(supabase, invoiceId, environmentVars);
         results.push(result);
       } catch (error) {
-        console.error(`Unhandled error in sync-invoice for ${invoiceId}:`, error);
+        console.error(`Error in sync-invoice for ${invoiceId}:`, error);
         results.push({ 
           invoice_id: invoiceId, 
           success: false, 
@@ -77,13 +75,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in sync-invoice:', error);
-    
-    await logQboAction(supabase, {
-      function_name: 'sync-invoice',
-      error: error.message,
-      severity: 'error'
-    });
-
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

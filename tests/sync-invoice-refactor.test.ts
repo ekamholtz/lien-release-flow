@@ -11,7 +11,13 @@ vi.mock('https://esm.sh/@supabase/supabase-js@2.21.0', async () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: { id: 'inv-123' }, error: null }),
+      single: vi.fn().mockResolvedValue({ 
+        data: { 
+          id: 'inv-123',
+          projects: { name: 'Test Project' }
+        }, 
+        error: null 
+      }),
       upsert: vi.fn().mockReturnThis(),
       update: vi.fn().mockResolvedValue({ data: {}, error: null }),
       rpc: vi.fn().mockResolvedValue(1),
@@ -21,8 +27,8 @@ vi.mock('https://esm.sh/@supabase/supabase-js@2.21.0', async () => {
   };
 });
 
-vi.mock('../supabase/functions/helpers/accounting/qboInvoiceAdapter', () => ({
-  createInvoice: vi.fn().mockResolvedValue({
+vi.mock('../supabase/functions/helpers/accounting/providers/qbo', () => ({
+  createQboInvoice: vi.fn().mockResolvedValue({
     qboInvoiceId: 'qbo-123',
     providerRef: 'qbo-123',
     providerMeta: { Invoice: { Id: 'qbo-123' } }

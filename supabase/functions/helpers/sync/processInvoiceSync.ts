@@ -1,6 +1,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
-import { createInvoice } from "../accounting/qboInvoiceAdapter.ts";
+import { createQboInvoice } from "../accounting/providers/qbo.ts";
 import { logQboAction } from "../qbo.ts";
 
 interface SyncResult {
@@ -78,6 +78,18 @@ export async function recordSyncResult(
 }
 
 /**
+ * Get the appropriate accounting provider adapter
+ */
+function getAccountingProvider(provider: string = 'qbo') {
+  switch (provider) {
+    case 'qbo':
+      return { createInvoice: createQboInvoice };
+    default:
+      throw new Error(`Unsupported accounting provider: ${provider}`);
+  }
+}
+
+/**
  * Process an invoice sync operation
  */
 export async function processInvoiceSync(
@@ -93,8 +105,11 @@ export async function processInvoiceSync(
     // Lock the invoice for syncing
     const { invoice, syncRecord } = await lockInvoice(supabase, invoiceId);
 
-    // For now we only have QBO as a provider
-    const result = await createInvoice(supabase, invoice, environmentVars);
+    // Get the appropriate provider adapter (only QBO for now)
+    const adapter = getAccountingProvider('qbo');
+    
+    // Create invoice in provider
+    const result = await adapter.createInvoice(supabase, invoice, environmentVars);
 
     // Record success
     await recordSyncResult(supabase, syncRecord.id, true, {
