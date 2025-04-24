@@ -82,7 +82,8 @@ export function InvoiceActions({
             .eq('id', existingSync.id);
             
           if (updateError) throw updateError;
-        } else if (existingSync.status !== 'error' && existingSync.status !== 'pending') {
+        } else if (existingSync.status !== 'pending') {
+          // Fixed: Compare with a string literal instead of a type
           throw new Error(`Invoice is already in ${existingSync.status} state`);
         }
       } else {
