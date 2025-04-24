@@ -173,6 +173,7 @@ export type Database = {
           project_id: string | null
           qbo_invoice_id: string | null
           status: string
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -186,6 +187,7 @@ export type Database = {
           project_id?: string | null
           qbo_invoice_id?: string | null
           status?: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -199,6 +201,7 @@ export type Database = {
           project_id?: string | null
           qbo_invoice_id?: string | null
           status?: string
+          user_id?: string | null
         }
         Relationships: [
           {

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -14,6 +13,7 @@ import { FilePreview } from "./FilePreview";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { InvoiceStatus } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
 const formSchema = z.object({
   invoiceNumber: z.string().min(1, { message: "Invoice number is required" }),
@@ -35,6 +35,7 @@ export function InvoiceForm() {
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -53,6 +54,15 @@ export function InvoiceForm() {
   });
 
   async function onSubmit(values: FormValues) {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create invoices",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -72,11 +82,12 @@ export function InvoiceForm() {
           invoice_number: values.invoiceNumber,
           client_name: values.clientName,
           client_email: values.clientEmail,
-          project_id: values.project, // Assuming project is the UUID
+          project_id: values.project,
           amount: amountNumber,
           due_date: formattedDueDate,
           status: 'draft' as InvoiceStatus,
-          payment_method: values.paymentMethod
+          payment_method: values.paymentMethod,
+          user_id: user.id
         })
         .select();
       

@@ -15,10 +15,10 @@ export async function processInvoiceSync(
   console.log('Starting invoice sync process for:', invoiceId);
   
   try {
-    // Get invoice data first
+    // Get invoice data with user_id
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
-      .select('*, projects(*)')
+      .select('*, projects(*), user_id')
       .eq('id', invoiceId)
       .single();
     
@@ -26,12 +26,17 @@ export async function processInvoiceSync(
       throw new Error(`Failed to fetch invoice: ${invoiceError?.message || 'Not found'}`);
     }
 
-    // Mark as processing using the new upsert function
+    if (!invoice.user_id) {
+      throw new Error('Invoice has no associated user_id');
+    }
+
+    // Mark as processing using the new upsert function with user_id
     await supabase.rpc('update_sync_status', {
       p_entity_type: 'invoice',
       p_entity_id: invoiceId,
       p_provider: 'qbo',
-      p_status: 'processing'
+      p_status: 'processing',
+      p_user_id: invoice.user_id
     });
 
     console.log('Set sync status to processing for invoice:', invoiceId);
@@ -39,7 +44,7 @@ export async function processInvoiceSync(
     // Create invoice in QBO
     const adapter = await createQboInvoice(supabase, invoice, environmentVars);
     
-    // Record success using the new upsert function
+    // Record success using the new upsert function with user_id
     await supabase.rpc('update_sync_status', {
       p_entity_type: 'invoice',
       p_entity_id: invoiceId,
@@ -48,7 +53,8 @@ export async function processInvoiceSync(
       p_provider_ref: adapter.qboInvoiceId,
       p_provider_meta: adapter.providerMeta,
       p_error: null,
-      p_error_message: null
+      p_error_message: null,
+      p_user_id: invoice.user_id
     });
 
     await logQboAction(supabase, {
@@ -58,6 +64,7 @@ export async function processInvoiceSync(
         qbo_invoice_id: adapter.qboInvoiceId,
         http_status: 200
       },
+      user_id: invoice.user_id,
       severity: 'info'
     });
 
@@ -66,6 +73,13 @@ export async function processInvoiceSync(
   } catch (error) {
     console.error(`Error processing invoice ${invoiceId}:`, error);
     
+    // Get the invoice to get the user_id for error logging
+    const { data: invoice } = await supabase
+      .from('invoices')
+      .select('user_id')
+      .eq('id', invoiceId)
+      .single();
+    
     // Update sync record with error using the new upsert function
     await supabase.rpc('update_sync_status', {
       p_entity_type: 'invoice',
@@ -73,13 +87,15 @@ export async function processInvoiceSync(
       p_provider: 'qbo',
       p_status: 'error',
       p_error: { message: error.message },
-      p_error_message: error.message
+      p_error_message: error.message,
+      p_user_id: invoice?.user_id
     });
     
     await logQboAction(supabase, {
       function_name: 'sync-invoice',
       payload: { invoice_id: invoiceId },
       error: error.message,
+      user_id: invoice?.user_id,
       severity: 'error'
     });
     
