@@ -10,13 +10,17 @@ import { DbInvoice, InvoiceStatus } from '@/lib/supabase';
 import { InvoicesTable } from '@/components/payments/InvoicesTable';
 import { PayInvoice } from '@/components/payments/PayInvoice';
 import { InvoiceDetailsModal } from '@/components/payments/InvoiceDetailsModal';
+import { Database } from '@/integrations/supabase/types';
+
+// Define sync_status as a string union to match the database type
+type sync_status = 'pending' | 'processing' | 'success' | 'error';
 
 type ExtendedInvoice = DbInvoice & {
   projects?: { 
     name: string;
   };
   accounting_sync?: {
-    status: string;
+    status: sync_status;
     error: { message: string } | null;
     retries: number;
     last_synced_at: string | null;
@@ -64,12 +68,22 @@ const AccountsReceivable = () => {
         const syncRecord = syncData?.find(sync => sync.entity_id === invoice.id);
         return {
           ...invoice,
-          accounting_sync: syncRecord || null
+          accounting_sync: syncRecord ? {
+            status: syncRecord.status as sync_status,
+            error: syncRecord.error ? 
+              // Handle error format conversion
+              (typeof syncRecord.error === 'object' && syncRecord.error !== null) ? 
+                { message: (syncRecord.error as any)?.message || JSON.stringify(syncRecord.error) } : 
+                { message: String(syncRecord.error) }
+              : null,
+            retries: syncRecord.retries || 0,
+            last_synced_at: syncRecord.last_synced_at
+          } : null
         };
       });
       
       console.log('Invoices data with sync status:', combinedData);
-      setInvoices(combinedData as ExtendedInvoice[] || []);
+      setInvoices(combinedData as ExtendedInvoice[]);
     } catch (error) {
       console.error('Error fetching invoices:', error);
       toast({
