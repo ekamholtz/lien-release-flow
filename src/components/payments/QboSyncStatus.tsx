@@ -1,15 +1,13 @@
-
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertCircle, CheckCircle2, Clock, RefreshCw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { sync_status } from '@/integrations/supabase/types';
 
-type QboSyncStatus = sync_status | null;
+type sync_status = 'pending' | 'processing' | 'success' | 'error';
 
 interface QboSyncStatusBadgeProps {
-  status: QboSyncStatus;
+  status: sync_status;
   errorMessage?: string | null;
   retries?: number;
   lastSynced?: string | null;

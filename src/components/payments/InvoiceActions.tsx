@@ -13,7 +13,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { QboSyncStatusBadge } from './QboSyncStatus';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { sync_status } from '@/integrations/supabase/types';
+
+// Define sync_status as a string union
+type sync_status = 'pending' | 'processing' | 'success' | 'error';
 
 type ExtendedInvoice = DbInvoice & {
   projects?: { 

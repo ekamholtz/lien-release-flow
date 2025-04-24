@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileText } from "lucide-react";
@@ -6,7 +7,9 @@ import { InvoiceStatusBadge } from './InvoiceStatusBadge';
 import { InvoiceActions } from './InvoiceActions';
 import { DbInvoice, InvoiceStatus } from '@/lib/supabase';
 import { QboSyncStatusBadge } from './QboSyncStatus';
-import { sync_status } from '@/integrations/supabase/types';
+
+// Define sync_status as a string union
+type sync_status = 'pending' | 'processing' | 'success' | 'error';
 
 type ExtendedInvoice = DbInvoice & {
   projects?: { 
