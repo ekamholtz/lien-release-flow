@@ -82,9 +82,10 @@ export function InvoiceActions({
             .eq('id', existingSync.id);
             
           if (updateError) throw updateError;
-        } else if (existingSync.status !== 'pending') {
-          // Fixed: Compare with a string literal instead of a type
-          throw new Error(`Invoice is already in ${existingSync.status} state`);
+        } else if (existingSync.status === 'success') {
+          throw new Error('Invoice is already synced to QuickBooks');
+        } else if (existingSync.status === 'processing') {
+          throw new Error('Invoice sync is already in progress');
         }
       } else {
         // Create new sync record
@@ -127,6 +128,11 @@ export function InvoiceActions({
           title: "Sync successful",
           description: "Invoice successfully synced to QuickBooks!"
         });
+        
+        // Optionally refresh the page or update the UI to show the new sync status
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }
     } catch (err: any) {
       console.error('Error syncing invoice:', err);

@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { 
   ensureQboTokens, 
@@ -22,12 +21,36 @@ export async function createInvoice(
     INTUIT_ENVIRONMENT: string;
   }
 ): Promise<QboInvoiceResult> {
-  // Ensure all date values are properly formatted
+  // Handle date formatting safely to prevent Invalid time value errors
   const formattedInvoice = {
     ...invoice,
-    due_date: invoice.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : null,
-    created_at: invoice.created_at ? new Date(invoice.created_at).toISOString() : null
   };
+
+  // Safely format due_date if it exists - ensure it's a valid date string in YYYY-MM-DD format
+  if (invoice.due_date) {
+    try {
+      // First check if it's already in YYYY-MM-DD format
+      if (/^\d{4}-\d{2}-\d{2}$/.test(invoice.due_date)) {
+        formattedInvoice.due_date = invoice.due_date;
+      } else {
+        // Otherwise try to parse and format it
+        const dateObj = new Date(invoice.due_date);
+        if (!isNaN(dateObj.getTime())) {
+          formattedInvoice.due_date = dateObj.toISOString().split('T')[0];
+        } else {
+          console.warn('Invalid due_date provided:', invoice.due_date);
+          formattedInvoice.due_date = null;
+        }
+      }
+    } catch (error) {
+      console.warn('Error formatting due_date:', error);
+      formattedInvoice.due_date = null;
+    }
+  }
+
+  // Don't try to format created_at for QBO, as it's not needed for the invoice creation
+  // Just remove it to avoid potential issues
+  delete formattedInvoice.created_at;
   
   // Get user's QBO tokens
   const tokens = await ensureQboTokens(

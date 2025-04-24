@@ -92,6 +92,28 @@ serve(async (req) => {
           success: false, 
           error: error.message 
         });
+        
+        // Update sync status to error
+        try {
+          // Get the invoice to get the user_id for error logging
+          const { data: invoice } = await supabase
+            .from('invoices')
+            .select('user_id')
+            .eq('id', invoiceId)
+            .single();
+            
+          await supabase.rpc('update_sync_status', {
+            p_entity_type: 'invoice',
+            p_entity_id: invoiceId,
+            p_provider: 'qbo',
+            p_status: 'error',
+            p_error: { message: error.message },
+            p_error_message: error.message,
+            p_user_id: invoice?.user_id
+          });
+        } catch (updateError) {
+          console.error('Failed to update sync status:', updateError);
+        }
       }
     }
 

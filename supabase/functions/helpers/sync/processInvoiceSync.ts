@@ -41,15 +41,11 @@ export async function processInvoiceSync(
 
     console.log('Set sync status to processing for invoice:', invoiceId);
 
-    // Ensure all date properties are properly formatted before passing to the adapter
-    const formattedInvoice = {
-      ...invoice,
-      due_date: invoice.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : null,
-      created_at: invoice.created_at ? new Date(invoice.created_at).toISOString() : null
-    };
-
-    // Create invoice in QBO with properly formatted date
-    const adapter = await createQboInvoice(supabase, formattedInvoice, environmentVars);
+    // Prepare invoice for QBO but don't modify date fields here
+    // Let the adapter handle all date formatting
+    
+    // Create invoice in QBO
+    const adapter = await createQboInvoice(supabase, invoice, environmentVars);
     
     // Record success using the new upsert function with user_id
     await supabase.rpc('update_sync_status', {
