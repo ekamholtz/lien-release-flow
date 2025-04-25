@@ -1,13 +1,23 @@
-
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { AlertCircle, Info, RefreshCw } from "lucide-react";
+import { AlertCircle, Info, RefreshCw, X } from "lucide-react";
 import { useSessionRefresh } from "@/hooks/useSessionRefresh";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function IntegrationsSettings() {
   const [qboStatus, setQboStatus] = useState<"connected" | "not_connected" | "loading">("loading");
@@ -21,6 +31,7 @@ export function IntegrationsSettings() {
     pending: number;
   }>({ total: 0, synced: 0, failed: 0, pending: 0 });
   const [isRefreshingStats, setIsRefreshingStats] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const { session, refreshSession } = useSessionRefresh();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -52,7 +63,6 @@ export function IntegrationsSettings() {
     
     try {
       setIsRefreshingStats(true);
-      // Query the accounting_sync table instead of invoices
       const { data: syncRecords, error } = await supabase
         .from('accounting_sync')
         .select('*')
@@ -112,7 +122,6 @@ export function IntegrationsSettings() {
         toast.info('No failed syncs found to retry');
       }
       
-      // Refresh stats after a short delay
       setTimeout(() => {
         fetchSyncStats();
       }, 2000);
@@ -223,19 +232,79 @@ export function IntegrationsSettings() {
     }
   };
 
+  const handleDisconnectQbo = async () => {
+    if (!session?.user) return;
+    
+    setIsDisconnecting(true);
+    try {
+      const { error } = await supabase
+        .from('qbo_connections')
+        .delete()
+        .eq('user_id', session.user.id);
+
+      if (error) throw error;
+
+      setQboStatus('not_connected');
+      setSyncStats({ total: 0, synced: 0, failed: 0, pending: 0 });
+      toast.success('Successfully disconnected from QuickBooks');
+    } catch (err: any) {
+      console.error('Error disconnecting from QBO:', err);
+      toast.error('Failed to disconnect from QuickBooks');
+    } finally {
+      setIsDisconnecting(false);
+    }
+  };
+
   return (
     <div className="mt-6">
       <h2 className="text-xl font-semibold mb-2">QuickBooks Online</h2>
       <div className="flex items-center gap-4">
         <span>
           Status:{" "}
-          {qboStatus === "loading"
-            ? <span className="text-gray-500">Checking…</span>
-            : qboStatus === "connected"
-              ? <span className="text-green-600 font-medium">Connected</span>
-              : <span className="text-red-600 font-medium">Not Connected</span>}
+          {qboStatus === "loading" ? (
+            <span className="text-gray-500">Checking…</span>
+          ) : qboStatus === "connected" ? (
+            <span className="text-green-600 font-medium">Connected</span>
+          ) : (
+            <span className="text-red-600 font-medium">Not Connected</span>
+          )}
         </span>
-        {qboStatus !== "connected" && (
+        {qboStatus === "connected" ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={isDisconnecting}
+                className="gap-2"
+              >
+                {isDisconnecting ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <X className="h-4 w-4" />
+                )}
+                Disconnect QuickBooks
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Disconnect QuickBooks?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will remove the connection to your QuickBooks account. You'll need to reconnect to sync invoices again. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDisconnectQbo}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Disconnect
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : (
           <Button
             onClick={handleConnectQbo}
             disabled={qboStatus === "loading" || connecting}
@@ -245,7 +314,9 @@ export function IntegrationsSettings() {
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                 Connecting...
               </>
-            ) : "Connect QuickBooks"}
+            ) : (
+              "Connect QuickBooks"
+            )}
           </Button>
         )}
       </div>
