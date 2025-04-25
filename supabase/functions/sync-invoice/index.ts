@@ -126,16 +126,28 @@ serve(async (req) => {
       } catch (error) {
         console.error(`Error in sync-invoice for ${invoiceId}:`, error);
         
-        // Format network connectivity errors for better user feedback
-        let errorMessage = error.message;
-        if (errorMessage && errorMessage.includes('sending request for url')) {
-          errorMessage = 'QuickBooks connectivity issue: Unable to reach QuickBooks servers. Please check your internet connection and try again later.';
+        // Determine error type for better UI feedback
+        let errorType = 'unknown';
+        let errorMessage = error.message || String(error);
+        
+        if (error.errorType) {
+          errorType = error.errorType;
+        } else if (errorMessage.includes('authentication') || errorMessage.includes('token') || errorMessage.includes('authoriz')) {
+          errorType = 'token-expired';
+          errorMessage = 'QuickBooks authorization expired. Please reconnect your QBO account.';
+        } else if (errorMessage.includes('customer') || errorMessage.includes('contact')) {
+          errorType = 'customer-error';
+          errorMessage = `Customer error: ${errorMessage}`;
+        } else if (errorMessage.includes('connect') || errorMessage.includes('network') || errorMessage.includes('timeout')) {
+          errorType = 'connectivity';
+          errorMessage = 'QuickBooks connectivity issue. Please try again later.';
         }
         
         results.push({ 
           invoice_id: invoiceId, 
           success: false, 
-          error: errorMessage
+          error: errorMessage,
+          errorType
         });
         
         // Update sync status to error
@@ -152,7 +164,7 @@ serve(async (req) => {
             p_entity_id: invoiceId,
             p_provider: 'qbo',
             p_status: 'error',
-            p_error: { message: errorMessage },
+            p_error: { message: errorMessage, type: errorType },
             p_error_message: errorMessage,
             p_user_id: invoice?.user_id
           });
@@ -171,7 +183,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in sync-invoice:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        errorType: error.errorType || 'unknown'
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

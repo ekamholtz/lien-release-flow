@@ -1,5 +1,68 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
+
+// Generic retry logic with exponential backoff
+export async function retryWithBackoff<T>(
+  operation: () => Promise<T>, 
+  maxRetries: number = 3,
+  baseDelayMs: number = 100,
+  actionLogger?: (attempt: number, error: Error) => Promise<void>
+): Promise<T> {
+  let attempt = 0;
+  let lastError: Error | null = null;
+
+  while (attempt < maxRetries) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      
+      // Don't retry on authorization errors (401) as they won't succeed without a new token
+      if (error.status === 401 || error.message?.includes('unauthorized')) {
+        throw {
+          ...error,
+          retryable: false, 
+          errorType: 'token-expired'
+        };
+      }
+      
+      // Server-side errors (5xx) and rate-limiting (429) are retryable
+      const isRetryable = error.status >= 500 || error.status === 429 || error.status === 0 || 
+                        error.message?.includes('sending request') || 
+                        error.message?.includes('network');
+      
+      if (!isRetryable) {
+        throw {
+          ...error,
+          retryable: false,
+          errorType: 'customer-error'
+        };
+      }
+
+      // Log the retry attempt if a logger is provided
+      if (actionLogger) {
+        await actionLogger(attempt, error);
+      }
+
+      attempt++;
+      if (attempt >= maxRetries) {
+        throw {
+          ...error,
+          retryable: false,
+          errorType: 'max-retries-exceeded',
+          attempts: attempt
+        };
+      }
+
+      // Exponential backoff with base*2^attempt (100ms, 200ms, 400ms, etc)
+      const delayMs = baseDelayMs * Math.pow(2, attempt);
+      console.log(`Retry attempt ${attempt}/${maxRetries} after ${delayMs}ms delay`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  
+  // This should never happen due to the throw in the loop, but TypeScript needs it
+  throw lastError || new Error('Retry failed with unknown error');
+}
 
 export async function upsertQboConnection(
   supabase: ReturnType<typeof createClient>,
@@ -103,83 +166,141 @@ export async function getOrCreateCustomer(
     return cachedCustomer.qbo_id;
   }
 
-  // If not in cache, check if customer exists in QBO
+  // Logger for retry attempts
+  const retryLogger = async (attempt: number, error: Error) => {
+    await logQboAction(supabase, {
+      function_name: 'getOrCreateCustomer-retry',
+      payload: { 
+        user_id, 
+        external_id, 
+        display_name,
+        attempt,
+        status: error.status || 'unknown'
+      },
+      error: `Retry attempt ${attempt}: ${error.message}`,
+      user_id,
+      severity: 'info'
+    });
+  };
+
+  // If not in cache, check if customer exists in QBO with retry logic
   const qboBaseUrl = environmentVars.INTUIT_ENVIRONMENT === 'production'
     ? 'https://quickbooks.api.intuit.com'
     : 'https://sandbox.quickbooks.api.intuit.com';
-  const qboQueryUrl = `${qboBaseUrl}/v3/company/${realm_id}/query?query=select * from Customer where FullyQualifiedName = '${display_name}'&minorversion=65`;
 
-  const qboCustomerSearchResponse = await fetch(qboQueryUrl, {
-    headers: {
-      'Authorization': `Bearer ${access_token}`,
-      'Accept': 'application/json'
+  try {
+    // Search for customer in QBO with retry logic
+    const searchCustomer = async () => {
+      const qboQueryUrl = `${qboBaseUrl}/v3/company/${realm_id}/query?query=select * from Customer where FullyQualifiedName = '${display_name}'&minorversion=65`;
+      
+      const qboCustomerSearchResponse = await fetch(qboQueryUrl, {
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!qboCustomerSearchResponse.ok) {
+        const errorText = await qboCustomerSearchResponse.text();
+        throw {
+          status: qboCustomerSearchResponse.status,
+          message: `Failed to search for customer in QBO: ${errorText}`,
+          originalResponse: errorText
+        };
+      }
+
+      return await qboCustomerSearchResponse.json();
+    };
+
+    // Use the retry logic for the search operation
+    const qboCustomerSearchData = await retryWithBackoff(searchCustomer, 3, 100, retryLogger);
+
+    if (qboCustomerSearchData.QueryResponse?.Customer?.length > 0) {
+      const existingQboCustomerId = qboCustomerSearchData.QueryResponse.Customer[0].Id;
+      console.log(`Customer ${display_name} found in QBO with ID ${existingQboCustomerId}`);
+
+      // Cache the found customer
+      await supabase
+        .from('qbo_contacts_cache')
+        .insert({
+          user_id: user_id,
+          contact_type: 'customer',
+          external_id: external_id,
+          qbo_id: existingQboCustomerId,
+          data: qboCustomerSearchData.QueryResponse.Customer[0]
+        });
+
+      return existingQboCustomerId;
     }
-  });
 
-  if (!qboCustomerSearchResponse.ok) {
-    console.error('Error searching for customer in QBO:', qboCustomerSearchResponse.status, await qboCustomerSearchResponse.text());
-    throw new Error(`Failed to search for customer in QBO: ${qboCustomerSearchResponse.status}`);
-  }
+    // If not found, create the customer with retry logic
+    const createCustomer = async () => {
+      const qboCreateUrl = `${qboBaseUrl}/v3/company/${realm_id}/customer?minorversion=65`;
+      const qboCustomerCreateResponse = await fetch(qboCreateUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          DisplayName: display_name,
+          FullyQualifiedName: display_name,
+          PrimaryEmailAddr: {
+            Address: email || 'noemail@example.com'
+          }
+        })
+      });
 
-  const qboCustomerSearchData = await qboCustomerSearchResponse.json();
+      if (!qboCustomerCreateResponse.ok) {
+        const errorText = await qboCustomerCreateResponse.text();
+        throw {
+          status: qboCustomerCreateResponse.status,
+          message: `Failed to create customer in QBO: ${errorText}`,
+          originalResponse: errorText
+        };
+      }
 
-  if (qboCustomerSearchData.QueryResponse?.Customer?.length > 0) {
-    const existingQboCustomerId = qboCustomerSearchData.QueryResponse.Customer[0].Id;
-    console.log(`Customer ${display_name} found in QBO with ID ${existingQboCustomerId}`);
+      return await qboCustomerCreateResponse.json();
+    };
 
-    // Cache the found customer
+    // Use the retry logic for the create operation
+    const qboCustomerCreateData = await retryWithBackoff(createCustomer, 3, 100, retryLogger);
+    
+    const newQboCustomerId = qboCustomerCreateData.Customer.Id;
+    console.log(`Customer ${display_name} created in QBO with ID ${newQboCustomerId}`);
+
+    // Cache the new customer
     await supabase
       .from('qbo_contacts_cache')
       .insert({
         user_id: user_id,
         contact_type: 'customer',
         external_id: external_id,
-        qbo_id: existingQboCustomerId,
-        data: qboCustomerSearchData.QueryResponse.Customer[0]
+        qbo_id: newQboCustomerId,
+        data: qboCustomerCreateData.Customer
       });
 
-    return existingQboCustomerId;
-  }
-
-  // If not in QBO, create the customer
-  const qboCreateUrl = `${qboBaseUrl}/v3/company/${realm_id}/customer?minorversion=65`;
-  const qboCustomerCreateResponse = await fetch(qboCreateUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${access_token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify({
-      DisplayName: display_name,
-      FullyQualifiedName: display_name,
-      PrimaryEmailAddr: {
-        Address: email
-      }
-    })
-  });
-
-  if (!qboCustomerCreateResponse.ok) {
-    console.error('Error creating customer in QBO:', qboCustomerCreateResponse.status, await qboCustomerCreateResponse.text());
-    throw new Error(`Failed to create customer in QBO: ${qboCustomerCreateResponse.status}`);
-  }
-
-  const qboCustomerCreateData = await qboCustomerCreateResponse.json();
-  const newQboCustomerId = qboCustomerCreateData.Customer.Id;
-  console.log(`Customer ${display_name} created in QBO with ID ${newQboCustomerId}`);
-
-  // Cache the new customer
-  await supabase
-    .from('qbo_contacts_cache')
-    .insert({
-      user_id: user_id,
-      contact_type: 'customer',
-      external_id: external_id,
-      qbo_id: newQboCustomerId,
-      data: qboCustomerCreateData.Customer
+    return newQboCustomerId;
+  } catch (error) {
+    // Log the error
+    await logQboAction(supabase, {
+      function_name: 'getOrCreateCustomer',
+      payload: { user_id, external_id, display_name },
+      error: `Failed to create or find customer: ${error.message || JSON.stringify(error)}`,
+      user_id,
+      severity: 'error'
     });
 
-  return newQboCustomerId;
+    // Classify error for better UI messaging
+    if (error.errorType === 'token-expired') {
+      throw new Error('QBO authorization expired. Please reconnect your QBO account.');
+    } else if (error.errorType === 'max-retries-exceeded') {
+      throw new Error('QuickBooks connectivity issue: Unable to reach QuickBooks servers after multiple attempts. Please try again later.');
+    } else {
+      throw new Error('QuickBooks connectivity issue: Unable to create or find the customer in QuickBooks. Please try again later.');
+    }
+  }
 }
 
 export function mapInvoiceToQbo(invoice: any, qboCustomerId: string) {
@@ -289,7 +410,8 @@ export async function logQboAction(
         function_name,
         payload,
         error,
-        user_id
+        user_id,
+        severity
       });
   } catch (err) {
     console.error('Failed to log QBO action:', err);
@@ -327,62 +449,93 @@ export async function ensureQboTokens(
       throw new Error('Missing refresh token for QuickBooks connection');
     }
 
-    // Check if tokens need to be refreshed (expire in next 5 minutes or already expired)
+    // Check if tokens need to be refreshed (expire in next 2 minutes or already expired)
     const expiresAt = new Date(tokens.expires_at);
     const now = new Date();
-    const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+    const twoMinutesFromNow = new Date(now.getTime() + 2 * 60 * 1000);
     
     // Only refresh if there's a valid expiration date
-    if (!isNaN(expiresAt.getTime()) && expiresAt < fiveMinutesFromNow) {
+    const needsRefresh = !isNaN(expiresAt.getTime()) && expiresAt <= twoMinutesFromNow;
+    
+    if (needsRefresh) {
       console.log('QBO tokens expired or will expire soon, refreshing...');
       
       // Refresh the tokens
       const tokenEndpoint = environmentVars.INTUIT_ENVIRONMENT === 'production'
         ? 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer'
         : 'https://oauth.sandbox.intuit.com/oauth2/v1/tokens/bearer';
-        
-      const response = await fetch(tokenEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${btoa(`${environmentVars.INTUIT_CLIENT_ID}:${environmentVars.INTUIT_CLIENT_SECRET}`)}`
-        },
-        body: new URLSearchParams({
-          'grant_type': 'refresh_token',
-          'refresh_token': tokens.refresh_token
-        }).toString()
-      });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Failed to refresh QBO tokens: ${response.status} ${errorText}`);
-        await logQboAction(supabase, {
-          user_id,
-          function_name: "ensureQboTokens",
-          error: `Failed to refresh QBO tokens: ${response.status} ${errorText}`
+      try {  
+        const response = await fetch(tokenEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${btoa(`${environmentVars.INTUIT_CLIENT_ID}:${environmentVars.INTUIT_CLIENT_SECRET}`)}`
+          },
+          body: new URLSearchParams({
+            'grant_type': 'refresh_token',
+            'refresh_token': tokens.refresh_token
+          }).toString()
         });
-        throw new Error(`Failed to refresh QBO tokens: ${response.status} ${errorText}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Failed to refresh QBO tokens: ${response.status} ${errorText}`);
+          
+          // If refresh fails due to an invalid token, delete the connection so UI can prompt re-auth
+          if (response.status === 401) {
+            await supabase
+              .from('qbo_connections')
+              .delete()
+              .eq('user_id', user_id)
+              .eq('realm_id', tokens.realm_id);
+              
+            await logQboAction(supabase, {
+              user_id,
+              function_name: "ensureQboTokens",
+              error: `Authentication expired - deleted connection record: ${response.status} ${errorText}`,
+              severity: 'error'
+            });
+            
+            throw {
+              message: 'QuickBooks authentication expired. Please reconnect your account.',
+              errorType: 'token-expired'
+            };
+          }
+          
+          throw new Error(`Failed to refresh QBO tokens: ${response.status} ${errorText}`);
+        }
+        
+        const refreshData = await response.json();
+        
+        // Update tokens in database
+        await upsertQboConnection(
+          supabase,
+          user_id,
+          tokens.realm_id,
+          refreshData.access_token,
+          refreshData.refresh_token || tokens.refresh_token, // Use new refresh token if provided, otherwise keep the old one
+          refreshData.expires_in || 3600,
+          refreshData.scope
+        );
+        
+        // Return the new tokens
+        return {
+          access_token: refreshData.access_token,
+          refresh_token: refreshData.refresh_token || tokens.refresh_token,
+          realm_id: tokens.realm_id
+        };
+      } catch (refreshError) {
+        // For network errors or other non-auth issues, log but don't delete connection
+        if (refreshError.errorType !== 'token-expired') {
+          await logQboAction(supabase, {
+            user_id,
+            function_name: "ensureQboTokens",
+            error: `Error refreshing tokens: ${refreshError.message || String(refreshError)}`
+          });
+        }
+        throw refreshError;
       }
-      
-      const refreshData = await response.json();
-      
-      // Update tokens in database
-      await upsertQboConnection(
-        supabase,
-        user_id,
-        tokens.realm_id,
-        refreshData.access_token,
-        refreshData.refresh_token || tokens.refresh_token, // Use new refresh token if provided, otherwise keep the old one
-        refreshData.expires_in || 3600,
-        refreshData.scope
-      );
-      
-      // Return the new tokens
-      return {
-        access_token: refreshData.access_token,
-        refresh_token: refreshData.refresh_token || tokens.refresh_token,
-        realm_id: tokens.realm_id
-      };
     }
     
     // Tokens still valid, return them

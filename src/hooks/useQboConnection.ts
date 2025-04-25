@@ -47,33 +47,31 @@ export function useQboConnection() {
       setDebugInfo(null);
       
       // Fetch connection data from Supabase
-      const response = await fetch(
-        `https://oknofqytitpxmlprvekn.supabase.co/rest/v1/qbo_connections?user_id=eq.${session.user.id}&select=id,expires_at,refresh_token`,
-        {
-          headers: {
-            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
-            Authorization: session.access_token ? `Bearer ${session.access_token}` : "",
-          }
-        }
-      );
-
-      if (!response.ok) {
-        console.error("Failed to check QBO connection:", response.statusText);
-        throw new Error(`Failed to check QBO connection: ${response.statusText}`);
+      const response = await supabase
+        .from('qbo_connections')
+        .select('id,expires_at,refresh_token')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (response.error) {
+        console.error("Failed to check QBO connection:", response.error.message);
+        throw new Error(`Failed to check QBO connection: ${response.error.message}`);
       }
 
-      const connectionData = await response.json();
+      const connectionData = response.data;
       
-      if (Array.isArray(connectionData) && connectionData.length > 0) {
+      if (connectionData) {
         // Check if refresh token exists
-        if (!connectionData[0].refresh_token) {
+        if (!connectionData.refresh_token) {
           console.error("Missing refresh token in QBO connection");
           setQboStatus("needs_reauth");
           return;
         }
         
         // Check if token is expired or will expire in next 5 minutes
-        const expiresAt = new Date(connectionData[0].expires_at);
+        const expiresAt = new Date(connectionData.expires_at);
         const now = new Date();
         const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
         
@@ -196,6 +194,7 @@ export function useQboConnection() {
     debugInfo,
     isDisconnecting,
     handleConnectQbo,
-    handleDisconnectQbo
+    handleDisconnectQbo,
+    checkQboConnection
   };
 }

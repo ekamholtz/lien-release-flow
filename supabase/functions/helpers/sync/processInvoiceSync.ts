@@ -11,7 +11,7 @@ export async function processInvoiceSync(
     INTUIT_CLIENT_SECRET: string;
     INTUIT_ENVIRONMENT: string;
   }
-): Promise<{ success: boolean; error?: string; qbo_invoice_id?: string }> {
+): Promise<{ success: boolean; error?: string; qbo_invoice_id?: string; errorType?: string }> {
   console.log('Starting invoice sync process for:', invoiceId);
   
   try {
@@ -41,40 +41,81 @@ export async function processInvoiceSync(
 
     console.log('Set sync status to processing for invoice:', invoiceId);
 
-    // Prepare invoice for QBO but don't modify date fields here
-    // Let the adapter handle all date formatting
-    
-    // Create invoice in QBO
-    const adapter = await createQboInvoice(supabase, invoice, environmentVars);
-    
-    // Record success using the new upsert function with user_id
-    await supabase.rpc('update_sync_status', {
-      p_entity_type: 'invoice',
-      p_entity_id: invoiceId,
-      p_provider: 'qbo',
-      p_status: 'success',
-      p_provider_ref: adapter.qboInvoiceId,
-      p_provider_meta: adapter.providerMeta,
-      p_error: null,
-      p_error_message: null,
-      p_user_id: invoice.user_id
-    });
+    try {
+      // Create invoice in QBO
+      const adapter = await createQboInvoice(supabase, invoice, environmentVars);
+      
+      // Record success using the new upsert function with user_id
+      await supabase.rpc('update_sync_status', {
+        p_entity_type: 'invoice',
+        p_entity_id: invoiceId,
+        p_provider: 'qbo',
+        p_status: 'success',
+        p_provider_ref: adapter.qboInvoiceId,
+        p_provider_meta: adapter.providerMeta,
+        p_error: null,
+        p_error_message: null,
+        p_user_id: invoice.user_id
+      });
 
-    await logQboAction(supabase, {
-      function_name: 'sync-invoice',
-      payload: { 
-        invoice_id: invoiceId,
-        qbo_invoice_id: adapter.qboInvoiceId,
-        http_status: 200
-      },
-      user_id: invoice.user_id,
-      severity: 'info'
-    });
+      await logQboAction(supabase, {
+        function_name: 'sync-invoice',
+        payload: { 
+          invoice_id: invoiceId,
+          qbo_invoice_id: adapter.qboInvoiceId,
+          http_status: 200
+        },
+        user_id: invoice.user_id,
+        severity: 'info'
+      });
 
-    return { 
-      success: true,
-      qbo_invoice_id: adapter.qboInvoiceId
-    };
+      return { 
+        success: true,
+        qbo_invoice_id: adapter.qboInvoiceId
+      };
+    } catch (syncError) {
+      // Classify the error type
+      let errorType = 'unknown';
+      let errorMessage = syncError.message || String(syncError);
+      
+      if (syncError.errorType) {
+        errorType = syncError.errorType;
+      } else if (errorMessage.includes('authentication') || errorMessage.includes('token') || errorMessage.includes('authoriz')) {
+        errorType = 'token-expired';
+        errorMessage = 'QuickBooks authorization expired. Please reconnect your QBO account.';
+      } else if (errorMessage.includes('customer') || errorMessage.includes('contact')) {
+        errorType = 'customer-error';
+        errorMessage = `Customer error: ${errorMessage}`;
+      } else if (errorMessage.includes('connect') || errorMessage.includes('network') || errorMessage.includes('timeout')) {
+        errorType = 'connectivity';
+        errorMessage = 'QuickBooks connectivity issue. Please try again later.';
+      }
+      
+      // Update sync record with error using the new upsert function
+      await supabase.rpc('update_sync_status', {
+        p_entity_type: 'invoice',
+        p_entity_id: invoiceId,
+        p_provider: 'qbo',
+        p_status: 'error',
+        p_error: { message: errorMessage, type: errorType },
+        p_error_message: errorMessage,
+        p_user_id: invoice.user_id
+      });
+      
+      await logQboAction(supabase, {
+        function_name: 'sync-invoice',
+        payload: { invoice_id: invoiceId, errorType },
+        error: errorMessage,
+        user_id: invoice.user_id,
+        severity: 'error'
+      });
+      
+      return { 
+        success: false, 
+        error: errorMessage,
+        errorType 
+      };
+    }
     
   } catch (error) {
     console.error(`Error processing invoice ${invoiceId}:`, error);
@@ -86,25 +127,46 @@ export async function processInvoiceSync(
       .eq('id', invoiceId)
       .single();
     
+    // Determine error type for better UI feedback
+    let errorType = 'unknown';
+    let errorMessage = error.message || String(error);
+    
+    if (error.errorType) {
+      errorType = error.errorType;
+    } else if (errorMessage.includes('authentication') || errorMessage.includes('token') || errorMessage.includes('authoriz')) {
+      errorType = 'token-expired';
+      errorMessage = 'QuickBooks authorization expired. Please reconnect your QBO account.';
+    } else if (errorMessage.includes('customer') || errorMessage.includes('contact')) {
+      errorType = 'customer-error';
+      errorMessage = `Customer error: ${errorMessage}`;
+    } else if (errorMessage.includes('connect') || errorMessage.includes('network') || errorMessage.includes('timeout')) {
+      errorType = 'connectivity';
+      errorMessage = 'QuickBooks connectivity issue. Please try again later.';
+    }
+    
     // Update sync record with error using the new upsert function
     await supabase.rpc('update_sync_status', {
       p_entity_type: 'invoice',
       p_entity_id: invoiceId,
       p_provider: 'qbo',
       p_status: 'error',
-      p_error: { message: error.message },
-      p_error_message: error.message,
+      p_error: { message: errorMessage, type: errorType },
+      p_error_message: errorMessage,
       p_user_id: invoice?.user_id
     });
     
     await logQboAction(supabase, {
       function_name: 'sync-invoice',
-      payload: { invoice_id: invoiceId },
-      error: error.message,
+      payload: { invoice_id: invoiceId, errorType },
+      error: errorMessage,
       user_id: invoice?.user_id,
       severity: 'error'
     });
     
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: errorMessage,
+      errorType 
+    };
   }
 }

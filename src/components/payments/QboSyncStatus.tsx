@@ -1,94 +1,150 @@
+
 import React from 'react';
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertCircle, CheckCircle2, Clock, RefreshCw, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Badge } from '../ui/badge';
+import { AlertCircle, CheckCircle2, Clock, RefreshCcw } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Button } from '../ui/button';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
-type sync_status = 'pending' | 'processing' | 'success' | 'error';
-
-interface QboSyncStatusBadgeProps {
-  status: sync_status;
-  errorMessage?: string | null;
-  retries?: number;
-  lastSynced?: string | null;
-  className?: string;
-  showLabel?: boolean;
+interface QboSyncStatusProps {
+  syncStatus?: {
+    status: 'pending' | 'processing' | 'success' | 'error';
+    error?: { message?: string; type?: string } | null;
+    error_message?: string | null;
+    last_synced_at?: string | null;
+    retries?: number;
+  } | null;
   onRetry?: () => void;
+  isRetrying?: boolean;
+  small?: boolean;
 }
 
-export function QboSyncStatusBadge({ 
-  status, 
-  errorMessage, 
-  retries = 0, 
-  lastSynced,
-  className,
-  showLabel = true,
-  onRetry
-}: QboSyncStatusBadgeProps) {
-  let icon = null;
-  let label = "";
-  let tooltipContent = "";
-  let badgeClass = "";
+export const QboSyncStatus = ({ 
+  syncStatus, 
+  onRetry, 
+  isRetrying = false,
+  small = false
+}: QboSyncStatusProps) => {
+  if (!syncStatus) {
+    return (
+      <Badge variant="outline">
+        Not synced
+      </Badge>
+    );
+  }
   
-  switch(status) {
-    case 'pending':
-      icon = <Clock className="h-3 w-3" />;
-      label = "QBO: Pending";
-      tooltipContent = "Will be synced to QuickBooks Online";
-      badgeClass = "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
-      break;
-    
-    case 'processing':
-      icon = <RefreshCw className="h-3 w-3 animate-spin" />;
-      label = "QBO: Syncing";
-      tooltipContent = "Currently syncing to QuickBooks Online";
-      badgeClass = "bg-blue-100 text-blue-800 hover:bg-blue-100";
-      break;
-      
-    case 'success':
-      icon = <CheckCircle2 className="h-3 w-3" />;
-      label = "QBO: Synced";
-      tooltipContent = lastSynced 
-        ? `Successfully synced to QuickBooks Online on ${new Date(lastSynced).toLocaleString()}`
-        : "Successfully synced to QuickBooks Online";
-      badgeClass = "bg-green-100 text-green-800 hover:bg-green-100";
-      break;
-      
-    case 'error':
-      icon = <AlertCircle className="h-3 w-3" />;
-      label = "QBO: Failed";
-      tooltipContent = errorMessage 
-        ? `Error: ${errorMessage}${retries > 0 ? ` (Retries: ${retries})` : ''}`
-        : "Failed to sync to QuickBooks Online";
-      badgeClass = "bg-red-100 text-red-800 hover:bg-red-100";
-      break;
-      
-    default:
-      icon = <X className="h-3 w-3" />;
-      label = "QBO: Not Synced";
-      tooltipContent = "Not configured for QuickBooks Online sync";
-      badgeClass = "bg-gray-100 text-gray-800 hover:bg-gray-100";
+  // Get error type and message
+  const errorType = syncStatus.error?.type || 
+    (syncStatus.error_message?.includes('token') || syncStatus.error_message?.includes('auth') 
+      ? 'token-expired' 
+      : syncStatus.error_message?.includes('customer') 
+        ? 'customer-error'
+        : 'unknown');
+  
+  const errorMessage = syncStatus.error?.message || syncStatus.error_message;
+
+  // Only show alert for medium/large display
+  if (syncStatus.status === 'error' && !small) {
+    return (
+      <Alert variant="destructive" className="mt-2 mb-2">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>
+          {errorType === 'token-expired' 
+            ? 'QuickBooks Authorization Expired' 
+            : errorType === 'customer-error'
+              ? 'Customer Error'
+              : errorType === 'connectivity'
+                ? 'QuickBooks Connectivity Issue'
+                : 'Sync Failed'}
+        </AlertTitle>
+        <AlertDescription className="flex flex-col gap-2">
+          <p>{errorMessage || 'An error occurred during QuickBooks sync.'}</p>
+          {errorType === 'token-expired' ? (
+            <p>Please reconnect your QuickBooks account in Settings.</p>
+          ) : (
+            onRetry && (
+              <Button 
+                size="sm" 
+                onClick={onRetry} 
+                disabled={isRetrying} 
+                className="self-start"
+              >
+                {isRetrying ? 'Retrying...' : 'Retry Sync'}
+                {!isRetrying && <RefreshCcw className="ml-2 h-4 w-4" />}
+              </Button>
+            )
+          )}
+        </AlertDescription>
+      </Alert>
+    );
   }
 
+  // For small display or non-error states
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge 
-            className={cn("flex items-center gap-1 cursor-default", badgeClass, className)}
-            onClick={status === 'error' && onRetry ? onRetry : undefined}
-          >
-            {icon}
-            {showLabel && <span className="text-xs">{label}</span>}
-          </Badge>
+          <div className="inline-flex items-center">
+            <Badge variant={
+              syncStatus.status === 'success' ? 'success' :
+              syncStatus.status === 'error' ? 'destructive' :
+              syncStatus.status === 'processing' ? 'default' : 
+              'outline'
+            }>
+              {syncStatus.status === 'success' && (
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+              )}
+              {syncStatus.status === 'error' && (
+                <AlertCircle className="h-3 w-3 mr-1" />
+              )}
+              {syncStatus.status === 'processing' && (
+                <RefreshCcw className="h-3 w-3 mr-1 animate-spin" />
+              )}
+              {syncStatus.status === 'pending' && (
+                <Clock className="h-3 w-3 mr-1" />
+              )}
+              {syncStatus.status === 'success' ? 'Synced' :
+               syncStatus.status === 'error' ? 'Failed' :
+               syncStatus.status === 'processing' ? 'Syncing' :
+               'Pending'}
+            </Badge>
+            
+            {syncStatus.status === 'error' && small && onRetry && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onRetry} 
+                disabled={isRetrying} 
+                className="h-6 w-6 ml-1"
+              >
+                <RefreshCcw className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{tooltipContent}</p>
-          {status === 'error' && onRetry && (
-            <p className="text-xs mt-1">Click to retry sync</p>
+          {syncStatus.status === 'success' && (
+            <>Synced to QuickBooks{syncStatus.last_synced_at && ` on ${new Date(syncStatus.last_synced_at).toLocaleDateString()}`}</>
+          )}
+          {syncStatus.status === 'error' && (
+            <>
+              {errorType === 'token-expired' 
+                ? 'QuickBooks authorization expired. Please reconnect in Settings.' 
+                : errorType === 'customer-error'
+                  ? 'Customer error: Check company name and try again.'
+                  : errorType === 'connectivity'
+                    ? 'QuickBooks connectivity issue. Please try again later.'
+                    : errorMessage || 'Sync failed. Click to retry.'}
+            </>
+          )}
+          {syncStatus.status === 'processing' && (
+            <>Syncing to QuickBooks...</>
+          )}
+          {syncStatus.status === 'pending' && (
+            <>Waiting to sync to QuickBooks</>
           )}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
-}
+};
