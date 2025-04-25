@@ -193,6 +193,7 @@ export function useQboConnection() {
     qboStatus,
     connecting,
     error,
+    setError,
     debugInfo,
     isDisconnecting,
     handleConnectQbo,

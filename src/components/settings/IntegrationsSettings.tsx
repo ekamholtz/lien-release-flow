@@ -18,12 +18,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useSessionRefresh } from "@/hooks/useSessionRefresh";
 
 export function IntegrationsSettings() {
+  const { session } = useSessionRefresh();
+  
   const {
     qboStatus,
     connecting,
     error,
+    setError,
     debugInfo,
     isDisconnecting,
     handleConnectQbo,
@@ -52,7 +56,7 @@ export function IntegrationsSettings() {
     try {
       console.log("Starting QBO connection process");
       await handleConnectQbo();
-    } catch (error) {
+    } catch (error: any) {
       console.error("QBO connection error:", error);
       toast.error("Failed to connect to QuickBooks. Please try again.");
       
