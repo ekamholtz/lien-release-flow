@@ -5,7 +5,7 @@ import { useSessionRefresh } from "@/hooks/useSessionRefresh";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
-export type QboConnectionStatus = "connected" | "not_connected" | "loading";
+export type QboConnectionStatus = "connected" | "needs_reauth" | "not_connected" | "loading";
 
 export function useQboConnection() {
   const [qboStatus, setQboStatus] = useState<QboConnectionStatus>("loading");
@@ -43,7 +43,7 @@ export function useQboConnection() {
     
     try {
       const response = await fetch(
-        `https://oknofqytitpxmlprvekn.supabase.co/rest/v1/qbo_connections?user_id=eq.${session.user.id}&select=id`,
+        `https://oknofqytitpxmlprvekn.supabase.co/rest/v1/qbo_connections?user_id=eq.${session.user.id}&select=id,expires_at`,
         {
           headers: {
             apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
@@ -57,7 +57,18 @@ export function useQboConnection() {
       }
 
       const connectionData = await response.json();
-      setQboStatus(Array.isArray(connectionData) && connectionData.length > 0 ? "connected" : "not_connected");
+      
+      if (Array.isArray(connectionData) && connectionData.length > 0) {
+        // Check if token is expired or will expire in next 5 minutes
+        const expiresAt = new Date(connectionData[0].expires_at);
+        const now = new Date();
+        const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+        
+        setQboStatus(expiresAt > fiveMinutesFromNow ? "connected" : "needs_reauth");
+      } else {
+        setQboStatus("not_connected");
+      }
+      
       setError(null);
       setDebugInfo(null);
     } catch (err) {

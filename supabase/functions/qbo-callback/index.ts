@@ -1,9 +1,3 @@
-/**
- * Edge function: qbo-callback
- * - exchanges code for tokens, stores in qbo_connections (upsert on user_id+realm)
- * - logs successes/errors in qbo_logs
- * - public (no JWT required)
- */
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
@@ -84,6 +78,14 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Check for existing refresh token before exchange
+    const { data: existing } = await supabase
+      .from('qbo_connections')
+      .select('refresh_token')
+      .eq('user_id', user_id)
+      .eq('realm_id', realm_id)
+      .maybeSingle();
+
     // Exchange code for tokens with fixed redirect URI
     const basicAuth = 'Basic ' + btoa(`${INTUIT_CLIENT_ID}:${INTUIT_CLIENT_SECRET}`);
     console.log("Requesting token exchange with redirect URI:", QBO_REDIRECT_URI);
@@ -110,34 +112,41 @@ serve(async (req) => {
         function_name: "qbo-callback",
         error: "Token exchange failed: " + errString
       });
-      return new Response(errString, { 
-        status: 502,
-        headers: corsHeaders 
+      return new Response(null, {
+        status: 302,
+        headers: {
+          ...corsHeaders,
+          location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent("Failed to exchange token: " + errString)}`
+        }
       });
     }
 
-    const data = await tokenResp.json();
-    console.log("Token exchange successful:", { access_token: "***", refresh_token: "***", expires_in: data.expires_in });
-    
-    // Store tokens + expires_at (properly using expires_in)
-    const dbError = await upsertQboConnection(supabase, user_id, realm_id, {
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-      scope: data.scope,
-      expires_in: data.expires_in
+    const tokens = await tokenResp.json();
+    console.log("Token exchange successful:", { 
+      access_token: "***", 
+      refresh_token: tokens.refresh_token ? "***" : "not_provided",
+      expires_in: tokens.expires_in 
     });
-
-    if (dbError) {
+    
+    try {
+      await upsertQboConnection(supabase, user_id, realm_id, {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token || existing?.refresh_token,
+        expires_in: tokens.expires_in || 3600,
+        scope: tokens.scope
+      });
+    } catch (dbError: any) {
+      console.error("Database error storing tokens:", dbError);
       await logQboAction(supabase, {
         user_id,
         function_name: "qbo-callback",
-        error: "Upsert qbo_connection failed: " + dbError.message
+        error: "Database error: " + dbError.message
       });
       return new Response(null, {
         status: 302,
-        headers: { 
+        headers: {
           ...corsHeaders,
-          location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent("Database error")}` 
+          location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent("Database error storing connection")}`
         }
       });
     }
@@ -148,16 +157,14 @@ serve(async (req) => {
       payload: { realm_id, success: true }
     });
 
-    // Redirect to frontend settings page with success parameter
     return new Response(null, {
       status: 302,
-      headers: { 
+      headers: {
         ...corsHeaders,
-        location: `${APP_URL}/settings?connected=qbo` 
+        location: `${APP_URL}/settings?connected=qbo`
       }
     });
   } catch (err) {
-    // Log unexpected error
     console.error("Unexpected error in qbo-callback:", err);
     try {
       const { user_id } = Object.fromEntries(new URL(req.url).searchParams.entries());
@@ -174,9 +181,9 @@ serve(async (req) => {
     }
     return new Response(null, {
       status: 302,
-      headers: { 
+      headers: {
         ...corsHeaders,
-        location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent("Internal error")}` 
+        location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent("Internal error")}`
       }
     });
   }

@@ -47,6 +47,8 @@ export function IntegrationsSettings() {
             <span className="text-gray-500">Checking…</span>
           ) : qboStatus === "connected" ? (
             <span className="text-green-600 font-medium">Connected</span>
+          ) : qboStatus === "needs_reauth" ? (
+            <span className="text-amber-600 font-medium">Needs Reauthorization</span>
           ) : (
             <span className="text-red-600 font-medium">Not Connected</span>
           )}
@@ -96,6 +98,8 @@ export function IntegrationsSettings() {
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                 Connecting...
               </>
+            ) : qboStatus === "needs_reauth" ? (
+              "Reconnect QuickBooks"
             ) : (
               "Connect QuickBooks"
             )}
