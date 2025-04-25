@@ -1,3 +1,4 @@
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 
 export async function upsertQboConnection(
@@ -28,6 +29,19 @@ export async function upsertQboConnection(
     expires_at = new Date(Date.now() + (55 * 60 * 1000));
   }
   
+  console.log('Upserting QBO connection with values:', {
+    user_id,
+    realm_id,
+    access_token: access_token ? '***' : 'missing',
+    refresh_token: refresh_token ? '***' : 'missing',
+    expires_at: expires_at.toISOString(),
+    scope: scope || 'default'
+  });
+  
+  if (!refresh_token) {
+    throw new Error('Missing refresh_token - cannot proceed with connection');
+  }
+  
   const { data, error } = await supabase
     .from('qbo_connections')
     .upsert({
@@ -43,6 +57,7 @@ export async function upsertQboConnection(
     });
     
   if (error) {
+    console.error('Error upserting QBO connection:', error);
     throw error;
   }
   
@@ -291,6 +306,8 @@ export async function ensureQboTokens(
   },
 ) {
   try {
+    console.log(`Ensuring QBO tokens for user ${user_id}`);
+    
     // Get the user's QBO tokens
     const { data: tokens, error } = await supabase
       .from('qbo_connections')
@@ -301,7 +318,13 @@ export async function ensureQboTokens(
       .single();
 
     if (error) {
+      console.error(`No QuickBooks connection found for user ${user_id}:`, error);
       throw new Error(`No QuickBooks connection found for user ${user_id}`);
+    }
+
+    if (!tokens.refresh_token) {
+      console.error(`Missing refresh token for user ${user_id}`);
+      throw new Error('Missing refresh token for QuickBooks connection');
     }
 
     // Check if tokens need to be refreshed (expire in next 5 minutes or already expired)
@@ -332,6 +355,12 @@ export async function ensureQboTokens(
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`Failed to refresh QBO tokens: ${response.status} ${errorText}`);
+        await logQboAction(supabase, {
+          user_id,
+          function_name: "ensureQboTokens",
+          error: `Failed to refresh QBO tokens: ${response.status} ${errorText}`
+        });
         throw new Error(`Failed to refresh QBO tokens: ${response.status} ${errorText}`);
       }
       
@@ -364,6 +393,11 @@ export async function ensureQboTokens(
     };
   } catch (error) {
     console.error('Error ensuring QBO tokens:', error);
+    await logQboAction(supabase, {
+      user_id,
+      function_name: "ensureQboTokens",
+      error: `Error ensuring QBO tokens: ${error.message || String(error)}`
+    });
     throw error;
   }
 }

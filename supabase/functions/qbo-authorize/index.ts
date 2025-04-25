@@ -77,6 +77,13 @@ serve(async (req) => {
       }
     } else {
       console.log("No authorization header found or invalid format");
+      return new Response(JSON.stringify({
+        error: "Missing or invalid authorization header",
+        note: "This function requires authorization"
+      }), { 
+        status: 401, 
+        headers: corsHeaders 
+      });
     }
 
     // Verify required environment variables
@@ -97,13 +104,22 @@ serve(async (req) => {
       );
     }
 
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Could not extract user ID from JWT",
+        }),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
     // Build Intuit URL with fixed redirect URI
     const params = new URLSearchParams({
       client_id: INTUIT_CLIENT_ID,
       scope: scopes.join(" "),
       redirect_uri: QBO_REDIRECT_URI,
       response_type: "code",
-      state: userId || "anonymous",
+      state: userId,
     });
 
     const oauthUrl = `${authorizeBase}?${params.toString()}`;
@@ -138,4 +154,3 @@ serve(async (req) => {
     );
   }
 });
-

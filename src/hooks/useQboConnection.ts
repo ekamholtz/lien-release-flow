@@ -42,8 +42,13 @@ export function useQboConnection() {
     if (!session?.user) return;
     
     try {
+      // Clear previous error state
+      setError(null);
+      setDebugInfo(null);
+      
+      // Fetch connection data from Supabase
       const response = await fetch(
-        `https://oknofqytitpxmlprvekn.supabase.co/rest/v1/qbo_connections?user_id=eq.${session.user.id}&select=id,expires_at`,
+        `https://oknofqytitpxmlprvekn.supabase.co/rest/v1/qbo_connections?user_id=eq.${session.user.id}&select=id,expires_at,refresh_token`,
         {
           headers: {
             apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
@@ -53,18 +58,31 @@ export function useQboConnection() {
       );
 
       if (!response.ok) {
+        console.error("Failed to check QBO connection:", response.statusText);
         throw new Error(`Failed to check QBO connection: ${response.statusText}`);
       }
 
       const connectionData = await response.json();
       
       if (Array.isArray(connectionData) && connectionData.length > 0) {
+        // Check if refresh token exists
+        if (!connectionData[0].refresh_token) {
+          console.error("Missing refresh token in QBO connection");
+          setQboStatus("needs_reauth");
+          return;
+        }
+        
         // Check if token is expired or will expire in next 5 minutes
         const expiresAt = new Date(connectionData[0].expires_at);
         const now = new Date();
         const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
         
-        setQboStatus(expiresAt > fiveMinutesFromNow ? "connected" : "needs_reauth");
+        if (isNaN(expiresAt.getTime())) {
+          console.error("Invalid expires_at date in QBO connection");
+          setQboStatus("needs_reauth");
+        } else {
+          setQboStatus(expiresAt > fiveMinutesFromNow ? "connected" : "needs_reauth");
+        }
       } else {
         setQboStatus("not_connected");
       }

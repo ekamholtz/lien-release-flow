@@ -129,12 +129,16 @@ serve(async (req) => {
     });
     
     try {
-      await upsertQboConnection(supabase, user_id, realm_id, {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token || existing?.refresh_token,
-        expires_in: tokens.expires_in || 3600,
-        scope: tokens.scope
-      });
+      // Fix parameter mismatches by directly passing the values
+      await upsertQboConnection(
+        supabase, 
+        user_id, 
+        realm_id,
+        tokens.access_token,
+        tokens.refresh_token || (existing?.refresh_token ?? ""),
+        tokens.expires_in || 3600,
+        tokens.scope
+      );
     } catch (dbError: any) {
       console.error("Database error storing tokens:", dbError);
       await logQboAction(supabase, {
@@ -167,7 +171,8 @@ serve(async (req) => {
   } catch (err) {
     console.error("Unexpected error in qbo-callback:", err);
     try {
-      const { user_id } = Object.fromEntries(new URL(req.url).searchParams.entries());
+      const url = new URL(req.url);
+      const user_id = url.searchParams.get("state");
       await logQboAction(
         createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY),
         {
