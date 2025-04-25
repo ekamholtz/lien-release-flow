@@ -3,7 +3,6 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0";
 import { upsertQboConnection, logQboAction } from "../helpers/qbo.ts";
 
-// Env
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID")!;
 const INTUIT_CLIENT_SECRET = Deno.env.get("INTUIT_CLIENT_SECRET")!;
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
@@ -17,18 +16,20 @@ const tokenBase =
     ? "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
     : "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Max-Age': '86400',
+  'Content-Type': 'application/json',
+};
+
 serve(async (req) => {
   console.log("qbo-callback received request:", {
     url: req.url,
     method: req.method,
     headers: Object.fromEntries(req.headers.entries())
   });
-  
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
-  };
   
   try {
     if (req.method === "OPTIONS") {
@@ -45,7 +46,6 @@ serve(async (req) => {
     console.log("Callback parameters:", { code: !!code, user_id, realm_id, error: authError });
     
     if (authError) {
-      // Redirect to frontend with error parameter
       return new Response(null, {
         status: 302,
         headers: { 
@@ -56,6 +56,8 @@ serve(async (req) => {
     }
     
     if (!code || !user_id || !realm_id) {
+      const errorMessage = "Missing required parameters";
+      console.error(errorMessage, { code, user_id, realm_id });
       return new Response(null, {
         status: 302,
         headers: { 
@@ -66,7 +68,8 @@ serve(async (req) => {
     }
 
     if (!INTUIT_CLIENT_ID || !INTUIT_CLIENT_SECRET || !APP_URL) {
-      console.error("Missing required environment variables");
+      const errorMessage = "Missing required environment variables";
+      console.error(errorMessage);
       return new Response(null, {
         status: 302,
         headers: { 
@@ -77,6 +80,24 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Verify user exists in database before proceeding
+    const { data: userExists, error: userCheckError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user_id)
+      .maybeSingle();
+
+    if (userCheckError || !userExists) {
+      console.error("User verification failed:", userCheckError || "User not found");
+      return new Response(null, {
+        status: 302,
+        headers: {
+          ...corsHeaders,
+          location: `${APP_URL}/settings?error=qbo&message=${encodeURIComponent("Invalid user")}`
+        }
+      });
+    }
 
     // Check for existing refresh token before exchange
     const { data: existing } = await supabase
@@ -129,7 +150,6 @@ serve(async (req) => {
     });
     
     try {
-      // Fix parameter mismatches by directly passing the values
       await upsertQboConnection(
         supabase, 
         user_id, 
