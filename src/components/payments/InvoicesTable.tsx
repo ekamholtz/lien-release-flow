@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { InvoiceStatusBadge } from './InvoiceStatusBadge';
 import { InvoiceActions } from './InvoiceActions';
-import { DbInvoice } from '@/lib/supabase';
+import { DbInvoice, InvoiceStatus } from '@/lib/supabase';
 import { QboSyncStatus } from './QboSyncStatus';
 import { ExternalLink, Eye, SendHorizontal } from 'lucide-react';
 
@@ -27,7 +27,7 @@ interface InvoicesTableProps {
       last_synced_at?: string | null;
     } | null;
   }>;
-  onUpdateStatus: (invoiceId: string, newStatus: any) => void;
+  onUpdateStatus: (invoiceId: string, newStatus: InvoiceStatus) => Promise<void>; // Updated to return Promise<void>
   onPayInvoice: (invoice: any) => void;
   onViewDetails: (invoice: any) => void;
   onRetrySync?: (invoiceId: string) => void;
@@ -54,8 +54,9 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
     return new Intl.DateTimeFormat('en-US').format(date);
   };
   
-  const handleSendInvoice = (invoice: DbInvoice) => {
-    onUpdateStatus(invoice.id, 'sent');
+  // Updated to return a Promise
+  const handleSendInvoice = async (invoice: DbInvoice) => {
+    await onUpdateStatus(invoice.id, 'sent');
   };
 
   return (

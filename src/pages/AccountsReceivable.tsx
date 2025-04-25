@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -143,7 +142,7 @@ const AccountsReceivable = () => {
     fetchInvoices();
   }, []);
 
-  const handleUpdateStatus = async (invoiceId: string, newStatus: InvoiceStatus) => {
+  const handleUpdateStatus = async (invoiceId: string, newStatus: InvoiceStatus): Promise<void> => {
     try {
       const { error } = await supabase
         .from('invoices')
@@ -171,6 +170,7 @@ const AccountsReceivable = () => {
         description: `Failed to update invoice status`,
         variant: "destructive"
       });
+      throw error;
     }
   };
   
