@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionRefresh } from "@/hooks/useSessionRefresh";
@@ -22,11 +21,15 @@ export function useQboConnection() {
     const error = searchParams.get("error");
     const message = searchParams.get("message");
 
+    console.log("QBO callback params:", { connected, error, message });
+
     if (connected === "qbo") {
+      console.log("QBO connection successful");
       setQboStatus("connected");
       toast.success("Successfully connected to QuickBooks Online");
       navigate("/settings", { replace: true });
     } else if (error === "qbo") {
+      console.error("QBO connection error:", message);
       setError(message || "Failed to connect to QuickBooks");
       toast.error(message || "Failed to connect to QuickBooks Online");
       navigate("/settings", { replace: true });
@@ -42,11 +45,9 @@ export function useQboConnection() {
     if (!session?.user) return;
     
     try {
-      // Clear previous error state
       setError(null);
       setDebugInfo(null);
       
-      // Fetch connection data from Supabase
       const response = await supabase
         .from('qbo_connections')
         .select('id,expires_at,refresh_token')
@@ -63,14 +64,12 @@ export function useQboConnection() {
       const connectionData = response.data;
       
       if (connectionData) {
-        // Check if refresh token exists
         if (!connectionData.refresh_token) {
           console.error("Missing refresh token in QBO connection");
           setQboStatus("needs_reauth");
           return;
         }
         
-        // Check if token is expired or will expire in next 5 minutes
         const expiresAt = new Date(connectionData.expires_at);
         const now = new Date();
         const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
@@ -100,6 +99,7 @@ export function useQboConnection() {
     setDebugInfo(null);
 
     try {
+      console.log("Starting QBO connection process");
       await refreshSession();
       
       const sessionResult = await supabase.auth.getSession();
@@ -112,7 +112,7 @@ export function useQboConnection() {
       const bearer = `Bearer ${currentSession.access_token}`;
       const functionUrl = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
       
-      console.log("Calling function URL:", functionUrl);
+      console.log("Calling QBO authorize function");
       
       const response = await fetch(functionUrl, {
         method: "GET",
@@ -137,14 +137,14 @@ export function useQboConnection() {
           const errorJson = JSON.parse(errorText);
           setDebugInfo(errorJson.debug || {});
         } catch (e) {
-          // If it's not JSON, just use the text
+          console.error("Failed to parse error response:", e);
         }
         
         throw new Error(`Connection failed: ${errorText || response.statusText}`);
       }
 
       const responseData = await response.json();
-      console.log("QBO response data:", responseData);
+      console.log("QBO authorization response received");
       
       if (responseData.debug) {
         setDebugInfo(responseData.debug);
@@ -154,6 +154,7 @@ export function useQboConnection() {
         throw new Error("No OAuth URL received from server");
       }
 
+      console.log("Redirecting to Intuit OAuth URL");
       window.location.href = responseData.intuit_oauth_url;
 
     } catch (error: any) {
@@ -162,6 +163,7 @@ export function useQboConnection() {
       setError(error.message || String(error));
       
       toast.error(error.message || "Failed to connect to QuickBooks Online");
+      throw error;
     }
   };
 

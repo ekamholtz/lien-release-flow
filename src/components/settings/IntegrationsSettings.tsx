@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, X } from "lucide-react";
@@ -7,6 +6,7 @@ import { useQboConnection } from "@/hooks/useQboConnection";
 import { useQboSyncStats } from "@/hooks/useQboSyncStats";
 import { QboDebugInfo } from "./QboDebugInfo";
 import { QboSyncStatus } from "./QboSyncStatus";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +37,29 @@ export function IntegrationsSettings() {
     handleRetryFailedSyncs
   } = useQboSyncStats();
 
+  React.useEffect(() => {
+    if (qboStatus === "loading") {
+      toast.info("Checking QuickBooks connection status...");
+    }
+  }, [qboStatus]);
+
+  const handleQboConnectWithRetry = async () => {
+    if (!session?.access_token) {
+      toast.error("Please sign in to connect QuickBooks");
+      return;
+    }
+    
+    try {
+      console.log("Starting QBO connection process");
+      await handleConnectQbo();
+    } catch (error) {
+      console.error("QBO connection error:", error);
+      toast.error("Failed to connect to QuickBooks. Please try again.");
+      
+      setError(error?.message || "Connection failed. Please ensure you're signed in and try again.");
+    }
+  };
+
   return (
     <div className="mt-6">
       <h2 className="text-xl font-semibold mb-2">QuickBooks Online</h2>
@@ -53,6 +76,7 @@ export function IntegrationsSettings() {
             <span className="text-red-600 font-medium">Not Connected</span>
           )}
         </span>
+        
         {qboStatus === "connected" ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -90,8 +114,9 @@ export function IntegrationsSettings() {
           </AlertDialog>
         ) : (
           <Button
-            onClick={handleConnectQbo}
+            onClick={handleQboConnectWithRetry}
             disabled={qboStatus === "loading" || connecting}
+            className="gap-2"
           >
             {connecting ? (
               <>
@@ -99,7 +124,10 @@ export function IntegrationsSettings() {
                 Connecting...
               </>
             ) : qboStatus === "needs_reauth" ? (
-              "Reconnect QuickBooks"
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reconnect QuickBooks
+              </>
             ) : (
               "Connect QuickBooks"
             )}
@@ -111,15 +139,22 @@ export function IntegrationsSettings() {
         <Alert variant="destructive" className="mt-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Connection Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2"
-            onClick={handleConnectQbo}
-          >
-            Retry Connection
-          </Button>
+          <AlertDescription className="space-y-2">
+            <p>{error}</p>
+            {error.includes("token") && (
+              <p className="text-sm">
+                This usually means your QuickBooks session has expired. Please try reconnecting.
+              </p>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={handleQboConnectWithRetry}
+            >
+              Retry Connection
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
       
