@@ -19,6 +19,86 @@ interface QboSyncStatusProps {
   small?: boolean;
 }
 
+// Add this interface for the badge component
+interface QboSyncStatusBadgeProps {
+  status: 'pending' | 'processing' | 'success' | 'error';
+  errorMessage?: string | null;
+  retries?: number;
+  lastSynced?: string | null;
+  showLabel?: boolean;
+  onRetry?: () => void;
+}
+
+// Export the badge component that InvoiceActions.tsx is trying to use
+export const QboSyncStatusBadge: React.FC<QboSyncStatusBadgeProps> = ({
+  status,
+  errorMessage,
+  lastSynced,
+  showLabel = true,
+  onRetry
+}) => {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="inline-flex items-center">
+            <Badge variant={
+              status === 'success' ? 'secondary' : // Changed from 'success' to 'secondary'
+              status === 'error' ? 'destructive' :
+              status === 'processing' ? 'default' : 
+              'outline'
+            }>
+              {status === 'success' && (
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+              )}
+              {status === 'error' && (
+                <AlertCircle className="h-3 w-3 mr-1" />
+              )}
+              {status === 'processing' && (
+                <RefreshCcw className="h-3 w-3 mr-1 animate-spin" />
+              )}
+              {status === 'pending' && (
+                <Clock className="h-3 w-3 mr-1" />
+              )}
+              {showLabel && (
+                status === 'success' ? 'Synced' :
+                status === 'error' ? 'Failed' :
+                status === 'processing' ? 'Syncing' :
+                'Pending'
+              )}
+            </Badge>
+            
+            {status === 'error' && onRetry && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onRetry} 
+                className="h-6 w-6 ml-1"
+              >
+                <RefreshCcw className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          {status === 'success' && (
+            <>Synced to QuickBooks{lastSynced && ` on ${new Date(lastSynced).toLocaleDateString()}`}</>
+          )}
+          {status === 'error' && (
+            <>{errorMessage || 'Sync failed. Click to retry.'}</>
+          )}
+          {status === 'processing' && (
+            <>Syncing to QuickBooks...</>
+          )}
+          {status === 'pending' && (
+            <>Waiting to sync to QuickBooks</>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
 export const QboSyncStatus = ({ 
   syncStatus, 
   onRetry, 
@@ -86,7 +166,7 @@ export const QboSyncStatus = ({
         <TooltipTrigger asChild>
           <div className="inline-flex items-center">
             <Badge variant={
-              syncStatus.status === 'success' ? 'success' :
+              syncStatus.status === 'success' ? 'secondary' : // Changed from 'success' to 'secondary'
               syncStatus.status === 'error' ? 'destructive' :
               syncStatus.status === 'processing' ? 'default' : 
               'outline'

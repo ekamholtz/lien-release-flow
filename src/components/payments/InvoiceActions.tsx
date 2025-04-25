@@ -23,9 +23,10 @@ type ExtendedInvoice = DbInvoice & {
   };
   accounting_sync?: {
     status: sync_status;
-    error: { message: string } | null;
-    retries: number;
-    last_synced_at: string | null;
+    error?: { message: string; type?: string } | null;
+    error_message?: string | null;
+    retries?: number;
+    last_synced_at?: string | null;
   } | null;
 };
 
@@ -182,7 +183,7 @@ export function InvoiceActions({
       {invoice.accounting_sync && (
         <QboSyncStatusBadge
           status={invoice.accounting_sync.status}
-          errorMessage={invoice.accounting_sync.error?.message}
+          errorMessage={invoice.accounting_sync.error?.message || invoice.accounting_sync.error_message}
           retries={invoice.accounting_sync.retries}
           lastSynced={invoice.accounting_sync.last_synced_at}
           showLabel={false}

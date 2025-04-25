@@ -15,6 +15,7 @@ import { DbInvoice } from '@/lib/supabase';
 import { QboSyncStatus } from './QboSyncStatus';
 import { ExternalLink, Eye, SendHorizontal } from 'lucide-react';
 
+// Update the type definition to make fields optional where needed
 interface InvoicesTableProps {
   invoices: Array<DbInvoice & { 
     projects?: { name: string };
@@ -116,6 +117,8 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
                   <InvoiceActions 
                     invoice={invoice}
                     onPayInvoice={onPayInvoice} 
+                    onViewDetails={onViewDetails}
+                    onUpdateStatus={onUpdateStatus}
                   />
                 </div>
               </TableCell>
