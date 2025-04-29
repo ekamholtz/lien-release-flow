@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
@@ -5,6 +6,7 @@ import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import NewProject from './pages/NewProject';
+import CreateProject from './pages/CreateProject';
 import ProjectDashboard from './pages/ProjectDashboard';
 import AccountsReceivable from './pages/AccountsReceivable';
 import CreateInvoice from './pages/CreateInvoice';
@@ -29,6 +31,7 @@ const App = () => {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/projects" element={<Projects />} />
       <Route path="/projects/new" element={<NewProject />} />
+      <Route path="/projects/create" element={<CreateProject />} />
       <Route path="/projects/:projectId" element={<ProjectDashboard />} />
       
       {/* Finance routes */}
