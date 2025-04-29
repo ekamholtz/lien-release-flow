@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -112,10 +113,10 @@ export function ProjectWizard() {
 
       // Upload documents if any
       if (formData.documents.length > 0 && project) {
-        // Convert ProjectDocument[] to File[]
-        const files = formData.documents.map(doc => doc.file);
-        
-        for (const file of files) {
+        // Use the original document objects to preserve custom properties
+        for (const document of formData.documents) {
+          const file = document.file;
+          
           // Create a unique file path to avoid conflicts
           const filePath = `${project.id}/${Date.now()}-${file.name}`;
           
@@ -138,9 +139,9 @@ export function ProjectWizard() {
               file_path: filePath,
               file_size: file.size,
               file_type: file.type,
-              shared_with_client: file.sharedWithClient,
+              shared_with_client: document.sharedWithClient, // Use document property instead of file
               user_id: user.id,
-              description: file.description || null
+              description: document.description || null // Use document property instead of file
             });
           
           if (fileError) throw fileError;
@@ -242,7 +243,11 @@ export function ProjectWizard() {
           <ProjectWizardSummary
             projectData={{
               ...formData,
-              documents: formData.documents.map(doc => doc.file) // Convert ProjectDocument[] to File[]
+              documents: formData.documents.map(doc => ({
+                ...doc.file,
+                sharedWithClient: doc.sharedWithClient,
+                description: doc.description
+              })) // Transform to match expected format in Summary
             }}
             isLoading={isLoading}
             onBack={handlePreviousStep}

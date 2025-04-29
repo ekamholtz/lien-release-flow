@@ -9,6 +9,12 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ProjectType } from '@/types/project';
 
+// Extend the File type to include our custom properties
+interface ExtendedFile extends File {
+  sharedWithClient?: boolean;
+  description?: string | null;
+}
+
 interface ProjectWizardSummaryProps {
   projectData: {
     name: string;
@@ -22,7 +28,7 @@ interface ProjectWizardSummaryProps {
     startDate: Date;
     endDate?: Date | null;
     projectTypeId?: string;
-    documents: File[];
+    documents: ExtendedFile[];
     milestones: {
       name: string;
       description?: string;
