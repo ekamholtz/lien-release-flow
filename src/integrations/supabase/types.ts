@@ -213,6 +213,107 @@ export type Database = {
           },
         ]
       }
+      milestone_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_recurring: boolean
+          name: string
+          project_type_id: string | null
+          template_data: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_recurring?: boolean
+          name: string
+          project_type_id?: string | null
+          template_data: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_recurring?: boolean
+          name?: string
+          project_type_id?: string | null
+          template_data?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestone_templates_project_type_id_fkey"
+            columns: ["project_type_id"]
+            isOneToOne: false
+            referencedRelation: "project_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      milestones: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          invoice_id: string | null
+          is_completed: boolean
+          name: string
+          percentage: number | null
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_id?: string | null
+          is_completed?: boolean
+          name: string
+          percentage?: number | null
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_id?: string | null
+          is_completed?: boolean
+          name?: string
+          percentage?: number | null
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -237,38 +338,144 @@ export type Database = {
         }
         Relationships: []
       }
+      project_files: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          name: string
+          project_id: string
+          shared_with_client: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_path: string
+          file_size: number
+          file_type: string
+          id?: string
+          name: string
+          project_id: string
+          shared_with_client?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          name?: string
+          project_id?: string
+          shared_with_client?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           client: string
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
           created_at: string
+          description: string | null
           end_date: string | null
           id: string
+          location: string | null
           name: string
+          project_type_id: string | null
           start_date: string
-          status: string
+          status: Database["public"]["Enums"]["project_status"] | null
+          updated_at: string
           value: number
         }
         Insert: {
           client: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
+          description?: string | null
           end_date?: string | null
           id?: string
+          location?: string | null
           name: string
+          project_type_id?: string | null
           start_date: string
-          status: string
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string
           value: number
         }
         Update: {
           client?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
+          description?: string | null
           end_date?: string | null
           id?: string
+          location?: string | null
           name?: string
+          project_type_id?: string | null
           start_date?: string
-          status?: string
+          status?: Database["public"]["Enums"]["project_status"] | null
+          updated_at?: string
           value?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_project_type_id_fkey"
+            columns: ["project_type_id"]
+            isOneToOne: false
+            referencedRelation: "project_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qbo_connections: {
         Row: {
@@ -483,8 +690,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      validate_milestone_template_percentages: {
+        Args: { template_data: Json }
+        Returns: boolean
+      }
     }
     Enums: {
+      project_status: "draft" | "active" | "completed" | "cancelled"
       qbo_sync_status: "pending" | "success" | "error"
       sync_status: "pending" | "processing" | "success" | "error"
       user_role: "platform_admin" | "account_admin" | "user" | "guest"
@@ -603,6 +815,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      project_status: ["draft", "active", "completed", "cancelled"],
       qbo_sync_status: ["pending", "success", "error"],
       sync_status: ["pending", "processing", "success", "error"],
       user_role: ["platform_admin", "account_admin", "user", "guest"],
