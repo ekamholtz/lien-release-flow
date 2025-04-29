@@ -1,29 +1,79 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileUpload } from '@/components/payments/FileUpload';
 import { FilePreview } from '@/components/payments/FilePreview';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Image, FileText } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 interface ProjectDocumentsProps {
-  initialDocuments: File[];
+  initialDocuments: ProjectDocument[];
   onBack: () => void;
-  onSubmit: (documents: File[]) => void;
+  onSubmit: (documents: ProjectDocument[]) => void;
+}
+
+export interface ProjectDocument {
+  file: File;
+  description?: string;
+  sharedWithClient: boolean;
 }
 
 export function ProjectDocuments({ initialDocuments, onBack, onSubmit }: ProjectDocumentsProps) {
-  const [documents, setDocuments] = useState<File[]>(initialDocuments || []);
+  const [documents, setDocuments] = useState<ProjectDocument[]>(initialDocuments || []);
   
-  const handleAddFile = (file: File) => {
-    setDocuments(prev => [...prev, file]);
-  };
+  const handleAddFile = useCallback((file: File) => {
+    const newDocument: ProjectDocument = {
+      file,
+      sharedWithClient: false,
+    };
+    setDocuments(prev => [...prev, newDocument]);
+  }, []);
   
-  const handleRemoveFile = (index: number) => {
+  const handleRemoveFile = useCallback((index: number) => {
     setDocuments(prev => prev.filter((_, i) => i !== index));
-  };
+  }, []);
   
-  const handleContinue = () => {
+  const handleToggleShared = useCallback((index: number) => {
+    setDocuments(prev => 
+      prev.map((doc, i) => 
+        i === index ? { ...doc, sharedWithClient: !doc.sharedWithClient } : doc
+      )
+    );
+  }, []);
+  
+  const handleContinue = useCallback(() => {
     onSubmit(documents);
+  }, [documents, onSubmit]);
+
+  const renderFilePreview = (file: File) => {
+    const isImage = file.type.startsWith('image/');
+    
+    if (isImage) {
+      return (
+        <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
+          <img 
+            src={URL.createObjectURL(file)} 
+            alt={file.name} 
+            className="object-cover w-full h-full"
+            onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+        {file.type.includes('pdf') ? (
+          <FileText className="h-5 w-5 text-red-500" />
+        ) : file.type.includes('doc') ? (
+          <FileText className="h-5 w-5 text-blue-500" />
+        ) : (
+          <FileText className="h-5 w-5 text-gray-500" />
+        )}
+      </div>
+    );
   };
 
   const bytesToSize = (bytes: number) => {
@@ -49,23 +99,35 @@ export function ProjectDocuments({ initialDocuments, onBack, onSubmit }: Project
           <div className="space-y-4">
             <h4 className="text-sm font-semibold">Uploaded Files ({documents.length})</h4>
             <div className="divide-y">
-              {documents.map((file, index) => (
+              {documents.map((doc, index) => (
                 <div key={index} className="py-3 flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <FilePreview files={[file]} onRemoveFile={() => {}} />
+                    {renderFilePreview(doc.file)}
                     <div>
-                      <p className="text-sm font-medium">{file.name}</p>
-                      <p className="text-xs text-gray-500">{bytesToSize(file.size)}</p>
+                      <p className="text-sm font-medium">{doc.file.name}</p>
+                      <p className="text-xs text-gray-500">{bytesToSize(doc.file.size)}</p>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveFile(index)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                  >
-                    Remove
-                  </Button>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        checked={doc.sharedWithClient}
+                        onCheckedChange={() => handleToggleShared(index)}
+                        id={`share-switch-${index}`}
+                      />
+                      <Label htmlFor={`share-switch-${index}`} className="text-sm">
+                        Share with client
+                      </Label>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveFile(index)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

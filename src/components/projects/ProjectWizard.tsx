@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ProjectBasicInfo } from './wizard/ProjectBasicInfo';
-import { ProjectDocuments } from './wizard/ProjectDocuments';
-import { ProjectMilestones } from './wizard/ProjectMilestones';
+import { ProjectDocuments, ProjectDocument } from './wizard/ProjectDocuments';
+import { ProjectMilestones, Milestone } from './wizard/ProjectMilestones';
 import { ProjectWizardSummary } from './wizard/ProjectWizardSummary';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,22 +26,8 @@ interface ProjectFormData {
   startDate: Date;
   endDate?: Date | null;
   projectTypeId?: string;
-  documents: File[];
+  documents: ProjectDocument[];
   milestones: Milestone[];
-}
-
-export interface Milestone {
-  name: string;
-  description?: string;
-  amount: number;
-  dueDate?: Date | null; 
-  percentage?: number;
-}
-
-export interface ProjectDocument {
-  file: File;
-  description?: string;
-  sharedWithClient: boolean;
 }
 
 export function ProjectWizard() {
@@ -84,7 +70,7 @@ export function ProjectWizard() {
     handleNextStep();
   };
 
-  const handleDocumentsSubmit = (documents: File[]) => {
+  const handleDocumentsSubmit = (documents: ProjectDocument[]) => {
     setFormData(prev => ({ ...prev, documents }));
     handleNextStep();
   };
@@ -129,12 +115,12 @@ export function ProjectWizard() {
       if (formData.documents.length > 0 && project) {
         for (const document of formData.documents) {
           // Create a unique file path to avoid conflicts
-          const filePath = `${user.id}/${Date.now()}-${document.name}`;
+          const filePath = `${project.id}/${Date.now()}-${document.file.name}`;
           
           // Upload file to storage
           const { error: uploadError } = await supabase.storage
             .from('project-documents')
-            .upload(filePath, document, {
+            .upload(filePath, document.file, {
               cacheControl: '3600',
               upsert: false
             });
@@ -146,12 +132,13 @@ export function ProjectWizard() {
             .from('project_files')
             .insert({
               project_id: project.id,
-              name: document.name,
+              name: document.file.name,
               file_path: filePath,
-              file_size: document.size,
-              file_type: document.type,
-              shared_with_client: false,
-              user_id: user.id
+              file_size: document.file.size,
+              file_type: document.file.type,
+              shared_with_client: document.sharedWithClient,
+              user_id: user.id,
+              description: document.description || null
             });
           
           if (fileError) throw fileError;
@@ -167,7 +154,8 @@ export function ProjectWizard() {
           due_date: milestone.dueDate ? milestone.dueDate.toISOString().split('T')[0] : null,
           amount: milestone.amount,
           percentage: milestone.percentage,
-          is_completed: false
+          is_completed: false,
+          due_type: milestone.dueType
         }));
 
         const { error: milestonesError } = await supabase
@@ -242,6 +230,7 @@ export function ProjectWizard() {
           <ProjectMilestones
             initialMilestones={formData.milestones}
             projectTypeId={formData.projectTypeId}
+            projectValue={formData.value}
             onBack={handlePreviousStep}
             onSubmit={handleMilestonesSubmit}
           />

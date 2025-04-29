@@ -3,9 +3,7 @@ import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
-import { ProjectOverview } from '@/components/projects/ProjectOverview';
-import { ProjectTransactions } from '@/components/projects/ProjectTransactions';
-import { ProjectDocuments } from '@/components/projects/ProjectDocuments';
+import { ProjectDashboardTabs } from '@/components/projects/ProjectDashboardTabs';
 import { useProject } from '@/hooks/useProject';
 
 const ProjectDashboard = () => {
@@ -29,10 +27,8 @@ const ProjectDashboard = () => {
       <div className="max-w-7xl mx-auto p-6">
         <ProjectHeader project={project} />
         
-        <div className="grid grid-cols-1 gap-6 mt-6">
-          <ProjectOverview project={project} />
-          <ProjectTransactions project={project} />
-          <ProjectDocuments project={project} />
+        <div className="mt-6">
+          <ProjectDashboardTabs project={project} />
         </div>
       </div>
     </AppLayout>
