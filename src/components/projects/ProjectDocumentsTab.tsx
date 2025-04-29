@@ -84,17 +84,17 @@ export function ProjectDocumentsTab({ projectId }: ProjectDocumentsTabProps) {
     }
   };
   
-  const handleDownload = async (document: ProjectDocument) => {
+  const handleDownload = async (projectDoc: ProjectDocument) => {
     try {
-      const url = await getDocumentUrl(document.file_path);
+      const url = await getDocumentUrl(projectDoc.file_path);
       
-      // Create an anchor element to download the file
-      const a = document.createElement('a');
+      // Use the global window.document instead of the variable named 'document'
+      const a = window.document.createElement('a');
       a.href = url;
-      a.download = document.name;
-      document.body.appendChild(a);
+      a.download = projectDoc.name;
+      window.document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      window.document.body.removeChild(a);
     } catch (error) {
       console.error('Error downloading document:', error);
     }
@@ -171,38 +171,38 @@ export function ProjectDocumentsTab({ projectId }: ProjectDocumentsTabProps) {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDocuments.map((document) => (
-            <Card key={document.id}>
+          {filteredDocuments.map((projectDoc) => (
+            <Card key={projectDoc.id}>
               <CardContent className="p-4 flex flex-col justify-between h-full">
                 <div>
                   <div className="h-24 flex items-center justify-center bg-gray-100 rounded mb-3">
                     <FileText className="h-10 w-10 text-gray-400" />
                   </div>
-                  <h3 className="font-medium truncate">{document.name}</h3>
-                  {document.description && (
-                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">{document.description}</p>
+                  <h3 className="font-medium truncate">{projectDoc.name}</h3>
+                  {projectDoc.description && (
+                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">{projectDoc.description}</p>
                   )}
                 </div>
                 
                 <div className="mt-4 flex justify-between items-center">
                   <p className="text-xs text-gray-500">
-                    {new Date(document.created_at).toLocaleDateString()}
+                    {new Date(projectDoc.created_at).toLocaleDateString()}
                   </p>
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => {
-                        // Use window.open directly instead of handleDownload to avoid the document.createElement issue
-                        getDocumentUrl(document.file_path)
+                        // Use window.document directly instead of handleDownload to avoid the document.createElement issue
+                        getDocumentUrl(projectDoc.file_path)
                           .then(url => {
                             if (url) {
-                              const a = document.createElement('a');
+                              const a = window.document.createElement('a');
                               a.href = url;
-                              a.download = document.name;
-                              document.body.appendChild(a);
+                              a.download = projectDoc.name;
+                              window.document.body.appendChild(a);
                               a.click();
-                              document.body.removeChild(a);
+                              window.document.body.removeChild(a);
                             }
                           })
                           .catch(error => {
