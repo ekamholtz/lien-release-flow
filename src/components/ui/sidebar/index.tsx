@@ -1,17 +1,9 @@
 
 // Re-export everything from the sidebar files
 export { useSidebar, SidebarProvider } from "./context"
-export {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarInput,
-  SidebarInset,
-  SidebarRail,
-  SidebarSeparator,
-  SidebarTrigger,
-} from "./sidebar"
+export { Sidebar, SidebarTrigger } from "./sidebar-base"
+export { SidebarRail, SidebarInset, SidebarInput } from "./sidebar-elements"
+export { SidebarHeader, SidebarFooter, SidebarSeparator, SidebarContent } from "./sidebar-sections"
 export {
   SidebarGroup,
   SidebarGroupAction,
@@ -26,6 +18,6 @@ export {
   SidebarMenuItem,
   SidebarMenuSkeleton,
   SidebarMenuSub,
-  SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "./sidebar-menu"

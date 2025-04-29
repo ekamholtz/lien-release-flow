@@ -142,7 +142,7 @@ const Integrations = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <AppHeader />
+      <AppHeader toggleSidebar={() => {}} />
       <div className="flex flex-1 overflow-hidden">
         <AppSidebar />
         <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
