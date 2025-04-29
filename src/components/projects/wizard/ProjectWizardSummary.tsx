@@ -29,6 +29,7 @@ interface ProjectWizardSummaryProps {
       amount: number;
       dueDate?: Date | null;
       percentage?: number;
+      dueType?: string;
     }[];
   };
   isLoading: boolean;

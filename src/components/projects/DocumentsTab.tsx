@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -231,9 +230,12 @@ export function DocumentsTab({ projectId, isClientView = false }: DocumentsTabPr
                     alt={file.name}
                     className="object-cover w-full h-full rounded"
                     onError={(e) => {
-                      // If image fails to load, replace with generic icon
-                      (e.target as HTMLImageElement).style.display = 'none';
-                      (e.target as HTMLImageElement).nextElementSibling!.style.display = 'flex';
+                      // Fix: Cast to HTMLImageElement to access style property
+                      const imgElement = e.target as HTMLImageElement;
+                      imgElement.style.display = 'none';
+                      if (imgElement.nextElementSibling) {
+                        (imgElement.nextElementSibling as HTMLElement).style.display = 'flex';
+                      }
                     }}
                   />
                   <div className="hidden absolute inset-0 items-center justify-center">

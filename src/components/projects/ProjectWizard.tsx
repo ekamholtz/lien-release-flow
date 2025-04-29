@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -113,14 +112,17 @@ export function ProjectWizard() {
 
       // Upload documents if any
       if (formData.documents.length > 0 && project) {
-        for (const document of formData.documents) {
+        // Convert ProjectDocument[] to File[]
+        const files = formData.documents.map(doc => doc.file);
+        
+        for (const file of files) {
           // Create a unique file path to avoid conflicts
-          const filePath = `${project.id}/${Date.now()}-${document.file.name}`;
+          const filePath = `${project.id}/${Date.now()}-${file.name}`;
           
           // Upload file to storage
           const { error: uploadError } = await supabase.storage
             .from('project-documents')
-            .upload(filePath, document.file, {
+            .upload(filePath, file, {
               cacheControl: '3600',
               upsert: false
             });
@@ -132,13 +134,13 @@ export function ProjectWizard() {
             .from('project_files')
             .insert({
               project_id: project.id,
-              name: document.file.name,
+              name: file.name,
               file_path: filePath,
-              file_size: document.file.size,
-              file_type: document.file.type,
-              shared_with_client: document.sharedWithClient,
+              file_size: file.size,
+              file_type: file.type,
+              shared_with_client: file.sharedWithClient,
               user_id: user.id,
-              description: document.description || null
+              description: file.description || null
             });
           
           if (fileError) throw fileError;
@@ -238,7 +240,10 @@ export function ProjectWizard() {
         
         {currentStep === 'summary' && (
           <ProjectWizardSummary
-            projectData={formData}
+            projectData={{
+              ...formData,
+              documents: formData.documents.map(doc => doc.file) // Convert ProjectDocument[] to File[]
+            }}
             isLoading={isLoading}
             onBack={handlePreviousStep}
             onSubmit={handleCreateProject}
