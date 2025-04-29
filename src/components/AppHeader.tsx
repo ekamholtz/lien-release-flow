@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Mail, UserCircle, LogOut } from 'lucide-react';
+import { Bell, Mail, UserCircle, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   DropdownMenu,
@@ -13,7 +13,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from './ui/button';
 
-export function AppHeader() {
+interface AppHeaderProps {
+  toggleSidebar: () => void;
+}
+
+export function AppHeader({ toggleSidebar }: AppHeaderProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   
@@ -23,6 +27,15 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 border-b bg-white">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden mr-2" 
+            onClick={toggleSidebar}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          
           <button 
             onClick={() => navigate('/dashboard')}
             className="flex items-center font-bold text-xl text-construction-900"

@@ -17,6 +17,7 @@ export function ProjectsOverview() {
         activeProjects: projects?.filter(p => p.status === 'active').length || 0,
         totalValue: projects?.reduce((sum, p) => sum + (p.value || 0), 0) || 0,
         completedProjects: projects?.filter(p => p.status === 'completed').length || 0,
+        draftProjects: projects?.filter(p => p.status === 'draft').length || 0,
       };
     }
   });
@@ -38,6 +39,9 @@ export function ProjectsOverview() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats?.activeProjects || 0}</div>
+          {stats?.draftProjects ? (
+            <p className="text-xs text-gray-500">{stats.draftProjects} draft projects</p>
+          ) : null}
         </CardContent>
       </Card>
 

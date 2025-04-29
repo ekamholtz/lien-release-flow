@@ -62,7 +62,7 @@ export function ProjectSelectWithCreate({ value, onChange }: ProjectSelectWithCr
               Create New Project
             </span>
           </SelectItem>
-          <SelectItem value="">None (Unassigned)</SelectItem>
+          <SelectItem value="none">None (Unassigned)</SelectItem>
           {projects.map((project) => (
             <SelectItem key={project.id} value={project.id}>
               {project.name}
