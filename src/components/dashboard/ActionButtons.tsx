@@ -7,21 +7,21 @@ import { FileText, FileInput, FileCheck, Receipt, FolderPlus } from 'lucide-reac
 export function ActionButtons() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      <Link to="/create-invoice" className="w-full">
+      <Link to="/invoices/create" className="w-full">
         <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
           <Receipt className="h-5 w-5" />
           <span>Create Invoice</span>
         </Button>
       </Link>
       
-      <Link to="/create-bill" className="w-full">
+      <Link to="/bills/create" className="w-full">
         <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
           <FileText className="h-5 w-5" />
           <span>Create Bill</span>
         </Button>
       </Link>
       
-      <Link to="/create-project" className="w-full">
+      <Link to="/projects/new" className="w-full">
         <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
           <FolderPlus className="h-5 w-5" />
           <span>Create Project</span>
