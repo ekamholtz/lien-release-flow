@@ -106,11 +106,8 @@ export function BillForm() {
     }
   }
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setFiles(prev => [...prev, ...newFiles]);
-    }
+  const handleFileSelect = (file: File) => {
+    setFiles(prev => [...prev, file]);
   };
   
   const removeFile = (index: number) => {
@@ -122,7 +119,7 @@ export function BillForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <BillFormFields control={form.control} />
         
-        <FileUpload onFileChange={handleFileChange} />
+        <FileUpload onFileSelect={handleFileSelect} />
         <FilePreview files={files} onRemoveFile={removeFile} />
         
         <div className="flex gap-3 justify-end">

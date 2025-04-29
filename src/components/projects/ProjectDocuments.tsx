@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,16 +25,23 @@ export function ProjectDocuments({ project }: ProjectDocumentsProps) {
     }
   });
 
-  // Handler to delete documents
-  const handleDeleteDocument = async (id: string, filePath: string) => {
+  // Update the function to match the expected signature in DocumentsList
+  const handleDeleteDocument = (documentId: string) => {
+    deleteDocument(documentId);
+  };
+  
+  // Keep the original function with more parameters for actual implementation
+  const deleteDocument = async (id: string, filePath?: string) => {
     setLoading(true);
     try {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('documents')
-        .remove([filePath]);
-      
-      if (storageError) throw storageError;
+      if (filePath) {
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from('documents')
+          .remove([filePath]);
+        
+        if (storageError) throw storageError;
+      }
       
       // Delete from database
       const { error: dbError } = await supabase
@@ -48,9 +54,12 @@ export function ProjectDocuments({ project }: ProjectDocumentsProps) {
       // Refresh documents list
       await refetch();
       
+      toast.success('Document deleted successfully');
+      
       return { success: true };
     } catch (err) {
       console.error('Error deleting document:', err);
+      toast.error('Failed to delete document');
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Failed to delete document' 

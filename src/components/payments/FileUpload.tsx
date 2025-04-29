@@ -2,14 +2,14 @@
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Upload } from 'lucide-react';
 
 interface FileUploadProps {
-  onFileSelect: (file: File) => void;
+  onFileSelect?: (file: File) => void;
+  onFileChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export function FileUpload({ onFileSelect }: FileUploadProps) {
+export function FileUpload({ onFileSelect, onFileChange }: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleButtonClick = () => {
@@ -17,9 +17,10 @@ export function FileUpload({ onFileSelect }: FileUploadProps) {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onFileSelect(file);
+    if (onFileChange) {
+      onFileChange(e);
+    } else if (onFileSelect && e.target.files?.[0]) {
+      onFileSelect(e.target.files[0]);
     }
   };
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -124,11 +125,8 @@ export function InvoiceForm() {
     }
   }
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setFiles(prev => [...prev, ...newFiles]);
-    }
+  const handleFileSelect = (file: File) => {
+    setFiles(prev => [...prev, file]);
   };
   
   const removeFile = (index: number) => {
@@ -144,7 +142,7 @@ export function InvoiceForm() {
         
         <InvoiceOptions control={form.control} />
         
-        <FileUpload onFileChange={handleFileChange} />
+        <FileUpload onFileSelect={handleFileSelect} />
         <FilePreview files={files} onRemoveFile={removeFile} />
         
         <div className="flex gap-3 justify-end">

@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { FileText, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -89,6 +88,7 @@ export function ProjectDocumentsTab({ projectId }: ProjectDocumentsTabProps) {
     try {
       const url = await getDocumentUrl(document.file_path);
       
+      // Create an anchor element to download the file
       const a = document.createElement('a');
       a.href = url;
       a.download = document.name;

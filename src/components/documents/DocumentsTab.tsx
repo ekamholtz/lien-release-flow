@@ -40,6 +40,11 @@ export function DocumentsTab() {
     fetchDocuments();
   };
 
+  // Create an adapter function to match the expected DocumentsList signature
+  const handleDeleteDocument = (documentId: string) => {
+    deleteDocument(documentId);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -64,7 +69,7 @@ export function DocumentsTab() {
         <DocumentsList
           documents={filteredDocuments}
           loading={loading}
-          onDeleteDocument={deleteDocument}
+          onDeleteDocument={handleDeleteDocument}
           getDocumentUrl={getDocumentUrl}
         />
       )}
