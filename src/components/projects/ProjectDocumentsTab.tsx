@@ -192,7 +192,24 @@ export function ProjectDocumentsTab({ projectId }: ProjectDocumentsTabProps) {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleDownload(document)}
+                      onClick={() => {
+                        // Use window.open directly instead of handleDownload to avoid the document.createElement issue
+                        getDocumentUrl(document.file_path)
+                          .then(url => {
+                            if (url) {
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = document.name;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                            }
+                          })
+                          .catch(error => {
+                            console.error('Error downloading document:', error);
+                            toast.error('Failed to download document');
+                          });
+                      }}
                     >
                       Download
                     </Button>

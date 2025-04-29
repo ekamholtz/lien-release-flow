@@ -42,7 +42,13 @@ export function DocumentsTab() {
 
   // Create an adapter function to match the expected DocumentsList signature
   const handleDeleteDocument = (documentId: string) => {
-    deleteDocument(documentId);
+    // We need to get the file path for the document before deleting it
+    const document = documents.find(doc => doc.id === documentId);
+    if (document) {
+      deleteDocument(documentId, document.file_path);
+    } else {
+      console.error('Document not found:', documentId);
+    }
   };
 
   return (

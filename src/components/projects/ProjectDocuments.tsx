@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,8 +27,15 @@ export function ProjectDocuments({ project }: ProjectDocumentsProps) {
   });
 
   // Update the function to match the expected signature in DocumentsList
+  // It should accept a single documentId parameter
   const handleDeleteDocument = (documentId: string) => {
-    deleteDocument(documentId);
+    // Find the document to get its file path
+    const documentToDelete = documents.find(doc => doc.id === documentId);
+    if (documentToDelete) {
+      deleteDocument(documentId, documentToDelete.file_path);
+    } else {
+      console.error('Document not found:', documentId);
+    }
   };
   
   // Keep the original function with more parameters for actual implementation
