@@ -10,7 +10,7 @@ import { CalendarIcon, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Control } from "react-hook-form";
-import { ProjectSelector } from "./ProjectSelector";
+import { ProjectSelectWithCreate } from "../projects/ProjectSelectWithCreate";
 
 interface InvoiceFormValues {
   invoiceNumber: string;
@@ -114,7 +114,7 @@ export function InvoiceFormFields({ control }: InvoiceFormFieldsProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Project</FormLabel>
-              <ProjectSelector 
+              <ProjectSelectWithCreate 
                 value={field.value} 
                 onChange={field.onChange}
               />

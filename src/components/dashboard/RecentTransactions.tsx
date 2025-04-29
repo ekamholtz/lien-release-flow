@@ -1,169 +1,201 @@
 
-import React, { useEffect, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
-import { DbBill, DbInvoice, BillStatus, InvoiceStatus } from '@/lib/supabase';
+import { formatCurrency } from '@/lib/utils';
 
-type Transaction = {
-  id: string;
-  name: string;
-  amount: number;
-  date: string;
-  status: string;
-  type: 'invoice' | 'bill';
-};
+interface RecentTransactionsProps {
+  projectId?: string | null;
+}
 
-export function RecentTransactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchRecentTransactions = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch recent invoices
-        const { data: invoices, error: invoicesError } = await supabase
-          .from('invoices')
-          .select('id, client_name, amount, created_at, status')
+export function RecentTransactions({ projectId }: RecentTransactionsProps) {
+  const { data: transactions, isLoading } = useQuery({
+    queryKey: ['recent-transactions', projectId],
+    queryFn: async () => {
+      let query;
+      
+      if (projectId === 'unassigned') {
+        // Fetch from unassigned view
+        query = supabase
+          .from('legacy_unassigned_transactions')
+          .select('*')
           .order('created_at', { ascending: false })
-          .limit(5);
+          .limit(10);
+      } else {
+        // We'll create a union of invoices and bills
+        const { data: invoices, error: invoiceError } = await supabase
+          .from('invoices')
+          .select('id, invoice_number, client_name, amount, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(10)
+          .then(result => {
+            if (result.data) {
+              return {
+                data: result.data.map(invoice => ({
+                  id: invoice.id,
+                  type: 'invoice',
+                  ref_number: invoice.invoice_number,
+                  entity_name: invoice.client_name,
+                  amount: invoice.amount,
+                  status: invoice.status,
+                  created_at: invoice.created_at
+                })),
+                error: result.error
+              };
+            }
+            return result;
+          });
+          
+        if (invoiceError) throw invoiceError;
         
-        if (invoicesError) throw invoicesError;
-        
-        // Fetch recent bills
         const { data: bills, error: billsError } = await supabase
           .from('bills')
-          .select('id, vendor_name, amount, created_at, status')
+          .select('id, bill_number, vendor_name, amount, status, created_at')
           .order('created_at', { ascending: false })
-          .limit(5);
-        
+          .limit(10)
+          .then(result => {
+            if (result.data) {
+              return {
+                data: result.data.map(bill => ({
+                  id: bill.id,
+                  type: 'bill',
+                  ref_number: bill.bill_number,
+                  entity_name: bill.vendor_name,
+                  amount: bill.amount,
+                  status: bill.status,
+                  created_at: bill.created_at
+                })),
+                error: result.error
+              };
+            }
+            return result;
+          });
+          
         if (billsError) throw billsError;
         
-        // Convert to transactions format
-        const invoiceTransactions = (invoices || []).map(invoice => ({
-          id: invoice.id,
-          name: invoice.client_name,
-          amount: invoice.amount,
-          date: invoice.created_at,
-          status: invoice.status,
-          type: 'invoice' as 'invoice'
-        }));
+        // Combine and sort
+        const combined = [...(invoices || []), ...(bills || [])];
+        combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
-        const billTransactions = (bills || []).map(bill => ({
-          id: bill.id,
-          name: bill.vendor_name,
-          amount: bill.amount,
-          date: bill.created_at,
-          status: bill.status,
-          type: 'bill' as 'bill'
-        }));
+        // Filter by project if needed
+        if (projectId) {
+          const { data: filtered, error: filterError } = await supabase
+            .from('invoices')
+            .select('id, invoice_number, client_name, amount, status, created_at')
+            .eq('project_id', projectId)
+            .order('created_at', { ascending: false })
+            .limit(5)
+            .then(result => {
+              if (result.data) {
+                return {
+                  data: result.data.map(invoice => ({
+                    id: invoice.id,
+                    type: 'invoice',
+                    ref_number: invoice.invoice_number,
+                    entity_name: invoice.client_name,
+                    amount: invoice.amount,
+                    status: invoice.status,
+                    created_at: invoice.created_at
+                  })),
+                  error: result.error
+                };
+              }
+              return result;
+            });
+            
+          if (filterError) throw filterError;
+          
+          const { data: billsFiltered, error: billsFilterError } = await supabase
+            .from('bills')
+            .select('id, bill_number, vendor_name, amount, status, created_at')
+            .eq('project_id', projectId)
+            .order('created_at', { ascending: false })
+            .limit(5)
+            .then(result => {
+              if (result.data) {
+                return {
+                  data: result.data.map(bill => ({
+                    id: bill.id,
+                    type: 'bill',
+                    ref_number: bill.bill_number,
+                    entity_name: bill.vendor_name,
+                    amount: bill.amount,
+                    status: bill.status,
+                    created_at: bill.created_at
+                  })),
+                  error: result.error
+                };
+              }
+              return result;
+            });
+            
+          if (billsFilterError) throw billsFilterError;
+          
+          // Combine and sort filtered results
+          const combinedFiltered = [...(filtered || []), ...(billsFiltered || [])];
+          combinedFiltered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          
+          return combinedFiltered.slice(0, 10);
+        }
         
-        // Combine and sort by date
-        const allTransactions = [...invoiceTransactions, ...billTransactions]
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          .slice(0, 5);
-        
-        setTransactions(allTransactions);
-      } catch (error) {
-        console.error('Error fetching recent transactions:', error);
-      } finally {
-        setLoading(false);
+        return combined.slice(0, 10);
       }
-    };
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    }
+  });
 
-    fetchRecentTransactions();
-  }, []);
-
-  const getStatusBadge = (status: string, type: 'invoice' | 'bill') => {
-    if (type === 'invoice') {
-      switch (status) {
-        case 'draft':
-          return <Badge variant="outline" className="bg-gray-100 text-gray-800 hover:bg-gray-100">Draft</Badge>;
-        case 'sent':
-          return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Sent</Badge>;
-        case 'paid':
-          return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Paid</Badge>;
-        case 'overdue':
-          return <Badge variant="destructive">Overdue</Badge>;
-        default:
-          return <Badge variant="outline">{status}</Badge>;
-      }
-    } else {
-      switch (status) {
-        case 'pending':
-          return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
-        case 'approved':
-          return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-        case 'paid':
-          return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Paid</Badge>;
-        case 'rejected':
-          return <Badge variant="destructive">Rejected</Badge>;
-        default:
-          return <Badge variant="outline">{status}</Badge>;
-      }
+  const getStatusClass = (status: string) => {
+    switch(status?.toLowerCase()) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      case 'draft':
+        return 'bg-gray-100 text-gray-800';
+      case 'sent':
+        return 'bg-blue-100 text-blue-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   return (
-    <div className="dashboard-card">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Recent Transactions</h3>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="text-construction-600 hover:text-construction-700"
-          onClick={() => navigate('/accounts-receivable')}
-        >
-          <span>View all</span>
-          <ArrowRight className="ml-1 h-4 w-4" />
-        </Button>
-      </div>
+    <div className="bg-white shadow-sm rounded-lg p-6">
+      <h2 className="text-lg font-medium mb-4">Recent Transactions</h2>
       
-      <div className="space-y-4">
-        {loading ? (
-          <div className="p-4 text-center text-gray-500">
-            <p>Loading recent transactions...</p>
-          </div>
-        ) : transactions.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
-            <p>No recent transactions</p>
-          </div>
-        ) : (
-          transactions.map((transaction) => (
-            <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-construction-100 text-construction-700 text-xs">
-                    {transaction.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h4 className="text-sm font-medium">{transaction.name}</h4>
-                  <p className="text-xs text-gray-500">
-                    {transaction.type === 'invoice' ? 'Invoice' : 'Bill'}
-                  </p>
-                </div>
+      {isLoading ? (
+        <div className="animate-pulse space-y-3">
+          {Array(5).fill(0).map((_, i) => (
+            <div key={i} className="h-12 bg-gray-100 rounded"></div>
+          ))}
+        </div>
+      ) : transactions && transactions.length > 0 ? (
+        <div className="space-y-3">
+          {transactions.map((transaction: any) => (
+            <div key={transaction.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{transaction.ref_number || transaction.reference_number}</span>
+                <span className="text-xs text-gray-500">{transaction.entity_name}</span>
               </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="text-right">
-                  <p className="text-sm font-medium">${transaction.amount.toFixed(2)}</p>
-                  <p className="text-xs text-gray-500">{format(new Date(transaction.date), 'MMM d, yyyy')}</p>
-                </div>
-                
-                {getStatusBadge(transaction.status, transaction.type)}
+              <div className="flex items-center space-x-3">
+                <span className="font-medium text-sm">{formatCurrency(transaction.amount)}</span>
+                <span className={`text-xs px-2 py-1 rounded ${getStatusClass(transaction.status)}`}>
+                  {transaction.status}
+                </span>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-500">
+          No recent transactions found
+        </div>
+      )}
     </div>
   );
 }

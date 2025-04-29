@@ -22,6 +22,7 @@ import Documents from '@/pages/Documents';
 import ProjectDashboard from '@/pages/ProjectDashboard';
 import Projects from '@/pages/Projects';
 import CreateProject from '@/pages/CreateProject';
+import NewProject from '@/pages/NewProject';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -145,6 +146,11 @@ function App() {
           <Route path="/create-project" element={
             <ProtectedRoute>
               <CreateProject />
+            </ProtectedRoute>
+          } />
+          <Route path="/projects/new" element={
+            <ProtectedRoute>
+              <NewProject />
             </ProtectedRoute>
           } />
 

@@ -41,3 +41,6 @@ verify_jwt = true
 [edge_functions.qbo-callback]
 verify_jwt = false
 
+[edge_functions.milestone-runner]
+verify_jwt = true
+schedule = "0 * * * *" # Run hourly

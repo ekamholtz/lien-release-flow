@@ -60,6 +60,50 @@ export type Database = {
         }
         Relationships: []
       }
+      app_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          project_id: string | null
+          read: boolean
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          project_id?: string | null
+          read?: boolean
+          title: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          project_id?: string | null
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_notifications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bills: {
         Row: {
           amount: number
@@ -172,6 +216,7 @@ export type Database = {
           payment_method: string
           project_id: string | null
           qbo_invoice_id: string | null
+          source_milestone_id: string | null
           status: string
           user_id: string | null
         }
@@ -186,6 +231,7 @@ export type Database = {
           payment_method?: string
           project_id?: string | null
           qbo_invoice_id?: string | null
+          source_milestone_id?: string | null
           status?: string
           user_id?: string | null
         }
@@ -200,6 +246,7 @@ export type Database = {
           payment_method?: string
           project_id?: string | null
           qbo_invoice_id?: string | null
+          source_milestone_id?: string | null
           status?: string
           user_id?: string | null
         }
@@ -209,6 +256,51 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_source_milestone_id_fkey"
+            columns: ["source_milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      milestone_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          milestone_id: string
+          system_generated: boolean
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          milestone_id: string
+          system_generated?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          milestone_id?: string
+          system_generated?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestone_logs_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
             referencedColumns: ["id"]
           },
         ]
@@ -261,12 +353,14 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string | null
+          due_type: string
           id: string
           invoice_id: string | null
           is_completed: boolean
           name: string
           percentage: number | null
           project_id: string
+          status: string | null
           updated_at: string
         }
         Insert: {
@@ -275,12 +369,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          due_type?: string
           id?: string
           invoice_id?: string | null
           is_completed?: boolean
           name: string
           percentage?: number | null
           project_id: string
+          status?: string | null
           updated_at?: string
         }
         Update: {
@@ -289,12 +385,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          due_type?: string
           id?: string
           invoice_id?: string | null
           is_completed?: boolean
           name?: string
           percentage?: number | null
           project_id?: string
+          status?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -653,7 +751,19 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      legacy_unassigned_transactions: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          due_date: string | null
+          entity_name: string | null
+          id: string | null
+          reference_number: string | null
+          status: string | null
+          type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_subscription: {
