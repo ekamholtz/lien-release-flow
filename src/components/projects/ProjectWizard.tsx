@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -30,7 +29,11 @@ interface ProjectFormData {
   milestones: Milestone[];
 }
 
-export function ProjectWizard() {
+interface ProjectWizardProps {
+  initialProjectId?: string | null;
+}
+
+export function ProjectWizard({ initialProjectId }: ProjectWizardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic-info');
@@ -44,6 +47,71 @@ export function ProjectWizard() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [projectTypes, setProjectTypes] = useState<ProjectType[]>([]);
+  const [initialLoading, setInitialLoading] = useState(!!initialProjectId);
+
+  // Load project data if initialProjectId is provided
+  useEffect(() => {
+    async function loadProjectData() {
+      if (!initialProjectId) return;
+      
+      setInitialLoading(true);
+      try {
+        // Fetch project details
+        const { data: project, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', initialProjectId)
+          .single();
+          
+        if (error) {
+          throw error;
+        }
+        
+        if (project) {
+          // Convert the data format to match our form data
+          setFormData({
+            name: project.name || '',
+            client: project.client || '',
+            location: project.location || '',
+            contactName: project.contact_name || '',
+            contactEmail: project.contact_email || '',
+            contactPhone: project.contact_phone || '',
+            description: project.description || '',
+            value: project.value || 0,
+            startDate: project.start_date ? new Date(project.start_date) : new Date(),
+            endDate: project.end_date ? new Date(project.end_date) : null,
+            projectTypeId: project.project_type_id || undefined,
+            documents: [], // These will be loaded separately
+            milestones: [] // These will be loaded separately
+          });
+          
+          // Load project documents
+          const { data: documents } = await supabase
+            .from('project_files')
+            .select('*')
+            .eq('project_id', initialProjectId);
+            
+          // Load project milestones
+          const { data: milestones } = await supabase
+            .from('milestones')
+            .select('*')
+            .eq('project_id', initialProjectId);
+            
+          // We can't load the actual file objects here since they're not stored in the database
+          // but we can update the UI with the metadata
+          
+          console.log('Project loaded successfully:', project.name);
+        }
+      } catch (error) {
+        console.error('Error loading project:', error);
+        toast.error('Failed to load project data');
+      } finally {
+        setInitialLoading(false);
+      }
+    }
+    
+    loadProjectData();
+  }, [initialProjectId]);
 
   const handleNextStep = () => {
     if (currentStep === 'basic-info') {
@@ -184,6 +252,14 @@ export function ProjectWizard() {
       setIsLoading(false);
     }
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <p>Loading project data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -89,7 +89,7 @@ const NewProject = () => {
                   </Button>
                   
                   <Button
-                    onClick={() => navigate(`/projects/${projectId}`)}
+                    onClick={() => navigate(`/projects/create?id=${projectId}`)}
                   >
                     Continue Setup <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
