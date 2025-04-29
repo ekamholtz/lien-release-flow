@@ -18,8 +18,8 @@ export function ProjectDocuments({ initialDocuments, onBack, onSubmit }: Project
     setDocuments(prev => [...prev, file]);
   };
   
-  const handleRemoveFile = (file: File) => {
-    setDocuments(prev => prev.filter(f => f !== file));
+  const handleRemoveFile = (index: number) => {
+    setDocuments(prev => prev.filter((_, i) => i !== index));
   };
   
   const handleContinue = () => {
@@ -52,7 +52,7 @@ export function ProjectDocuments({ initialDocuments, onBack, onSubmit }: Project
               {documents.map((file, index) => (
                 <div key={index} className="py-3 flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <FilePreview file={file} />
+                    <FilePreview files={[file]} onRemoveFile={() => {}} />
                     <div>
                       <p className="text-sm font-medium">{file.name}</p>
                       <p className="text-xs text-gray-500">{bytesToSize(file.size)}</p>
@@ -61,7 +61,7 @@ export function ProjectDocuments({ initialDocuments, onBack, onSubmit }: Project
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleRemoveFile(file)}
+                    onClick={() => handleRemoveFile(index)}
                     className="text-red-500 hover:text-red-700 hover:bg-red-50"
                   >
                     Remove

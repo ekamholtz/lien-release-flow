@@ -4,10 +4,21 @@ import { Upload } from "lucide-react";
 import { FormLabel } from "@/components/ui/form";
 
 interface FileUploadProps {
-  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileSelect?: (file: File) => void;
 }
 
-export function FileUpload({ onFileChange }: FileUploadProps) {
+export function FileUpload({ onFileChange, onFileSelect }: FileUploadProps) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onFileChange) {
+      onFileChange(e);
+    }
+    
+    if (onFileSelect && e.target.files && e.target.files.length > 0) {
+      onFileSelect(e.target.files[0]);
+    }
+  };
+  
   return (
     <div>
       <FormLabel>Supporting Documents</FormLabel>
@@ -28,7 +39,7 @@ export function FileUpload({ onFileChange }: FileUploadProps) {
               id="file-upload"
               type="file"
               className="hidden"
-              onChange={onFileChange}
+              onChange={handleFileChange}
               multiple
             />
           </label>

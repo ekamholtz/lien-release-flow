@@ -20,7 +20,10 @@ export interface MilestoneTemplate {
       percentage?: number;
       amount?: number;
     }[];
-  };
+  } | any; // This allows for Json from database
+  created_at?: string;
+  updated_at?: string;
+  is_recurring?: boolean;
 }
 
 export interface ProjectFile {

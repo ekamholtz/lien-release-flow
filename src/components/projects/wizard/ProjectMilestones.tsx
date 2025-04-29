@@ -64,7 +64,16 @@ export function ProjectMilestones({
       const { data, error } = await query;
       
       if (error) throw error;
-      setTemplates(data as MilestoneTemplate[] || []);
+      
+      // Transform the data to match our MilestoneTemplate type
+      const transformedData: MilestoneTemplate[] = (data || []).map(item => ({
+        ...item,
+        template_data: typeof item.template_data === 'string' 
+          ? JSON.parse(item.template_data) 
+          : item.template_data
+      }));
+      
+      setTemplates(transformedData);
     } catch (error) {
       console.error('Error fetching milestone templates:', error);
     } finally {
@@ -104,7 +113,7 @@ export function ProjectMilestones({
     try {
       const template = templates.find(t => t.id === selectedTemplate);
       
-      if (!template || !template.template_data.milestones) {
+      if (!template || !template.template_data || !template.template_data.milestones) {
         toast.error('Invalid template data');
         return;
       }
