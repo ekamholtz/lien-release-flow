@@ -125,7 +125,8 @@ export function ProjectWizard({ initialProjectId }: ProjectWizardProps) {
           amount: milestone.amount,
           percentage: milestone.percentage,
           is_completed: false,
-          due_type: milestone.dueType
+          due_type: milestone.dueType,
+          user_id: user.id // Add user_id to fix RLS policy issue
         }));
 
         const { error: milestonesError } = await supabase
