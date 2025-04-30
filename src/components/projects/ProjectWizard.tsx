@@ -56,6 +56,8 @@ export function ProjectWizard({ initialProjectId }: ProjectWizardProps) {
     setIsLoading(true);
 
     try {
+      console.log('Starting project creation with data:', formData);
+      
       // Insert project
       const { data: project, error: projectError } = await supabase
         .from('projects')
@@ -76,16 +78,24 @@ export function ProjectWizard({ initialProjectId }: ProjectWizardProps) {
         .select('id')
         .single();
 
-      if (projectError) throw projectError;
+      if (projectError) {
+        console.error('Error creating project:', projectError);
+        throw projectError;
+      }
+      
+      console.log('Project created successfully:', project);
 
       // Upload documents if any
       if (formData.documents.length > 0 && project) {
+        console.log('Uploading documents:', formData.documents.length);
         // Use the original document objects to preserve custom properties
         for (const document of formData.documents) {
           const file = document.file;
           
           // Create a unique file path to avoid conflicts
           const filePath = `${project.id}/${Date.now()}-${file.name}`;
+          
+          console.log('Uploading file:', file.name, 'to path:', filePath);
           
           // Upload file to storage
           const { error: uploadError } = await supabase.storage
@@ -95,7 +105,12 @@ export function ProjectWizard({ initialProjectId }: ProjectWizardProps) {
               upsert: false
             });
           
-          if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error('Error uploading file:', uploadError);
+            throw uploadError;
+          }
+          
+          console.log('File uploaded successfully, inserting file record');
           
           // Insert into project_files table
           const { error: fileError } = await supabase
@@ -111,12 +126,18 @@ export function ProjectWizard({ initialProjectId }: ProjectWizardProps) {
               description: document.description || null
             });
           
-          if (fileError) throw fileError;
+          if (fileError) {
+            console.error('Error inserting file record:', fileError);
+            throw fileError;
+          }
+          
+          console.log('File record inserted successfully');
         }
       }
 
       // Insert milestones if any
       if (formData.milestones.length > 0 && project) {
+        console.log('Inserting milestones:', formData.milestones.length);
         const milestonesToInsert = formData.milestones.map(milestone => ({
           project_id: project.id,
           name: milestone.name,
@@ -133,15 +154,22 @@ export function ProjectWizard({ initialProjectId }: ProjectWizardProps) {
           .from('milestones')
           .insert(milestonesToInsert);
 
-        if (milestonesError) throw milestonesError;
+        if (milestonesError) {
+          console.error('Error inserting milestones:', milestonesError);
+          throw milestonesError;
+        }
+        
+        console.log('Milestones inserted successfully');
       }
 
       toast.success('Project created successfully');
       
       // Navigate to the project page
       if (project && project.id) {
+        console.log('Navigating to project page:', project.id);
         navigate(`/projects/${project.id}`);
       } else {
+        console.log('No project ID found, navigating to projects list');
         navigate('/projects');
       }
 
