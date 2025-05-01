@@ -35,7 +35,6 @@ export function useProjectWizard(initialProjectId?: string | null) {
     documents: [],
     milestones: []
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(!!initialProjectId);
   const [projectTypes, setProjectTypes] = useState<ProjectType[]>([]);
 
@@ -128,11 +127,9 @@ export function useProjectWizard(initialProjectId?: string | null) {
     user,
     currentStep,
     formData,
-    isLoading,
     initialLoading,
     projectTypes,
     setProjectTypes,
-    setIsLoading,
     handleNextStep,
     handlePreviousStep,
     updateFormData,

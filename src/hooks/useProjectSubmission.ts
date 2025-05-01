@@ -1,0 +1,167 @@
+
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { ProjectFormData } from '@/hooks/useProjectWizard';
+
+export function useProjectSubmission() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+
+  const submitProject = async (formData: ProjectFormData, userId?: string) => {
+    if (!userId) {
+      toast.error('You must be logged in to create a project');
+      return false;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      console.log('Starting project creation with data:', formData);
+      
+      // Insert project
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .insert({
+          name: formData.name,
+          client: formData.client,
+          location: formData.location,
+          contact_name: formData.contactName,
+          contact_email: formData.contactEmail,
+          contact_phone: formData.contactPhone,
+          description: formData.description,
+          value: formData.value,
+          start_date: formData.startDate.toISOString().split('T')[0],
+          end_date: formData.endDate ? formData.endDate.toISOString().split('T')[0] : null,
+          project_type_id: formData.projectTypeId,
+          status: 'draft'
+        })
+        .select('id')
+        .single();
+
+      if (projectError) {
+        console.error('Error creating project:', projectError);
+        throw projectError;
+      }
+      
+      console.log('Project created successfully:', project);
+
+      // Upload documents if any
+      await uploadProjectDocuments(formData.documents, project.id, userId);
+
+      // Insert milestones if any
+      await createProjectMilestones(formData.milestones, project.id);
+
+      toast.success('Project created successfully');
+      
+      // Navigate to the project page
+      if (project && project.id) {
+        console.log('Navigating to project page:', project.id);
+        navigate(`/projects/${project.id}`);
+      } else {
+        console.log('No project ID found, navigating to projects list');
+        navigate('/projects');
+      }
+      
+      return true;
+
+    } catch (error) {
+      console.error('Error creating project:', error);
+      toast.error('Failed to create project. Please try again.');
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const uploadProjectDocuments = async (
+    documents: ProjectFormData['documents'],
+    projectId: string,
+    userId: string
+  ) => {
+    if (documents.length === 0) return;
+
+    console.log('Uploading documents:', documents.length);
+    
+    for (const document of documents) {
+      const file = document.file;
+      
+      // Create a unique file path to avoid conflicts
+      const filePath = `${projectId}/${Date.now()}-${file.name}`;
+      
+      console.log('Uploading file:', file.name, 'to path:', filePath);
+      
+      // Upload file to storage
+      const { error: uploadError } = await supabase.storage
+        .from('project-documents')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        throw uploadError;
+      }
+      
+      console.log('File uploaded successfully, inserting file record');
+      
+      // Insert into project_files table
+      const { error: fileError } = await supabase
+        .from('project_files')
+        .insert({
+          project_id: projectId,
+          name: file.name,
+          file_path: filePath,
+          file_size: file.size,
+          file_type: file.type,
+          shared_with_client: document.sharedWithClient,
+          user_id: userId,
+          description: document.description || null
+        });
+      
+      if (fileError) {
+        console.error('Error inserting file record:', fileError);
+        throw fileError;
+      }
+      
+      console.log('File record inserted successfully');
+    }
+  };
+
+  const createProjectMilestones = async (
+    milestones: ProjectFormData['milestones'],
+    projectId: string
+  ) => {
+    if (milestones.length === 0) return;
+    
+    console.log('Inserting milestones:', milestones.length);
+    const milestonesToInsert = milestones.map(milestone => ({
+      project_id: projectId,
+      name: milestone.name,
+      description: milestone.description,
+      due_date: milestone.dueDate ? milestone.dueDate.toISOString().split('T')[0] : null,
+      amount: milestone.amount,
+      percentage: milestone.percentage,
+      is_completed: false,
+      due_type: milestone.dueType
+    }));
+
+    const { error: milestonesError } = await supabase
+      .from('milestones')
+      .insert(milestonesToInsert);
+
+    if (milestonesError) {
+      console.error('Error inserting milestones:', milestonesError);
+      throw milestonesError;
+    }
+    
+    console.log('Milestones inserted successfully');
+  };
+
+  return {
+    submitProject,
+    isSubmitting
+  };
+}
