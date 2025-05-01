@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, CircleDashed, Calendar } from 'lucide-react';
 import {
@@ -15,13 +16,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { DbMilestone } from '@/lib/supabase';
+import { useMilestoneCompletion } from '@/hooks/useMilestoneCompletion';
 
 interface ProjectMilestonesTabProps {
   projectId: string;
 }
 
 export function ProjectMilestonesTab({ projectId }: ProjectMilestonesTabProps) {
-  const { data: milestones, isLoading } = useQuery({
+  const { data: milestones, isLoading, refetch } = useQuery({
     queryKey: ['project-milestones', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -33,6 +35,10 @@ export function ProjectMilestonesTab({ projectId }: ProjectMilestonesTabProps) {
       if (error) throw error;
       return data as DbMilestone[];
     }
+  });
+
+  const { completeMilestone, isCompleting } = useMilestoneCompletion({
+    onSuccess: () => refetch()
   });
 
   if (isLoading) {
@@ -86,6 +92,7 @@ export function ProjectMilestonesTab({ projectId }: ProjectMilestonesTabProps) {
                 <TableHead>Amount</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -124,6 +131,18 @@ export function ProjectMilestonesTab({ projectId }: ProjectMilestonesTabProps) {
                         {milestone.is_completed ? "Completed" : "Pending"}
                       </div>
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {milestone.due_type === 'event' && !milestone.is_completed && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => completeMilestone(milestone)}
+                        disabled={isCompleting}
+                      >
+                        {isCompleting ? 'Processing...' : 'Complete'}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
