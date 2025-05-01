@@ -10,38 +10,26 @@ schemas = ["public", "storage", "graphql_public"]
 port = 54322
 
 [studio]
+enabled = true
 port = 54323
+api_url = "http://localhost"
 
 [inbucket]
+enabled = true
 port = 54324
-
-[auth]
-enabled = true
-port = 54325
-
-[realtime]
-enabled = true
 
 [storage]
 enabled = true
 
-[edge_functions]
-[edge_functions.sync-invoice]
+[auth]
+enabled = true
+
+[realtime]
+enabled = true
+
+[functions]
+[functions.switch-company]
 verify_jwt = true
 
-[edge_functions.qbo-sync-retry]
-verify_jwt = true
-
-[edge_functions.qbo-alert]
+[functions.cleanup-invitations]
 verify_jwt = false
-
-[edge_functions.qbo-authorize]
-verify_jwt = true
-
-[edge_functions.qbo-callback]
-verify_jwt = false
-
-[edge_functions.milestone-runner]
-verify_jwt = true
-schedule = "0 * * * *" # Run hourly
-

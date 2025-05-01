@@ -7,7 +7,6 @@ import {
   Edit, 
   Trash2 
 } from 'lucide-react';
-import { type DbTeamMember } from '@/lib/supabase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -21,27 +20,38 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import type { CompanyMember } from '@/lib/types/company';
 
 interface TeamMemberRowProps {
-  member: DbTeamMember;
+  member: CompanyMember;
   onStatusChange: (id: string, status: string) => Promise<{ success: boolean, error?: string }>;
 }
 
 export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
   const { toast } = useToast();
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const getInitials = (firstName?: string, lastName?: string) => {
+    if (!firstName && !lastName) return '??';
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  };
+
+  const getRoleDisplay = (role: string): string => {
+    switch (role) {
+      case 'company_admin': return 'Company Admin';
+      case 'project_manager': return 'Project Manager';
+      case 'viewer': return 'Viewer';
+      default: return role;
+    }
   };
 
   const handleStatusToggle = async () => {
-    const newStatus = member.status === 'active' ? 'inactive' : 'active';
+    const newStatus = member.status === 'active' ? 'disabled' : 'active';
     const result = await onStatusChange(member.id, newStatus);
     
     if (result.success) {
       toast({
         title: "Status updated",
-        description: `${member.first_name} ${member.last_name} is now ${newStatus}.`,
+        description: `${member.first_name || ''} ${member.last_name || ''} is now ${newStatus}.`,
       });
     } else {
       toast({
@@ -57,18 +67,18 @@ export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
       <TableCell className="font-medium">
         <div className="flex items-center gap-3">
           <Avatar>
-            <AvatarImage src={member.avatar_url || undefined} alt={`${member.first_name} ${member.last_name}`} />
+            <AvatarImage src={member.avatar_url} alt={`${member.first_name || ''} ${member.last_name || ''}`} />
             <AvatarFallback className="bg-cnstrct-navy text-white">
               {getInitials(member.first_name, member.last_name)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium">{member.first_name} {member.last_name}</div>
+            <div className="font-medium">{member.first_name || ''} {member.last_name || ''}</div>
           </div>
         </div>
       </TableCell>
-      <TableCell>{member.role}</TableCell>
-      <TableCell>{member.email}</TableCell>
+      <TableCell>{getRoleDisplay(member.role)}</TableCell>
+      <TableCell>{member.invited_email}</TableCell>
       <TableCell>
         <Badge 
           variant={member.status === 'active' ? "default" : "outline"}
@@ -92,7 +102,7 @@ export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => window.location.href = `mailto:${member.email}`}>
+            <DropdownMenuItem onClick={() => window.location.href = `mailto:${member.invited_email}`}>
               <Mail className="mr-2 h-4 w-4" />
               <span>Email</span>
             </DropdownMenuItem>

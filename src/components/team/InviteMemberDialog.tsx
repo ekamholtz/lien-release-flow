@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -24,27 +23,30 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCompanyMembers } from '@/hooks/useCompanyMembers';
 
 const inviteMemberSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Invalid email address'),
-  role: z.string().min(1, 'Role is required')
+  firstName: z.string().min(1, { message: 'First name is required' }),
+  lastName: z.string().min(1, { message: 'Last name is required' }),
+  email: z.string().email({ message: 'Invalid email address' }),
+  role: z.string().min(1, { message: 'Role is required' })
 });
 
-type InviteMemberFormValues = z.infer<typeof inviteMemberSchema>;
+type FormValues = z.infer<typeof inviteMemberSchema>;
 
 interface InviteMemberDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onMemberAdded: () => void;
+  companyId: string;
 }
 
-export function InviteMemberDialog({ isOpen, onClose, onMemberAdded }: InviteMemberDialogProps) {
+export function InviteMemberDialog({ isOpen, onClose, onMemberAdded, companyId }: InviteMemberDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { inviteMember } = useCompanyMembers(companyId);
   
-  const form = useForm<InviteMemberFormValues>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(inviteMemberSchema),
     defaultValues: {
       firstName: '',
@@ -54,23 +56,16 @@ export function InviteMemberDialog({ isOpen, onClose, onMemberAdded }: InviteMem
     }
   });
 
-  const onSubmit = async (values: InviteMemberFormValues) => {
+  const onSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase.from('team_members').insert({
-        first_name: values.firstName,
-        last_name: values.lastName,
+      await inviteMember.mutateAsync({
+        companyId,
+        firstName: values.firstName,
+        lastName: values.lastName,
         email: values.email,
-        role: values.role,
-        status: 'pending' // New members start with pending status
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: 'Team member invited',
-        description: `An invitation has been sent to ${values.email}`
+        role: values.role
       });
       
       form.reset();
@@ -94,7 +89,7 @@ export function InviteMemberDialog({ isOpen, onClose, onMemberAdded }: InviteMem
         <DialogHeader>
           <DialogTitle>Invite Team Member</DialogTitle>
           <DialogDescription>
-            Add a new member to your team. They'll receive an email invitation.
+            Add a new member to your company. They'll receive an email invitation.
           </DialogDescription>
         </DialogHeader>
         
@@ -157,11 +152,9 @@ export function InviteMemberDialog({ isOpen, onClose, onMemberAdded }: InviteMem
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Project Manager">Project Manager</SelectItem>
-                      <SelectItem value="Accountant">Accountant</SelectItem>
-                      <SelectItem value="Contractor">Contractor</SelectItem>
-                      <SelectItem value="Subcontractor">Subcontractor</SelectItem>
-                      <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="company_admin">Company Admin</SelectItem>
+                      <SelectItem value="project_manager">Project Manager</SelectItem>
+                      <SelectItem value="viewer">Viewer</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

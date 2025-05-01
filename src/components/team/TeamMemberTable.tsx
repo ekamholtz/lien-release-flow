@@ -7,11 +7,11 @@ import {
   TableBody, 
   TableCell 
 } from '@/components/ui/table';
-import { type DbTeamMember } from '@/lib/supabase';
 import { TeamMemberRow } from './TeamMemberRow';
+import type { CompanyMember } from '@/lib/types/company';
 
 interface TeamMemberTableProps {
-  teamMembers: DbTeamMember[];
+  teamMembers: CompanyMember[];
   onStatusChange: (id: string, status: string) => Promise<{ success: boolean, error?: string }>;
 }
 
