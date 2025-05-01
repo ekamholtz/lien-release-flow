@@ -39,27 +39,29 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
       // Get all companies the user belongs to
       const { data, error } = await supabase
-        .from('companies')
+        .from('company_members')
         .select(`
-          id,
-          name,
-          external_id,
-          created_at,
-          updated_at,
-          company_members!inner(user_id, status)
+          company_id,
+          companies:company_id(
+            id,
+            name,
+            external_id,
+            created_at,
+            updated_at
+          )
         `)
-        .eq('company_members.user_id', user.id)
-        .eq('company_members.status', 'active');
+        .eq('user_id', user.id)
+        .eq('status', 'active');
 
       if (error) throw error;
 
-      // Transform to remove the nested structure
+      // Transform to extract companies from the joined result
       const userCompanies = data.map(item => ({
-        id: item.id,
-        name: item.name,
-        external_id: item.external_id,
-        created_at: item.created_at,
-        updated_at: item.updated_at
+        id: item.companies.id,
+        name: item.companies.name,
+        external_id: item.companies.external_id,
+        created_at: item.companies.created_at,
+        updated_at: item.companies.updated_at
       })) as Company[];
 
       setCompanies(userCompanies);
@@ -86,11 +88,18 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         throw new Error('Company not found');
       }
 
-      // In a real implementation, this would call the edge function to refresh the JWT
-      // For now, we'll just update the state
+      // Call the edge function to refresh the JWT with the company context
+      const { data: switchData, error: switchError } = await supabase.functions.invoke(
+        'switch-company',
+        { body: { companyId } }
+      );
+
+      if (switchError) throw switchError;
+
+      // Update the current company state
       setCurrentCompany(selectedCompany);
       
-      // Refresh data that depends on the current company
+      // Show success message
       toast.success(`Switched to ${selectedCompany.name}`);
       
       // Navigate to dashboard

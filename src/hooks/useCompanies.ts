@@ -1,5 +1,4 @@
 
-import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,41 +16,44 @@ export function useCompanies() {
   } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
+      // Using a join to get companies through company_members
       const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .order('name');
+        .from('company_members')
+        .select(`
+          company_id,
+          companies:company_id(
+            id,
+            name,
+            external_id,
+            created_at,
+            updated_at
+          )
+        `)
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('status', 'active');
       
       if (error) throw error;
-      return data as Company[];
+      
+      // Transform the data to get just the companies
+      return data.map(item => item.companies) as Company[];
     }
   });
 
   // Create a new company
   const createCompany = useMutation({
     mutationFn: async (name: string) => {
-      const { data, error } = await supabase
-        .from('companies')
-        .insert({ name })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      // After creating company, add current user as admin
-      const { error: memberError } = await supabase
-        .from('company_members')
-        .insert({
-          company_id: data.id,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          role: 'company_admin',
-          status: 'active',
-          invited_email: (await supabase.auth.getUser()).data.user?.email || '',
-          accepted_at: new Date().toISOString()
-        });
+      // First create the company
+      const { data: companyData, error: companyError } = await supabase.rpc(
+        'create_company_with_admin',
+        { 
+          p_name: name,
+          p_user_id: (await supabase.auth.getUser()).data.user?.id,
+          p_email: (await supabase.auth.getUser()).data.user?.email || ''
+        }
+      );
 
-      if (memberError) throw memberError;
-      return data as Company;
+      if (companyError) throw companyError;
+      return companyData as Company;
     },
     onSuccess: (newCompany) => {
       toast.success('Company created successfully');
@@ -67,15 +69,17 @@ export function useCompanies() {
   // Update company details
   const updateCompany = useMutation({
     mutationFn: async (company: Partial<Company> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('companies')
-        .update(company)
-        .eq('id', company.id)
-        .select()
-        .single();
+      const { data: companyData, error: companyError } = await supabase.rpc(
+        'update_company',
+        {
+          p_id: company.id,
+          p_name: company.name,
+          p_external_id: company.external_id
+        }
+      );
         
-      if (error) throw error;
-      return data as Company;
+      if (companyError) throw companyError;
+      return companyData as Company;
     },
     onSuccess: (updatedCompany) => {
       toast.success('Company updated successfully');

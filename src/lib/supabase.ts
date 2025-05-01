@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client with environment variables
@@ -10,6 +11,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export type role_code = 'company_admin' | 'project_manager' | 'viewer';
 
 export type DbProject = {
   id: string;
@@ -26,6 +29,8 @@ export type DbProject = {
   contact_email?: string;
   contact_phone?: string;
   project_type_id?: string;
+  company_id: string;
+  pm_member_id?: string;
 };
 
 export type DbTeamMember = {
@@ -56,6 +61,7 @@ export type DbInvoice = {
   payment_date?: string;
   payment_provider?: string;
   payment_link?: string;
+  company_id: string;
 };
 
 export type BillStatus = "pending" | "approved" | "paid" | "rejected";
@@ -74,7 +80,8 @@ export type DbBill = {
   payment_date?: string;
   payment_provider?: string;
   payment_reference?: string;
-  requires_lien_release?: boolean; // Added the missing property
+  requires_lien_release?: boolean;
+  company_id: string;
 };
 
 export type DbMilestone = {
@@ -91,4 +98,5 @@ export type DbMilestone = {
   due_type: string;
   created_at: string;
   updated_at: string;
+  company_id: string;
 }

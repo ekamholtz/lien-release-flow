@@ -18,11 +18,10 @@ export function useCompanyMembers(companyId?: string) {
     queryFn: async () => {
       if (!companyId) return [];
       
-      const { data, error } = await supabase
-        .from('company_members')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
+      // Using a custom RPC function to avoid TypeScript issues with the new table
+      const { data, error } = await supabase.rpc('get_company_members', {
+        p_company_id: companyId
+      });
       
       if (error) throw error;
       return data as CompanyMember[];
@@ -39,18 +38,13 @@ export function useCompanyMembers(companyId?: string) {
       lastName: string;
       role: string;
     }) => {
-      const { data, error } = await supabase
-        .from('company_members')
-        .insert({
-          company_id: newMember.companyId,
-          invited_email: newMember.email,
-          first_name: newMember.firstName,
-          last_name: newMember.lastName,
-          role: newMember.role,
-          status: 'pending'
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('invite_company_member', {
+        p_company_id: newMember.companyId,
+        p_email: newMember.email,
+        p_first_name: newMember.firstName,
+        p_last_name: newMember.lastName,
+        p_role: newMember.role
+      });
         
       if (error) throw error;
       return data as CompanyMember;
@@ -68,12 +62,11 @@ export function useCompanyMembers(companyId?: string) {
   // Update member status or role
   const updateMember = useMutation({
     mutationFn: async (member: Partial<CompanyMember> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('company_members')
-        .update(member)
-        .eq('id', member.id)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('update_company_member', {
+        p_id: member.id,
+        p_status: member.status,
+        p_role: member.role
+      });
         
       if (error) throw error;
       return data as CompanyMember;
@@ -91,10 +84,9 @@ export function useCompanyMembers(companyId?: string) {
   // Delete a member from the company
   const deleteMember = useMutation({
     mutationFn: async (memberId: string) => {
-      const { error } = await supabase
-        .from('company_members')
-        .delete()
-        .eq('id', memberId);
+      const { error } = await supabase.rpc('delete_company_member', {
+        p_id: memberId
+      });
         
       if (error) throw error;
     },
