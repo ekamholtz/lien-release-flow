@@ -23,7 +23,7 @@ export const invitationService = {
       throw error;
     }
 
-    return data || [];
+    return data as InvitationDetails[] || [];
   },
 
   // Accept an invitation
@@ -38,7 +38,7 @@ export const invitationService = {
       throw error;
     }
 
-    return true;
+    return data as boolean;
   },
 
   // Decline an invitation
@@ -52,6 +52,6 @@ export const invitationService = {
       throw error;
     }
 
-    return true;
+    return data as boolean;
   }
 };

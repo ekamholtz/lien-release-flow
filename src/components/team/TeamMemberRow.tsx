@@ -1,4 +1,3 @@
-
 import { 
   MoreHorizontal, 
   UserCheck, 
@@ -24,7 +23,7 @@ import type { CompanyMember } from '@/lib/types/company';
 
 interface TeamMemberRowProps {
   member: CompanyMember;
-  onStatusChange: (id: string, status: string) => Promise<{ success: boolean, error?: string }>;
+  onStatusChange: (id: string, status: 'active' | 'pending' | 'disabled') => Promise<{ success: boolean, error?: string }>;
 }
 
 export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
@@ -46,7 +45,7 @@ export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
 
   const handleStatusToggle = async () => {
     const newStatus = member.status === 'active' ? 'disabled' : 'active';
-    const result = await onStatusChange(member.id, newStatus);
+    const result = await onStatusChange(member.id, newStatus as 'active' | 'pending' | 'disabled');
     
     if (result.success) {
       toast({

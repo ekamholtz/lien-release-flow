@@ -25,7 +25,7 @@ const Team = () => {
     refetch();
   };
 
-  const handleStatusChange = async (id: string, status: string) => {
+  const handleStatusChange = async (id: string, status: 'active' | 'pending' | 'disabled') => {
     try {
       await updateMember.mutateAsync({ id, status });
       return { success: true };

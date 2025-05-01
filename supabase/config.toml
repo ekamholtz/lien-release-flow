@@ -1,39 +1,46 @@
 
+# This file only configures the edge functions in your supabase project
+# Learn more: https://supabase.com/docs/guides/functions/config
+
 project_id = "oknofqytitpxmlprvekn"
 
-[api]
-enabled = true
-port = 54321
-schemas = ["public", "storage"]
+# A Supabase function with no authorizer runs every time it's triggered
+# Adding an authorizer like jwt makes a function authenticated
+# The function will only run if the request includes a valid JWT
+# Learn more: https://supabase.com/docs/guides/functions/auth
 
-[db]
-port = 54322
-shadow_port = 54320
+[functions.check-invitations]
+verify_jwt = true
 
-[studio]
-enabled = true
-port = 54323
-api_url = "http://localhost:54321"
-
-[inbucket]
-enabled = true
-port = 54324
-
-[storage]
-enabled = true
-
-[auth]
-enabled = true
-site_url = "http://localhost:3000"
-
-[analytics]
-enabled = false
-
-[functions.cleanup-invitations]
+[functions.process-invitation]
 verify_jwt = true
 
 [functions.switch-company]
 verify_jwt = true
 
-[functions.check-invitations]
+[functions.qbo-callback]
 verify_jwt = false
+
+[functions.qbo-authorize]
+verify_jwt = true
+
+[functions.sync-invoice]
+verify_jwt = true
+
+[functions.qbo-sync-retry]
+verify_jwt = true
+
+[functions.get-subscription]
+verify_jwt = true
+
+[functions.qbo-alert]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.milestone-runner]
+verify_jwt = true
+
+[functions.cleanup-invitations]
+verify_jwt = true

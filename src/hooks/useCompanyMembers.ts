@@ -18,7 +18,7 @@ export function useCompanyMembers(companyId?: string) {
     queryFn: async () => {
       if (!companyId) return [];
       
-      // Using a custom RPC function to avoid TypeScript issues with the new table
+      // Using a custom RPC function to get company members
       const { data, error } = await supabase.rpc('get_company_members', {
         p_company_id: companyId
       });

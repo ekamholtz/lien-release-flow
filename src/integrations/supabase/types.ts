@@ -880,6 +880,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_company_invitation: {
+        Args: { p_invitation_id: string; p_user_id: string }
+        Returns: boolean
+      }
       create_company_with_admin: {
         Args: { p_name: string; p_user_id: string; p_email: string }
         Returns: {
@@ -889,6 +893,42 @@ export type Database = {
           name: string
           updated_at: string
         }
+      }
+      decline_company_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: boolean
+      }
+      delete_company_member: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      get_company_members: {
+        Args: { p_company_id: string }
+        Returns: {
+          accepted_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          invited_at: string
+          invited_email: string
+          role: Database["public"]["Enums"]["role_code"]
+          status: string
+          updated_at: string
+          user_id: string | null
+        }[]
+      }
+      get_pending_invitations_by_email: {
+        Args: { p_email: string }
+        Returns: {
+          id: string
+          company_id: string
+          company_name: string
+          role: Database["public"]["Enums"]["role_code"]
+          invited_by: string
+          invited_email: string
+          status: string
+        }[]
       }
       get_user_companies: {
         Args: Record<PropertyKey, never>
@@ -917,6 +957,28 @@ export type Database = {
           user_id: string
         }[]
       }
+      invite_company_member: {
+        Args: {
+          p_company_id: string
+          p_email: string
+          p_first_name: string
+          p_last_name: string
+          p_role: string
+        }
+        Returns: {
+          accepted_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          invited_at: string
+          invited_email: string
+          role: Database["public"]["Enums"]["role_code"]
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+      }
       is_platform_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -929,6 +991,22 @@ export type Database = {
           id: string
           name: string
           updated_at: string
+        }
+      }
+      update_company_member: {
+        Args: { p_id: string; p_status: string; p_role: string }
+        Returns: {
+          accepted_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          invited_at: string
+          invited_email: string
+          role: Database["public"]["Enums"]["role_code"]
+          status: string
+          updated_at: string
+          user_id: string | null
         }
       }
       update_sync_status: {

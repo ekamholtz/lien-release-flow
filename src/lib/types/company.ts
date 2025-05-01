@@ -1,5 +1,5 @@
 
-import { role_code } from '@/lib/supabase';
+import { type role_code } from '@/lib/supabase';
 
 export interface Company {
   id: string;
@@ -12,15 +12,18 @@ export interface Company {
 export interface CompanyMember {
   id: string;
   company_id: string;
-  user_id: string;
+  user_id: string | null;
   role: role_code;
-  status: 'pending' | 'active' | 'disabled';
+  status: 'pending' | 'active' | 'disabled' | 'declined';
   invited_email: string;
   invited_at: string;
   accepted_at?: string;
   first_name?: string;
   last_name?: string;
   avatar_url?: string;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
 }
 
 export interface Role {
