@@ -16,7 +16,8 @@ export function ProjectsList() {
         .from('projects')
         .select('*')
         .order('created_at', { ascending: false });
-      return data as DbProject[];
+      // Type assertion to handle the potentially missing company_id field
+      return data as unknown as DbProject[];
     }
   });
 

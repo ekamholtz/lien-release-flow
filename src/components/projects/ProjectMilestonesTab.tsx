@@ -33,7 +33,8 @@ export function ProjectMilestonesTab({ projectId }: ProjectMilestonesTabProps) {
         .order('due_date', { ascending: true });
 
       if (error) throw error;
-      return data as DbMilestone[];
+      // Cast the result to DbMilestone[] to handle the potentially missing company_id field
+      return (data || []) as unknown as DbMilestone[];
     }
   });
 

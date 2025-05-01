@@ -108,6 +108,7 @@ export type Database = {
         Row: {
           amount: number
           bill_number: string
+          company_id: string | null
           created_at: string
           due_date: string
           id: string
@@ -120,6 +121,7 @@ export type Database = {
         Insert: {
           amount: number
           bill_number: string
+          company_id?: string | null
           created_at?: string
           due_date: string
           id?: string
@@ -132,6 +134,7 @@ export type Database = {
         Update: {
           amount?: number
           bill_number?: string
+          company_id?: string | null
           created_at?: string
           due_date?: string
           id?: string
@@ -143,10 +146,91 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "bills_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bills_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          created_at: string
+          external_id: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      company_members: {
+        Row: {
+          accepted_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          invited_at: string
+          invited_email: string
+          role: Database["public"]["Enums"]["role_code"]
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invited_at?: string
+          invited_email: string
+          role: Database["public"]["Enums"]["role_code"]
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invited_at?: string
+          invited_email?: string
+          role?: Database["public"]["Enums"]["role_code"]
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -209,6 +293,7 @@ export type Database = {
           amount: number
           client_email: string
           client_name: string
+          company_id: string | null
           created_at: string
           due_date: string
           id: string
@@ -224,6 +309,7 @@ export type Database = {
           amount: number
           client_email: string
           client_name: string
+          company_id?: string | null
           created_at?: string
           due_date: string
           id?: string
@@ -239,6 +325,7 @@ export type Database = {
           amount?: number
           client_email?: string
           client_name?: string
+          company_id?: string | null
           created_at?: string
           due_date?: string
           id?: string
@@ -251,6 +338,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_project_id_fkey"
             columns: ["project_id"]
@@ -349,6 +443,7 @@ export type Database = {
       milestones: {
         Row: {
           amount: number
+          company_id: string | null
           completed_at: string | null
           created_at: string
           description: string | null
@@ -365,6 +460,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          company_id?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -381,6 +477,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          company_id?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -396,6 +493,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "milestones_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "milestones_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -516,6 +620,7 @@ export type Database = {
       projects: {
         Row: {
           client: string
+          company_id: string | null
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -533,6 +638,7 @@ export type Database = {
         }
         Insert: {
           client: string
+          company_id?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -550,6 +656,7 @@ export type Database = {
         }
         Update: {
           client?: string
+          company_id?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -566,6 +673,13 @@ export type Database = {
           value?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_project_type_id_fkey"
             columns: ["project_type_id"]
@@ -766,6 +880,26 @@ export type Database = {
       }
     }
     Functions: {
+      create_company_with_admin: {
+        Args: { p_name: string; p_user_id: string; p_email: string }
+        Returns: {
+          created_at: string
+          external_id: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+      }
+      get_user_companies: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          external_id: string | null
+          id: string
+          name: string
+          updated_at: string
+        }[]
+      }
       get_user_subscription: {
         Args: { user_id_param: string }
         Returns: {
@@ -786,6 +920,16 @@ export type Database = {
       is_platform_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      update_company: {
+        Args: { p_id: string; p_name: string; p_external_id?: string }
+        Returns: {
+          created_at: string
+          external_id: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
       }
       update_sync_status: {
         Args: {
@@ -808,6 +952,7 @@ export type Database = {
     Enums: {
       project_status: "draft" | "active" | "completed" | "cancelled"
       qbo_sync_status: "pending" | "success" | "error"
+      role_code: "company_admin" | "project_manager" | "viewer"
       sync_status: "pending" | "processing" | "success" | "error"
       user_role: "platform_admin" | "account_admin" | "user" | "guest"
     }
@@ -927,6 +1072,7 @@ export const Constants = {
     Enums: {
       project_status: ["draft", "active", "completed", "cancelled"],
       qbo_sync_status: ["pending", "success", "error"],
+      role_code: ["company_admin", "project_manager", "viewer"],
       sync_status: ["pending", "processing", "success", "error"],
       user_role: ["platform_admin", "account_admin", "user", "guest"],
     },

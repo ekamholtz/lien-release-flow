@@ -76,13 +76,14 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
     setIsLoading(true);
     
     try {
-      let userData = {
+      // Base user data
+      const userData: { full_name: string; company_name?: string } = {
         full_name: values.fullName,
       };
       
       // For non-invitation signups, include company name
       if ('companyName' in values && values.companyName) {
-        userData = { ...userData, company_name: values.companyName };
+        userData.company_name = values.companyName;
       }
       
       // Register the user with Supabase auth

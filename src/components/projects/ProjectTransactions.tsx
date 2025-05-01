@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvoicesTable } from '@/components/payments/InvoicesTable';
@@ -36,11 +35,11 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
         .eq('project_id', project.id)
         .order('created_at', { ascending: false });
         
-      // Cast the status to ensure it matches InvoiceStatus type
+      // Cast the status to ensure it matches InvoiceStatus type and add type assertion for ExtendedInvoice[]
       return (data || []).map(invoice => ({
         ...invoice,
         status: invoice.status as InvoiceStatus
-      })) as ExtendedInvoice[];
+      })) as unknown as ExtendedInvoice[];
     }
   });
 
@@ -53,11 +52,11 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
         .eq('project_id', project.id)
         .order('created_at', { ascending: false });
         
-      // Cast the status to ensure it matches BillStatus type
+      // Cast the status to ensure it matches BillStatus type and add type assertion for ExtendedBill[]
       return (data || []).map(bill => ({
         ...bill,
         status: bill.status as BillStatus
-      })) as ExtendedBill[];
+      })) as unknown as ExtendedBill[];
     }
   });
 

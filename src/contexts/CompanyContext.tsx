@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -37,18 +36,19 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
 
-      // Using an RPC function to get user's companies
+      // Using an RPC function to get user's companies with type casting
       const { data, error } = await supabase.rpc('get_user_companies');
 
       if (error) throw error;
 
-      // Set the companies from the RPC results
-      setCompanies(data || []);
+      // Set the companies from the RPC results with proper typing
+      const companiesList = data as Company[];
+      setCompanies(companiesList);
 
       // If we have companies but no current company set, use the first one
-      if (data && data.length > 0 && !currentCompany) {
-        setCurrentCompany(data[0]);
-      } else if (!data || data.length === 0) {
+      if (companiesList && companiesList.length > 0 && !currentCompany) {
+        setCurrentCompany(companiesList[0]);
+      } else if (!companiesList || companiesList.length === 0) {
         // No companies for this user
         setCurrentCompany(null);
       }

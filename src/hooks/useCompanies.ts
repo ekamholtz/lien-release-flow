@@ -16,7 +16,7 @@ export function useCompanies() {
   } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
-      // Using an RPC function to get user's companies
+      // Using an RPC function to get user's companies with proper type casting
       const { data, error } = await supabase.rpc('get_user_companies');
       
       if (error) throw error;

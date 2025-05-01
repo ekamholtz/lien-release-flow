@@ -33,22 +33,6 @@ BEGIN
 END;
 $$;
 
--- Function to get user companies
-CREATE OR REPLACE FUNCTION get_user_companies()
-RETURNS SETOF companies
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  RETURN QUERY
-  SELECT c.*
-  FROM companies c
-  JOIN company_members cm ON c.id = cm.company_id
-  WHERE cm.user_id = auth.uid()
-  AND cm.status = 'active';
-END;
-$$;
-
 -- Function to accept an invitation
 CREATE OR REPLACE FUNCTION accept_company_invitation(
   p_invitation_id UUID,
