@@ -14,6 +14,28 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type role_code = 'company_admin' | 'project_manager' | 'viewer';
 
+export interface Company {
+  id: string;
+  name: string;
+  external_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompanyMember {
+  id: string;
+  company_id: string;
+  user_id: string;
+  role: role_code;
+  status: 'pending' | 'active' | 'disabled';
+  invited_email: string;
+  invited_at: string;
+  accepted_at?: string;
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+}
+
 export type DbProject = {
   id: string;
   name: string;

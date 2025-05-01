@@ -1,5 +1,6 @@
 
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { TeamHeader } from '@/components/team/TeamHeader';
 import { TeamMemberTable } from '@/components/team/TeamMemberTable';
@@ -7,8 +8,10 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { useCompanyMembers } from '@/hooks/useCompanyMembers';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Team = () => {
+  const navigate = useNavigate();
   const { currentCompany, isLoading: companyLoading } = useCompany();
   const { 
     members, 
@@ -44,8 +47,14 @@ const Team = () => {
           <Alert variant="destructive" className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>No company selected</AlertTitle>
-            <AlertDescription>
-              You need to select or create a company before you can manage team members.
+            <AlertDescription className="flex flex-col gap-4">
+              <p>You need to select or create a company before you can manage team members.</p>
+              <Button 
+                onClick={() => navigate('/onboarding/company')} 
+                className="w-fit"
+              >
+                Create Company
+              </Button>
             </AlertDescription>
           </Alert>
         ) : (

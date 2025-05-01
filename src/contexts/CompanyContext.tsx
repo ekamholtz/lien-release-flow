@@ -37,39 +37,18 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setError(null);
 
-      // Get all companies the user belongs to
-      const { data, error } = await supabase
-        .from('company_members')
-        .select(`
-          company_id,
-          companies:company_id(
-            id,
-            name,
-            external_id,
-            created_at,
-            updated_at
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active');
+      // Using an RPC function to get user's companies
+      const { data, error } = await supabase.rpc('get_user_companies');
 
       if (error) throw error;
 
-      // Transform to extract companies from the joined result
-      const userCompanies = data.map(item => ({
-        id: item.companies.id,
-        name: item.companies.name,
-        external_id: item.companies.external_id,
-        created_at: item.companies.created_at,
-        updated_at: item.companies.updated_at
-      })) as Company[];
-
-      setCompanies(userCompanies);
+      // Set the companies from the RPC results
+      setCompanies(data || []);
 
       // If we have companies but no current company set, use the first one
-      if (userCompanies.length > 0 && !currentCompany) {
-        setCurrentCompany(userCompanies[0]);
-      } else if (userCompanies.length === 0) {
+      if (data && data.length > 0 && !currentCompany) {
+        setCurrentCompany(data[0]);
+      } else if (!data || data.length === 0) {
         // No companies for this user
         setCurrentCompany(null);
       }

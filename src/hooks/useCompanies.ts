@@ -16,26 +16,11 @@ export function useCompanies() {
   } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
-      // Using a join to get companies through company_members
-      const { data, error } = await supabase
-        .from('company_members')
-        .select(`
-          company_id,
-          companies:company_id(
-            id,
-            name,
-            external_id,
-            created_at,
-            updated_at
-          )
-        `)
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .eq('status', 'active');
+      // Using an RPC function to get user's companies
+      const { data, error } = await supabase.rpc('get_user_companies');
       
       if (error) throw error;
-      
-      // Transform the data to get just the companies
-      return data.map(item => item.companies) as Company[];
+      return data as Company[];
     }
   });
 

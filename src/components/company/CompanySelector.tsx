@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronDown, Building, LogOut, PlusCircle } from 'lucide-react';
+import { Check, ChevronDown, Building, PlusCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,8 +15,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useNavigate } from 'react-router-dom';
 
 export function CompanySelector() {
+  const navigate = useNavigate();
   const { currentCompany, companies, switchCompany } = useCompany();
   const { createCompany } = useCompanies();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -41,7 +43,7 @@ export function CompanySelector() {
     return (
       <Button
         variant="outline"
-        onClick={() => setIsCreateDialogOpen(true)}
+        onClick={() => navigate('/onboarding/company')}
         className="gap-2"
       >
         <PlusCircle className="h-4 w-4" />
