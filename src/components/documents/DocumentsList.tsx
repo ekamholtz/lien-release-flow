@@ -17,6 +17,7 @@ import {
 interface Document {
   id: string;
   name: string;
+  file_path: string;
   file_type: string;
   file_size: number;
   description?: string;
@@ -29,7 +30,7 @@ interface DocumentsListProps {
   documents: Document[];
   loading: boolean;
   onDeleteDocument: (documentId: string) => void;
-  getDocumentUrl: (documentId: string) => Promise<string>;
+  getDocumentUrl: (filePath: string) => Promise<string | null>;
 }
 
 export function DocumentsList({ 
@@ -49,23 +50,31 @@ export function DocumentsList({
     return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
   };
   
-  const handleViewDocument = async (documentId: string) => {
+  const handleViewDocument = async (document: Document) => {
     try {
-      const url = await getDocumentUrl(documentId);
-      window.open(url, '_blank');
+      const url = await getDocumentUrl(document.file_path);
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        console.error('Failed to get document URL');
+      }
     } catch (error) {
       console.error('Error viewing document:', error);
     }
   };
   
-  const handleDownloadDocument = async (documentId: string, fileName: string) => {
+  const handleDownloadDocument = async (document: Document) => {
     try {
-      const url = await getDocumentUrl(documentId);
+      const url = await getDocumentUrl(document.file_path);
+      if (!url) {
+        console.error('Failed to get document URL');
+        return;
+      }
       
       // Create a temporary anchor element
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName;
+      a.download = document.name;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -153,14 +162,14 @@ export function DocumentsList({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleViewDocument(doc.id)}
+                    onClick={() => handleViewDocument(doc)}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDownloadDocument(doc.id, doc.name)}
+                    onClick={() => handleDownloadDocument(doc)}
                   >
                     <Download className="h-4 w-4" />
                   </Button>
@@ -198,7 +207,7 @@ export function DocumentsList({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleViewDocument(doc.id)}
+                  onClick={() => handleViewDocument(doc)}
                 >
                   <Eye className="h-4 w-4 mr-1" />
                   View
@@ -206,7 +215,7 @@ export function DocumentsList({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDownloadDocument(doc.id, doc.name)}
+                  onClick={() => handleDownloadDocument(doc)}
                 >
                   <Download className="h-4 w-4 mr-1" />
                   Download

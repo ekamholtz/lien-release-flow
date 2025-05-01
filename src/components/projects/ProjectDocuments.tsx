@@ -79,16 +79,21 @@ export function ProjectDocuments({ project }: ProjectDocumentsProps) {
 
   // Handler to get document URL
   const getDocumentUrl = async (filePath: string) => {
-    const { data, error } = await supabase.storage
-      .from('documents')
-      .createSignedUrl(filePath, 3600); // URL valid for 1 hour
-    
-    if (error) {
-      console.error('Error creating signed URL:', error);
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(filePath, 3600); // URL valid for 1 hour
+      
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        return null;
+      }
+      
+      return data?.signedUrl;
+    } catch (error) {
+      console.error('Error getting document URL:', error);
       return null;
     }
-    
-    return data?.signedUrl;
   };
 
   return (
