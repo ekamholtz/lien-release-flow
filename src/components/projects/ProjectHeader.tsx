@@ -26,7 +26,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
       case 'active':
         return 'default'; 
       case 'completed':
-        return 'success';
+        return 'secondary'; // Changed from 'success' to 'secondary'
       case 'cancelled':
         return 'destructive';
       default:
