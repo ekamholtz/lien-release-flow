@@ -20,12 +20,31 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     }).format(value);
   };
 
+  // Get appropriate badge color based on project status
+  const getBadgeVariant = (status: string) => {
+    switch(status) {
+      case 'active':
+        return 'default'; 
+      case 'completed':
+        return 'success';
+      case 'cancelled':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
+  // Format status text for display
+  const getStatusText = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold">{project.name}</h1>
-        <Badge variant={project.status === 'active' ? 'default' : 'outline'}>
-          {project.status === 'draft' ? 'Draft' : 'Active'}
+        <Badge variant={getBadgeVariant(project.status)}>
+          {getStatusText(project.status)}
         </Badge>
       </div>
       

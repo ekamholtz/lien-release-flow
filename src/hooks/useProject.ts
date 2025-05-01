@@ -23,7 +23,8 @@ export function useProject(projectId?: string) {
           .single();
 
         if (error) throw error;
-        setProject(data);
+        setProject(data as DbProject);
+        console.log("Project data loaded:", data);
       } catch (e) {
         console.error('Error fetching project:', e);
         setError(e instanceof Error ? e : new Error('Failed to fetch project'));

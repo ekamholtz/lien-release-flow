@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectOverview } from './ProjectOverview';
 import { ProjectTransactions } from './ProjectTransactions';
 import { ProjectDocumentsTab } from './ProjectDocumentsTab';
+import { ProjectMilestonesTab } from './ProjectMilestonesTab';
 import { DbProject } from '@/lib/supabase';
 
 interface ProjectDashboardTabsProps {
@@ -17,12 +18,17 @@ export function ProjectDashboardTabs({ project }: ProjectDashboardTabsProps) {
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="milestones">Milestones</TabsTrigger>
         <TabsTrigger value="transactions">Transactions</TabsTrigger>
         <TabsTrigger value="documents">Documents</TabsTrigger>
       </TabsList>
       
       <TabsContent value="overview">
         <ProjectOverview project={project} />
+      </TabsContent>
+      
+      <TabsContent value="milestones">
+        <ProjectMilestonesTab projectId={project.id} />
       </TabsContent>
       
       <TabsContent value="transactions">

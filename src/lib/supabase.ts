@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client with environment variables
@@ -21,6 +20,12 @@ export type DbProject = {
   start_date: string;
   end_date: string | null;
   created_at: string;
+  description?: string;
+  location?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  project_type_id?: string;
 };
 
 export type DbTeamMember = {
@@ -71,3 +76,19 @@ export type DbBill = {
   payment_reference?: string;
   requires_lien_release?: boolean; // Added the missing property
 };
+
+export type DbMilestone = {
+  id: string;
+  project_id: string;
+  name: string;
+  description?: string;
+  amount: number;
+  percentage?: number;
+  due_date?: string;
+  is_completed: boolean;
+  completed_at?: string;
+  status?: string;
+  due_type: string;
+  created_at: string;
+  updated_at: string;
+}
