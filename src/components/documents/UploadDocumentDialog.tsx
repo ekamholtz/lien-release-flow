@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { useDocuments } from '@/hooks/useDocuments';
 
 interface UploadDocumentDialogProps {
   onDocumentUploaded: () => void;
@@ -25,6 +26,7 @@ export function UploadDocumentDialog({ onDocumentUploaded }: UploadDocumentDialo
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const { uploadDocument } = useDocuments();
   
   const form = useForm<FormValues>({
     defaultValues: {
@@ -44,10 +46,6 @@ export function UploadDocumentDialog({ onDocumentUploaded }: UploadDocumentDialo
     setIsUploading(true);
     
     try {
-      // Import dynamically to avoid issues
-      const { useDocuments } = await import('@/hooks/useDocuments');
-      const { uploadDocument } = useDocuments();
-      
       const tags = data.tags ? data.tags.split(',').map(tag => tag.trim()) : undefined;
       
       const result = await uploadDocument(
