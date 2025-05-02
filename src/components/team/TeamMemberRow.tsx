@@ -1,3 +1,4 @@
+
 import { 
   MoreHorizontal, 
   UserCheck, 
@@ -36,9 +37,9 @@ export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
 
   const getRoleDisplay = (role: string): string => {
     switch (role) {
-      case 'company_admin': return 'Company Admin';
+      case 'company_owner': return 'Company Owner';
       case 'project_manager': return 'Project Manager';
-      case 'viewer': return 'Viewer';
+      case 'office_manager': return 'Office Manager';
       default: return role;
     }
   };

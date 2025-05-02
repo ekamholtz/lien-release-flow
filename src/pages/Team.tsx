@@ -6,13 +6,16 @@ import { TeamHeader } from '@/components/team/TeamHeader';
 import { TeamMemberTable } from '@/components/team/TeamMemberTable';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useCompanyMembers } from '@/hooks/useCompanyMembers';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 const Team = () => {
   const navigate = useNavigate();
   const { currentCompany, isLoading: companyLoading } = useCompany();
+  const { can, isCompanyOwner } = usePermissions(currentCompany?.id);
   const { 
     members, 
     isLoading: membersLoading, 
@@ -20,6 +23,27 @@ const Team = () => {
     updateMember, 
     refetch 
   } = useCompanyMembers(currentCompany?.id);
+
+  useEffect(() => {
+    // Run the migration function once
+    const migrateRoles = async () => {
+      if (currentCompany?.id) {
+        try {
+          // Call the migrate_company_member_roles function
+          const { error } = await supabase.rpc('migrate_company_member_roles');
+          if (error) {
+            console.error('Error migrating roles:', error);
+          } else {
+            console.log('Role migration completed successfully');
+          }
+        } catch (err) {
+          console.error('Error during role migration:', err);
+        }
+      }
+    };
+    
+    migrateRoles();
+  }, [currentCompany?.id]);
 
   const handleMemberAdded = () => {
     refetch();
@@ -40,6 +64,22 @@ const Team = () => {
   };
 
   const isLoading = companyLoading || membersLoading;
+
+  // Check if user can manage users
+  const [canManageUsers, setCanManageUsers] = React.useState(false);
+  React.useEffect(() => {
+    const checkPermission = async () => {
+      if (isCompanyOwner) {
+        setCanManageUsers(true);
+        return;
+      }
+      
+      const hasPermission = await can.manageUsers();
+      setCanManageUsers(hasPermission);
+    };
+    
+    checkPermission();
+  }, [isCompanyOwner, can]);
 
   return (
     <AppLayout>
@@ -71,7 +111,11 @@ const Team = () => {
               </div>
             ) : (
               <div className="dashboard-card overflow-hidden">
-                <TeamMemberTable teamMembers={members} onStatusChange={handleStatusChange} />
+                <TeamMemberTable 
+                  teamMembers={members} 
+                  onStatusChange={handleStatusChange} 
+                  canManageUsers={canManageUsers}
+                />
               </div>
             )}
           </>

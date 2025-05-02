@@ -13,9 +13,10 @@ import type { CompanyMember } from '@/lib/types/company';
 interface TeamMemberTableProps {
   teamMembers: CompanyMember[];
   onStatusChange: (id: string, status: string) => Promise<{ success: boolean, error?: string }>;
+  canManageUsers: boolean;
 }
 
-export function TeamMemberTable({ teamMembers, onStatusChange }: TeamMemberTableProps) {
+export function TeamMemberTable({ teamMembers, onStatusChange, canManageUsers }: TeamMemberTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -24,13 +25,15 @@ export function TeamMemberTable({ teamMembers, onStatusChange }: TeamMemberTable
           <TableHead>Role</TableHead>
           <TableHead>Email</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
+          {canManageUsers && (
+            <TableHead className="text-right">Actions</TableHead>
+          )}
         </TableRow>
       </TableHeader>
       <TableBody>
         {teamMembers.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+            <TableCell colSpan={canManageUsers ? 5 : 4} className="text-center py-8 text-gray-500">
               No team members found. Invite someone to get started.
             </TableCell>
           </TableRow>

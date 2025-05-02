@@ -152,9 +152,9 @@ export function InviteMemberDialog({ isOpen, onClose, onMemberAdded, companyId }
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="company_admin">Company Admin</SelectItem>
+                      <SelectItem value="company_owner">Company Owner</SelectItem>
                       <SelectItem value="project_manager">Project Manager</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
+                      <SelectItem value="office_manager">Office Manager</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -31,3 +31,17 @@ export interface Role {
   display_name: string;
   description?: string;
 }
+
+export interface Permission {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+}
+
+export interface RolePermission {
+  id: string;
+  company_id: string;
+  role: role_code;
+  permission_id: string;
+}

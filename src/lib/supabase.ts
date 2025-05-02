@@ -12,7 +12,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export type role_code = 'company_admin' | 'project_manager' | 'viewer';
+export type role_code = 'company_owner' | 'project_manager' | 'office_manager';
 
 export interface Company {
   id: string;
