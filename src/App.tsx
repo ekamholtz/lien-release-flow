@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { Toaster } from "@/components/ui/toaster";
 import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
@@ -39,155 +40,158 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/auth" element={<Auth />} />
-      
-      {/* Onboarding routes */}
-      <Route 
-        path="/onboarding/:step" 
-        element={
-          <ProtectedRoute>
-            <OnboardingPage />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Dashboard and main routes */}
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/projects" 
-        element={
-          <ProtectedRoute>
-            <Projects />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/projects/new" 
-        element={
-          <ProtectedRoute>
-            <NewProject />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/projects/create" 
-        element={
-          <ProtectedRoute>
-            <CreateProject />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/projects/:projectId" 
-        element={
-          <ProtectedRoute>
-            <ProjectDashboard />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Finance routes */}
-      <Route 
-        path="/invoices" 
-        element={
-          <ProtectedRoute>
-            <AccountsReceivable />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/invoices/create" 
-        element={
-          <ProtectedRoute>
-            <CreateInvoice />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/bills" 
-        element={
-          <ProtectedRoute>
-            <AccountsPayable />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/bills/create" 
-        element={
-          <ProtectedRoute>
-            <CreateBill />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Other routes */}
-      <Route 
-        path="/documents" 
-        element={
-          <ProtectedRoute>
-            <Documents />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/reports" 
-        element={
-          <ProtectedRoute>
-            <Reports />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/settings" 
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/team" 
-        element={
-          <ProtectedRoute>
-            <Team />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/subscription" 
-        element={
-          <ProtectedRoute>
-            <Subscription />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/lien-release/:id" 
-        element={
-          <ProtectedRoute>
-            <LienRelease />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/integrations" 
-        element={
-          <ProtectedRoute>
-            <Integrations />
-          </ProtectedRoute>
-        } 
-      />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        
+        {/* Onboarding routes */}
+        <Route 
+          path="/onboarding/:step" 
+          element={
+            <ProtectedRoute>
+              <OnboardingPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Dashboard and main routes */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects" 
+          element={
+            <ProtectedRoute>
+              <Projects />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects/new" 
+          element={
+            <ProtectedRoute>
+              <NewProject />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects/create" 
+          element={
+            <ProtectedRoute>
+              <CreateProject />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects/:projectId" 
+          element={
+            <ProtectedRoute>
+              <ProjectDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Finance routes */}
+        <Route 
+          path="/invoices" 
+          element={
+            <ProtectedRoute>
+              <AccountsReceivable />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/invoices/create" 
+          element={
+            <ProtectedRoute>
+              <CreateInvoice />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/bills" 
+          element={
+            <ProtectedRoute>
+              <AccountsPayable />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/bills/create" 
+          element={
+            <ProtectedRoute>
+              <CreateBill />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Other routes */}
+        <Route 
+          path="/documents" 
+          element={
+            <ProtectedRoute>
+              <Documents />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/team" 
+          element={
+            <ProtectedRoute>
+              <Team />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/subscription" 
+          element={
+            <ProtectedRoute>
+              <Subscription />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/lien-release/:id" 
+          element={
+            <ProtectedRoute>
+              <LienRelease />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/integrations" 
+          element={
+            <ProtectedRoute>
+              <Integrations />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Toaster />
+    </>
   );
 };
 

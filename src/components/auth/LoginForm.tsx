@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -14,7 +15,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { loginSchema } from '@/components/auth/validation';
 
@@ -22,7 +25,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const { toast: shadcnToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -36,26 +40,46 @@ export function LoginForm() {
 
   async function onSubmit(values: LoginFormValues) {
     setIsLoading(true);
+    setLoginError(null);
     
     try {
+      console.log("Attempting login with:", values.email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       });
 
       if (error) {
-        throw error;
+        console.error('Login error:', error);
+        setLoginError(error.message || "Invalid login credentials. Please check your email and password.");
+        toast.error("Login failed", {
+          description: error.message || "Invalid login credentials"
+        });
+        shadcnToast({
+          title: "Login failed",
+          description: error.message || "There was a problem with your login credentials",
+          variant: "destructive",
+        });
+        return;
       }
 
-      toast({
+      // Show both toast notifications to ensure at least one works
+      toast.success("Logged in successfully", {
+        description: "Welcome back to PaymentFlow!"
+      });
+      
+      shadcnToast({
         title: "Logged in successfully",
         description: "Welcome back to PaymentFlow!",
       });
+      
+      console.log("Login successful, user:", data.user);
       
       // After successful login, check if the user has an active subscription
       const user = data.user;
       if (user) {
         try {
+          console.log("Checking subscription for user:", user.id);
           const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('get-subscription', {
             body: { userId: user.id }
           });
@@ -64,11 +88,14 @@ export function LoginForm() {
             console.error('Error checking subscription:', subscriptionError);
           }
           
+          console.log("Subscription data:", subscriptionData);
+          
           // If user has an active subscription, redirect to dashboard
           // Otherwise, redirect to subscription page
           if (subscriptionData?.data && 
               (subscriptionData.data.status === 'active' || subscriptionData.data.status === 'trialing')) {
             // Always navigate to dashboard for users with active subscriptions
+            console.log("User has active subscription, redirecting to dashboard");
             navigate('/dashboard');
           } else {
             // Check if there's a redirect stored in location state
@@ -77,8 +104,10 @@ export function LoginForm() {
             // If they were trying to access a protected route, send them to that route
             // Otherwise send them to subscription page
             if (from && from !== '/auth' && from !== '/') {
+              console.log("Redirecting to previously attempted route:", from);
               navigate(from);
             } else {
+              console.log("No active subscription, redirecting to subscription page");
               navigate('/subscription');
             }
           }
@@ -89,7 +118,11 @@ export function LoginForm() {
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      toast({
+      setLoginError(error.message || "There was a problem logging in. Please try again.");
+      toast.error("Login failed", {
+        description: error.message || "An unexpected error occurred"
+      });
+      shadcnToast({
         title: "Login failed",
         description: error.message || "There was a problem with your login credentials",
         variant: "destructive",
@@ -104,6 +137,13 @@ export function LoginForm() {
       <h3 className="text-xl font-semibold mb-4">Log in to your account</h3>
       <p className="text-sm text-gray-500 mb-6">Enter your email and password to access your account</p>
       
+      {loginError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{loginError}</AlertDescription>
+        </Alert>
+      )}
+      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -113,7 +153,7 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="email@example.com" {...field} />
+                  <Input placeholder="email@example.com" autoComplete="email" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -127,7 +167,7 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="Enter your password" {...field} />
+                  <Input type="password" placeholder="Enter your password" autoComplete="current-password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
