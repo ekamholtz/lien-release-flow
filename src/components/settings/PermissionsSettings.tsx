@@ -34,39 +34,37 @@ export function PermissionsSettings() {
       setLoading(true);
       
       try {
-        // Use raw SQL query to fetch permissions since TypeScript doesn't know about this table yet
+        // Fetch all permissions using direct SQL
         const { data: permissionsData, error: permissionsError } = await supabase
-          .rpc('get_all_permissions');
+          .from('permissions')
+          .select('*')
+          .order('name');
           
         if (permissionsError) throw permissionsError;
         
-        // Use raw SQL query to fetch project manager permissions
+        // Fetch project manager permissions using direct SQL
         const { data: pmPermissions, error: pmError } = await supabase
-          .rpc('get_role_permissions', { 
-            p_company_id: currentCompany.id, 
-            p_role: 'project_manager'
-          });
+          .from('role_permissions')
+          .select('permission_id')
+          .eq('company_id', currentCompany.id)
+          .eq('role', 'project_manager');
           
         if (pmError) throw pmError;
         
-        // Use raw SQL query to fetch office manager permissions
+        // Fetch office manager permissions using direct SQL
         const { data: omPermissions, error: omError } = await supabase
-          .rpc('get_role_permissions', { 
-            p_company_id: currentCompany.id, 
-            p_role: 'office_manager'
-          });
+          .from('role_permissions')
+          .select('permission_id')
+          .eq('company_id', currentCompany.id)
+          .eq('role', 'office_manager');
           
         if (omError) throw omError;
         
-        // Type cast the data
-        const typedPermissions = permissionsData as unknown as Permission[];
-        const typedPmPermissions = pmPermissions as unknown as { permission_id: string }[];
-        const typedOmPermissions = omPermissions as unknown as { permission_id: string }[];
-        
-        setPermissions(typedPermissions);
+        // Type the results appropriately
+        setPermissions(permissionsData as Permission[]);
         setRolePermissions({
-          project_manager: typedPmPermissions?.map(p => p.permission_id) || [],
-          office_manager: typedOmPermissions?.map(p => p.permission_id) || []
+          project_manager: pmPermissions?.map(p => p.permission_id) || [],
+          office_manager: omPermissions?.map(p => p.permission_id) || []
         });
         
       } catch (error) {
@@ -106,14 +104,27 @@ export function PermissionsSettings() {
     setSaving(true);
     
     try {
-      // Call the RPC function to save role permissions
-      const { error } = await supabase.rpc('save_role_permissions', {
-        p_company_id: currentCompany.id,
-        p_role: activeRole,
-        p_permission_ids: rolePermissions[activeRole]
-      });
+      // First, delete existing permissions for this role
+      await supabase
+        .from('role_permissions')
+        .delete()
+        .eq('company_id', currentCompany.id)
+        .eq('role', activeRole);
       
-      if (error) throw error;
+      // Then insert new permissions if there are any
+      if (rolePermissions[activeRole].length > 0) {
+        const permissionsToInsert = rolePermissions[activeRole].map(permId => ({
+          company_id: currentCompany.id,
+          role: activeRole,
+          permission_id: permId
+        }));
+        
+        const { error } = await supabase
+          .from('role_permissions')
+          .insert(permissionsToInsert);
+        
+        if (error) throw error;
+      }
       
       toast({
         title: 'Permissions saved',

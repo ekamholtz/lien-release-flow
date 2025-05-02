@@ -10,7 +10,6 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 
 const Team = () => {
   const navigate = useNavigate();
@@ -25,24 +24,12 @@ const Team = () => {
   } = useCompanyMembers(currentCompany?.id);
 
   useEffect(() => {
-    // Run the migration function once
-    const migrateRoles = async () => {
-      if (currentCompany?.id) {
-        try {
-          // Call the migrate_company_member_roles function
-          const { error } = await supabase.rpc('migrate_company_member_roles');
-          if (error) {
-            console.error('Error migrating roles:', error);
-          } else {
-            console.log('Role migration completed successfully');
-          }
-        } catch (err) {
-          console.error('Error during role migration:', err);
-        }
-      }
-    };
-    
-    migrateRoles();
+    // Since we can't use the migrate_company_member_roles function,
+    // we'll just log this for now. The migration should be handled separately
+    // through a direct database migration
+    if (currentCompany?.id) {
+      console.log('Note: Company members roles migration would happen here');
+    }
   }, [currentCompany?.id]);
 
   const handleMemberAdded = () => {

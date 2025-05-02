@@ -61,12 +61,21 @@ export function usePermissions(companyId?: string) {
     }
 
     try {
-      // Call the has_permission database function
-      const { data, error } = await supabase.rpc('has_permission', {
-        p_user_id: session.user.id,
-        p_company_id: companyId,
-        p_permission_code: permissionCode
-      });
+      // Manually query if the user has this permission via SQL query
+      const { data, error } = await supabase
+        .from('permissions')
+        .select(`
+          id,
+          code,
+          role_permissions!inner(
+            role,
+            company_id
+          )
+        `)
+        .eq('code', permissionCode)
+        .eq('role_permissions.role', role)
+        .eq('role_permissions.company_id', companyId)
+        .single();
 
       if (error) {
         console.error('Error checking permission:', error);
@@ -74,8 +83,9 @@ export function usePermissions(companyId?: string) {
       }
 
       // Cache the result
-      setPermissionCache(prev => ({ ...prev, [cacheKey]: !!data }));
-      return !!data;
+      const hasPermission = !!data;
+      setPermissionCache(prev => ({ ...prev, [cacheKey]: hasPermission }));
+      return hasPermission;
     } catch (error) {
       console.error('Error checking permission:', error);
       return false;
