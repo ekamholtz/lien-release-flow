@@ -44,7 +44,6 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: "",
-      ...(invitation ? {} : { companyName: "" }),
       email: invitationEmail || "",
       password: "",
     },
@@ -77,14 +76,9 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
     
     try {
       // Base user data
-      const userData: { full_name: string; company_name?: string } = {
+      const userData = {
         full_name: values.fullName,
       };
-      
-      // For non-invitation signups, include company name
-      if ('companyName' in values && values.companyName) {
-        userData.company_name = values.companyName;
-      }
       
       // Register the user with Supabase auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -188,22 +182,6 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
               </FormItem>
             )}
           />
-          
-          {!invitation && (
-            <FormField
-              control={form.control}
-              name="companyName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Company Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your Company LLC" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
           
           <FormField
             control={form.control}
