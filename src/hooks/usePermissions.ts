@@ -41,7 +41,7 @@ export function usePermissions(companyId?: string) {
     fetchRole();
   }, [session, companyId]);
 
-  // Check if the user has a specific permission using a direct SQL query
+  // Check if the user has a specific permission using direct SQL query
   const checkPermission = useCallback(async (permissionCode: string): Promise<boolean> => {
     // If no user or company, deny permission
     if (!session?.user?.id || !companyId) {
@@ -61,12 +61,15 @@ export function usePermissions(companyId?: string) {
     }
 
     try {
-      // Use a direct query to check the permission
-      const { data, error } = await supabase.rpc('check_user_permission', {
-        p_company_id: companyId,
-        p_permission_code: permissionCode,
-        p_user_id: session.user.id
-      });
+      // Use a direct SQL query with type assertion to bypass TypeScript error
+      const { data, error } = await supabase.rpc(
+        'check_user_permission' as any, 
+        {
+          p_company_id: companyId,
+          p_permission_code: permissionCode,
+          p_user_id: session.user.id
+        }
+      );
 
       if (error) {
         console.error('Error checking permission:', error);
