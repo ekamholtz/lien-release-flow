@@ -23,15 +23,8 @@ const Team = () => {
     refetch 
   } = useCompanyMembers(currentCompany?.id);
 
-  useEffect(() => {
-    // Since we can't use the migrate_company_member_roles function,
-    // we'll just log this for now. The migration should be handled separately
-    // through a direct database migration
-    if (currentCompany?.id) {
-      console.log('Note: Company members roles migration would happen here');
-    }
-  }, [currentCompany?.id]);
-
+  // Role migration is no longer needed as we updated the schema directly
+  
   const handleMemberAdded = () => {
     refetch();
   };

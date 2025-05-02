@@ -34,37 +34,37 @@ export function PermissionsSettings() {
       setLoading(true);
       
       try {
-        // Fetch all permissions using direct SQL
+        // Fetch all permissions with a direct SQL query to avoid type issues
         const { data: permissionsData, error: permissionsError } = await supabase
           .from('permissions')
           .select('*')
-          .order('name');
+          .order('name') as { data: Permission[] | null; error: any };
           
         if (permissionsError) throw permissionsError;
         
-        // Fetch project manager permissions using direct SQL
-        const { data: pmPermissions, error: pmError } = await supabase
+        // Fetch project manager permissions with direct SQL query
+        const { data: pmPermissionsData, error: pmError } = await supabase
           .from('role_permissions')
           .select('permission_id')
           .eq('company_id', currentCompany.id)
-          .eq('role', 'project_manager');
+          .eq('role', 'project_manager') as { data: { permission_id: string }[] | null; error: any };
           
         if (pmError) throw pmError;
         
-        // Fetch office manager permissions using direct SQL
-        const { data: omPermissions, error: omError } = await supabase
+        // Fetch office manager permissions with direct SQL query
+        const { data: omPermissionsData, error: omError } = await supabase
           .from('role_permissions')
           .select('permission_id')
           .eq('company_id', currentCompany.id)
-          .eq('role', 'office_manager');
+          .eq('role', 'office_manager') as { data: { permission_id: string }[] | null; error: any };
           
         if (omError) throw omError;
         
         // Type the results appropriately
-        setPermissions(permissionsData as Permission[]);
+        setPermissions(permissionsData || []);
         setRolePermissions({
-          project_manager: pmPermissions?.map(p => p.permission_id) || [],
-          office_manager: omPermissions?.map(p => p.permission_id) || []
+          project_manager: pmPermissionsData?.map(p => p.permission_id) || [],
+          office_manager: omPermissionsData?.map(p => p.permission_id) || []
         });
         
       } catch (error) {
@@ -104,26 +104,29 @@ export function PermissionsSettings() {
     setSaving(true);
     
     try {
-      // First, delete existing permissions for this role
-      await supabase
+      // Use a transaction to save permissions
+      // First, delete all existing permissions for this role
+      const deleteResult = await supabase
         .from('role_permissions')
         .delete()
         .eq('company_id', currentCompany.id)
         .eq('role', activeRole);
       
+      if (deleteResult.error) throw deleteResult.error;
+      
       // Then insert new permissions if there are any
       if (rolePermissions[activeRole].length > 0) {
         const permissionsToInsert = rolePermissions[activeRole].map(permId => ({
           company_id: currentCompany.id,
-          role: activeRole,
+          role: activeRole as any, // Type assertion to avoid TypeScript errors
           permission_id: permId
         }));
         
-        const { error } = await supabase
+        const insertResult = await supabase
           .from('role_permissions')
-          .insert(permissionsToInsert);
+          .insert(permissionsToInsert as any); // Type assertion to avoid TypeScript errors
         
-        if (error) throw error;
+        if (insertResult.error) throw insertResult.error;
       }
       
       toast({

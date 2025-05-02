@@ -516,6 +516,33 @@ export type Database = {
           },
         ]
       }
+      permissions: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -785,6 +812,48 @@ export type Database = {
         }
         Relationships: []
       }
+      role_permissions: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          permission_id: string
+          role: Database["public"]["Enums"]["role_code"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          permission_id: string
+          role: Database["public"]["Enums"]["role_code"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          permission_id?: string
+          role?: Database["public"]["Enums"]["role_code"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -1030,7 +1099,12 @@ export type Database = {
     Enums: {
       project_status: "draft" | "active" | "completed" | "cancelled"
       qbo_sync_status: "pending" | "success" | "error"
-      role_code: "company_admin" | "project_manager" | "viewer"
+      role_code:
+        | "company_admin"
+        | "project_manager"
+        | "viewer"
+        | "company_owner"
+        | "office_manager"
       sync_status: "pending" | "processing" | "success" | "error"
       user_role: "platform_admin" | "account_admin" | "user" | "guest"
     }
@@ -1150,7 +1224,13 @@ export const Constants = {
     Enums: {
       project_status: ["draft", "active", "completed", "cancelled"],
       qbo_sync_status: ["pending", "success", "error"],
-      role_code: ["company_admin", "project_manager", "viewer"],
+      role_code: [
+        "company_admin",
+        "project_manager",
+        "viewer",
+        "company_owner",
+        "office_manager",
+      ],
       sync_status: ["pending", "processing", "success", "error"],
       user_role: ["platform_admin", "account_admin", "user", "guest"],
     },
