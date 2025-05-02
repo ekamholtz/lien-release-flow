@@ -6,11 +6,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { type Permission } from '@/lib/types/company';
+import { type Permission, type RolePermission } from '@/lib/types/company';
 
 export function PermissionsSettings() {
   const { currentCompany } = useCompany();
@@ -35,13 +34,16 @@ export function PermissionsSettings() {
       setLoading(true);
       
       try {
-        // Fetch all permissions
+        // Fetch all permissions using a custom SQL fetch
         const { data: permissionsData, error: permissionsError } = await supabase
           .from('permissions')
           .select('*')
           .order('name');
           
         if (permissionsError) throw permissionsError;
+        
+        // Explicitly cast the data to our Permission type
+        const typedPermissions = permissionsData as unknown as Permission[];
         
         // Fetch role permissions for Project Manager
         const { data: pmPermissions, error: pmError } = await supabase
@@ -61,10 +63,14 @@ export function PermissionsSettings() {
           
         if (omError) throw omError;
         
-        setPermissions(permissionsData || []);
+        // Explicitly cast data to our types
+        const typedPmPermissions = pmPermissions as unknown as { permission_id: string }[];
+        const typedOmPermissions = omPermissions as unknown as { permission_id: string }[];
+        
+        setPermissions(typedPermissions);
         setRolePermissions({
-          project_manager: pmPermissions?.map(p => p.permission_id) || [],
-          office_manager: omPermissions?.map(p => p.permission_id) || []
+          project_manager: typedPmPermissions?.map(p => p.permission_id) || [],
+          office_manager: typedOmPermissions?.map(p => p.permission_id) || []
         });
         
       } catch (error) {
