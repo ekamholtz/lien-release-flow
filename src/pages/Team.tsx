@@ -25,6 +25,7 @@ const Team = () => {
     refetch();
   };
 
+  // Fixing type error by ensuring status is one of the allowed values
   const handleStatusChange = async (id: string, status: 'active' | 'pending' | 'disabled') => {
     try {
       await updateMember.mutateAsync({ id, status });

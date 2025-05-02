@@ -70,8 +70,7 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <SidebarTrigger />
       </div>
     </div>
   );
-};
+}
