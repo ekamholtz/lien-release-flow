@@ -5,21 +5,67 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { DbProject } from '@/lib/supabase';
+import { useCompany } from '@/contexts/CompanyContext';
 
 export function ProjectsList() {
   const navigate = useNavigate();
+  const { currentCompany } = useCompany();
   
-  const { data: projects = [] } = useQuery({
-    queryKey: ['projects'],
+  const { data: projects = [], isLoading } = useQuery({
+    queryKey: ['projects', currentCompany?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      if (!currentCompany?.id) {
+        return [];
+      }
+      
+      const { data, error } = await supabase
         .from('projects')
         .select('*')
+        .eq('company_id', currentCompany.id)
         .order('created_at', { ascending: false });
-      // Type assertion to handle the potentially missing company_id field
-      return data as unknown as DbProject[];
-    }
+      
+      if (error) throw error;
+      return data as DbProject[];
+    },
+    enabled: !!currentCompany?.id
   });
+
+  if (!currentCompany?.id) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">Please select a company to view projects</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader>
+              <div className="h-6 bg-gray-200 rounded w-2/3"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">No projects found. Create your first project to get started.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

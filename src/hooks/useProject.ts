@@ -2,14 +2,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { DbProject } from '@/lib/supabase';
+import { useCompany } from '@/contexts/CompanyContext';
 
 export function useProject(projectId?: string) {
   const [project, setProject] = useState<DbProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { currentCompany } = useCompany();
 
   useEffect(() => {
-    if (!projectId) {
+    if (!projectId || !currentCompany?.id) {
       setLoading(false);
       return;
     }
@@ -20,6 +22,7 @@ export function useProject(projectId?: string) {
           .from('projects')
           .select('*')
           .eq('id', projectId)
+          .eq('company_id', currentCompany.id)
           .single();
 
         if (error) throw error;
@@ -34,7 +37,7 @@ export function useProject(projectId?: string) {
     }
 
     fetchProject();
-  }, [projectId]);
+  }, [projectId, currentCompany?.id]);
 
   return { project, loading, error };
 }

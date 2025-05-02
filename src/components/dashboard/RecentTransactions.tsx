@@ -3,19 +3,27 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface RecentTransactionsProps {
   projectId?: string | null;
 }
 
 export function RecentTransactions({ projectId }: RecentTransactionsProps) {
+  const { currentCompany } = useCompany();
+
   const { data: transactions, isLoading } = useQuery({
-    queryKey: ['recent-transactions', projectId],
+    queryKey: ['recent-transactions', projectId, currentCompany?.id],
     queryFn: async () => {
+      // If no current company, return empty array
+      if (!currentCompany?.id) {
+        return [];
+      }
+      
       let query;
       
       if (projectId === 'unassigned') {
-        // Fetch from unassigned view
+        // Fetch from unassigned view with company filter
         query = supabase
           .from('legacy_unassigned_transactions')
           .select('*')
@@ -26,6 +34,7 @@ export function RecentTransactions({ projectId }: RecentTransactionsProps) {
         const { data: invoices, error: invoiceError } = await supabase
           .from('invoices')
           .select('id, invoice_number, client_name, amount, status, created_at')
+          .eq('company_id', currentCompany.id)
           .order('created_at', { ascending: false })
           .limit(10)
           .then(result => {
@@ -51,6 +60,7 @@ export function RecentTransactions({ projectId }: RecentTransactionsProps) {
         const { data: bills, error: billsError } = await supabase
           .from('bills')
           .select('id, bill_number, vendor_name, amount, status, created_at')
+          .eq('company_id', currentCompany.id)
           .order('created_at', { ascending: false })
           .limit(10)
           .then(result => {
@@ -82,6 +92,7 @@ export function RecentTransactions({ projectId }: RecentTransactionsProps) {
           const { data: filtered, error: filterError } = await supabase
             .from('invoices')
             .select('id, invoice_number, client_name, amount, status, created_at')
+            .eq('company_id', currentCompany.id)
             .eq('project_id', projectId)
             .order('created_at', { ascending: false })
             .limit(5)
@@ -108,6 +119,7 @@ export function RecentTransactions({ projectId }: RecentTransactionsProps) {
           const { data: billsFiltered, error: billsFilterError } = await supabase
             .from('bills')
             .select('id, bill_number, vendor_name, amount, status, created_at')
+            .eq('company_id', currentCompany.id)
             .eq('project_id', projectId)
             .order('created_at', { ascending: false })
             .limit(5)
@@ -144,7 +156,8 @@ export function RecentTransactions({ projectId }: RecentTransactionsProps) {
       const { data, error } = await query;
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!currentCompany?.id
   });
 
   const getStatusClass = (status: string) => {
@@ -163,6 +176,17 @@ export function RecentTransactions({ projectId }: RecentTransactionsProps) {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  if (!currentCompany?.id) {
+    return (
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h2 className="text-lg font-medium mb-4">Recent Transactions</h2>
+        <div className="text-center py-8 text-gray-500">
+          Please select a company to view transactions
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white shadow-sm rounded-lg p-6">

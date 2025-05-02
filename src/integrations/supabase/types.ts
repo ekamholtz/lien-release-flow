@@ -1009,6 +1009,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_user_company_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       get_user_subscription: {
         Args: { user_id_param: string }
         Returns: {
@@ -1090,6 +1094,14 @@ export type Database = {
           p_error_message?: string
         }
         Returns: undefined
+      }
+      user_has_permission_for_company: {
+        Args: {
+          p_user_id: string
+          p_company_id: string
+          p_permission_code: string
+        }
+        Returns: boolean
       }
       validate_milestone_template_percentages: {
         Args: { template_data: Json }

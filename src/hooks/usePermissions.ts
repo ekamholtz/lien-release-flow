@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 export function usePermissions(companyId?: string) {
   const { session } = useAuth();
@@ -13,6 +14,7 @@ export function usePermissions(companyId?: string) {
   useEffect(() => {
     const fetchRole = async () => {
       if (!session?.user?.id || !companyId) {
+        setRole(null);
         setLoading(false);
         return;
       }
@@ -28,11 +30,13 @@ export function usePermissions(companyId?: string) {
 
         if (error) {
           console.error('Error fetching user role:', error);
+          setRole(null);
         } else {
           setRole(data?.role || null);
         }
       } catch (error) {
         console.error('Error checking role:', error);
+        setRole(null);
       } finally {
         setLoading(false);
       }
@@ -73,6 +77,7 @@ export function usePermissions(companyId?: string) {
 
       if (error) {
         console.error('Error checking permission:', error);
+        toast.error(`Permission check failed: ${error.message}`);
         return false;
       }
 
@@ -85,6 +90,11 @@ export function usePermissions(companyId?: string) {
       return false;
     }
   }, [session, companyId, role, permissionCache]);
+
+  // Clear cache when company or user changes
+  useEffect(() => {
+    setPermissionCache({});
+  }, [companyId, session?.user?.id]);
 
   // Convenience methods for common permissions
   const can = {
