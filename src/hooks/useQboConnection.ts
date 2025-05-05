@@ -8,6 +8,11 @@ import { useCompany } from "@/contexts/CompanyContext";
 
 export type QboConnectionStatus = "connected" | "needs_reauth" | "not_connected" | "loading";
 
+interface QboAuthResponse {
+  intuit_oauth_url?: string;
+  debug?: any;
+}
+
 export function useQboConnection() {
   const [qboStatus, setQboStatus] = useState<QboConnectionStatus>("loading");
   const [connecting, setConnecting] = useState(false);
@@ -122,7 +127,7 @@ export function useQboConnection() {
       
       console.log("Calling QBO authorize function");
       
-      // Fixed the infinite type recursion by properly typing the fetch response
+      // Fixed typing issue by explicitly typing the response
       const response = await fetch(functionUrl, {
         method: "GET",
         headers: {
@@ -151,8 +156,8 @@ export function useQboConnection() {
         throw new Error(`Connection failed: ${errorText || response.statusText}`);
       }
 
-      // Fixed the infinite type recursion by explicitly typing the response data
-      const responseData: { intuit_oauth_url?: string; debug?: any } = await response.json();
+      // Fixed type instantiation by explicitly typing the response data
+      const responseData: QboAuthResponse = await response.json();
       console.log("QBO authorization response received");
       
       if (responseData.debug) {
