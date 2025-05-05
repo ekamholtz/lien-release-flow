@@ -46,6 +46,7 @@ export function useQboConnectionStatus(companyId?: string) {
       setError(null);
       setDebugInfo(null);
       
+      // Fix: Explicitly type the response data to avoid excessively deep type instantiation
       const response = await supabase
         .from('qbo_connections')
         .select('id,expires_at,refresh_token')
@@ -59,7 +60,12 @@ export function useQboConnectionStatus(companyId?: string) {
         throw new Error(`Failed to check QBO connection: ${response.error.message}`);
       }
 
-      const connectionData = response.data;
+      // Explicitly type the connectionData to avoid TypeScript issues
+      const connectionData = response.data as { 
+        id: string; 
+        expires_at: string; 
+        refresh_token: string | null;
+      } | null;
       
       if (connectionData) {
         if (!connectionData.refresh_token) {
