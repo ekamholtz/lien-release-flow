@@ -6,6 +6,13 @@ import { toast } from "sonner";
 
 export type QboConnectionStatus = "connected" | "needs_reauth" | "not_connected" | "loading";
 
+// Define an explicit type for the QBO connection data
+interface QboConnection {
+  id: string;
+  expires_at: string;
+  refresh_token: string | null;
+}
+
 export function useQboConnectionStatus(companyId?: string) {
   const [qboStatus, setQboStatus] = useState<QboConnectionStatus>("loading");
   const [error, setError] = useState<string | null>(null);
@@ -46,8 +53,8 @@ export function useQboConnectionStatus(companyId?: string) {
       setError(null);
       setDebugInfo(null);
       
-      // Execute the query using a simpler approach to avoid deep type instantiation
-      const response = await supabase
+      // Use Promise-based approach and avoid complex type inference
+      const { data, error: queryError } = await supabase
         .from('qbo_connections')
         .select('id,expires_at,refresh_token')
         .eq('company_id', currentCompanyId)
@@ -55,22 +62,22 @@ export function useQboConnectionStatus(companyId?: string) {
         .limit(1)
         .maybeSingle();
       
-      const queryError = response.error;
-      const data = response.data;
-      
       if (queryError) {
         console.error("Failed to check QBO connection:", queryError.message);
         throw new Error(`Failed to check QBO connection: ${queryError.message}`);
       }
       
-      if (data) {
-        if (!data.refresh_token) {
+      // Type assertion to help TypeScript understand the structure
+      const connectionData = data as QboConnection | null;
+      
+      if (connectionData) {
+        if (!connectionData.refresh_token) {
           console.error("Missing refresh token in QBO connection");
           setQboStatus("needs_reauth");
           return;
         }
         
-        const expiresAt = new Date(data.expires_at);
+        const expiresAt = new Date(connectionData.expires_at);
         const now = new Date();
         const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
         
