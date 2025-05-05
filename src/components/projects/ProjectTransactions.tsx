@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvoicesTable } from '@/components/payments/InvoicesTable';
@@ -6,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { DbProject, DbInvoice, DbBill, InvoiceStatus, BillStatus } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface ProjectTransactionsProps {
   project: DbProject;
@@ -26,13 +28,18 @@ type ExtendedBill = DbBill & {
 };
 
 export function ProjectTransactions({ project }: ProjectTransactionsProps) {
+  const { currentCompany } = useCompany();
+  
   const { data: invoices = [], refetch: refetchInvoices } = useQuery({
-    queryKey: ['project-invoices', project.id],
+    queryKey: ['project-invoices', project.id, currentCompany?.id],
     queryFn: async () => {
+      if (!currentCompany?.id) return [];
+      
       const { data } = await supabase
         .from('invoices')
         .select('*, projects(name)')
         .eq('project_id', project.id)
+        .eq('company_id', currentCompany.id)
         .order('created_at', { ascending: false });
         
       // Cast the status to ensure it matches InvoiceStatus type and add type assertion for ExtendedInvoice[]
@@ -40,16 +47,20 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
         ...invoice,
         status: invoice.status as InvoiceStatus
       })) as unknown as ExtendedInvoice[];
-    }
+    },
+    enabled: !!currentCompany?.id && !!project.id
   });
 
   const { data: bills = [], refetch: refetchBills } = useQuery({
-    queryKey: ['project-bills', project.id],
+    queryKey: ['project-bills', project.id, currentCompany?.id],
     queryFn: async () => {
+      if (!currentCompany?.id) return [];
+      
       const { data } = await supabase
         .from('bills')
         .select('*, projects(name)')
         .eq('project_id', project.id)
+        .eq('company_id', currentCompany.id)
         .order('created_at', { ascending: false });
         
       // Cast the status to ensure it matches BillStatus type and add type assertion for ExtendedBill[]
@@ -57,16 +68,23 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
         ...bill,
         status: bill.status as BillStatus
       })) as unknown as ExtendedBill[];
-    }
+    },
+    enabled: !!currentCompany?.id && !!project.id
   });
 
   // Handler for updating invoice status
   const handleUpdateInvoiceStatus = async (invoiceId: string, newStatus: InvoiceStatus) => {
+    if (!currentCompany?.id) {
+      toast.error("Please select a company first");
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('invoices')
         .update({ status: newStatus })
-        .eq('id', invoiceId);
+        .eq('id', invoiceId)
+        .eq('company_id', currentCompany.id);
       
       if (error) throw error;
       
@@ -80,11 +98,17 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
 
   // Handler for updating bill status
   const handleUpdateBillStatus = async (billId: string, newStatus: BillStatus) => {
+    if (!currentCompany?.id) {
+      toast.error("Please select a company first");
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('bills')
         .update({ status: newStatus })
-        .eq('id', billId);
+        .eq('id', billId)
+        .eq('company_id', currentCompany.id);
       
       if (error) throw error;
       

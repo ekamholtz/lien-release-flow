@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionRefresh } from "@/hooks/useSessionRefresh";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export type QboConnectionStatus = "connected" | "needs_reauth" | "not_connected" | "loading";
 
@@ -15,6 +17,7 @@ export function useQboConnection() {
   const { session, refreshSession } = useSessionRefresh();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { currentCompany } = useCompany();
 
   useEffect(() => {
     const connected = searchParams.get("connected");
@@ -37,12 +40,12 @@ export function useQboConnection() {
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (!session?.user || !currentCompany?.id) return;
     checkQboConnection();
-  }, [session]);
+  }, [session, currentCompany?.id]);
 
   const checkQboConnection = async () => {
-    if (!session?.user) return;
+    if (!session?.user || !currentCompany?.id) return;
     
     try {
       setError(null);
@@ -51,7 +54,7 @@ export function useQboConnection() {
       const response = await supabase
         .from('qbo_connections')
         .select('id,expires_at,refresh_token')
-        .eq('user_id', session.user.id)
+        .eq('company_id', currentCompany.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -94,6 +97,11 @@ export function useQboConnection() {
   };
 
   const handleConnectQbo = async () => {
+    if (!currentCompany?.id) {
+      toast.error("Please select a company to connect QuickBooks");
+      return;
+    }
+    
     setConnecting(true);
     setError(null);
     setDebugInfo(null);
@@ -153,6 +161,9 @@ export function useQboConnection() {
       if (!responseData.intuit_oauth_url) {
         throw new Error("No OAuth URL received from server");
       }
+      
+      // Store the company_id in session storage for retrieval after OAuth redirection
+      sessionStorage.setItem('qbo_company_id', currentCompany.id);
 
       console.log("Redirecting to Intuit OAuth URL");
       window.location.href = responseData.intuit_oauth_url;
@@ -168,14 +179,14 @@ export function useQboConnection() {
   };
 
   const handleDisconnectQbo = async () => {
-    if (!session?.user) return;
+    if (!currentCompany?.id) return;
     
     setIsDisconnecting(true);
     try {
       const { error } = await supabase
         .from('qbo_connections')
         .delete()
-        .eq('user_id', session.user.id);
+        .eq('company_id', currentCompany.id);
 
       if (error) throw error;
 

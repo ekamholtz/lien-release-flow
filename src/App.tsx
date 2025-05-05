@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,17 +23,30 @@ import LienRelease from './pages/LienRelease';
 import Integrations from './pages/Integrations';
 import NotFound from './pages/NotFound';
 import OnboardingPage from './pages/OnboardingPage';
+import { useCompany } from './contexts/CompanyContext';
 
 // Auth guard for protected routes
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const { currentCompany, isLoading: companyLoading } = useCompany();
 
-  if (loading) {
+  if (loading || companyLoading) {
     return <div>Loading...</div>;
   }
   
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+  
+  // For routes that require company context, redirect to onboarding if no company
+  // We'll exclude certain routes that don't require a company (like onboarding itself)
+  const currentPath = window.location.pathname;
+  const routesNotRequiringCompany = ['/onboarding', '/subscription'];
+  
+  const needsCompany = !routesNotRequiringCompany.some(route => currentPath.startsWith(route));
+  
+  if (needsCompany && !currentCompany) {
+    return <Navigate to="/onboarding/company" replace />;
   }
   
   return <>{children}</>;

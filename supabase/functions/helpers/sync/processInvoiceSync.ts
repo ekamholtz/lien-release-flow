@@ -18,7 +18,7 @@ export async function processInvoiceSync(
     // Get invoice data with user_id
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
-      .select('*, projects(*), user_id')
+      .select('*, projects(*), user_id, company_id')
       .eq('id', invoiceId)
       .single();
     
@@ -28,6 +28,10 @@ export async function processInvoiceSync(
 
     if (!invoice.user_id) {
       throw new Error('Invoice has no associated user_id');
+    }
+
+    if (!invoice.company_id) {
+      throw new Error('Invoice has no associated company_id');
     }
 
     // Mark as processing using the new upsert function with user_id
@@ -42,8 +46,21 @@ export async function processInvoiceSync(
     console.log('Set sync status to processing for invoice:', invoiceId);
 
     try {
+      // Find QBO connection for the company
+      const { data: qboConnection, error: qboConnectionError } = await supabase
+        .from('qbo_connections')
+        .select('*')
+        .eq('company_id', invoice.company_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+        
+      if (qboConnectionError || !qboConnection) {
+        throw new Error(`No QBO connection found for company: ${qboConnectionError?.message || 'Not found'}`);
+      }
+      
       // Create invoice in QBO
-      const adapter = await createQboInvoice(supabase, invoice, environmentVars);
+      const adapter = await createQboInvoice(supabase, invoice, environmentVars, qboConnection);
       
       // Record success using the new upsert function with user_id
       await supabase.rpc('update_sync_status', {

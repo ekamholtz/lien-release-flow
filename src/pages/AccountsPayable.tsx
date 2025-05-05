@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import { PlusCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DbBill, BillStatus } from '@/lib/supabase';
@@ -9,6 +10,8 @@ import { toast } from '@/hooks/use-toast';
 import { PayBill } from '@/components/payments/PayBill';
 import { BillsTable } from '@/components/payments/BillsTable';
 import { BillDetailsModal } from '@/components/payments/BillDetailsModal';
+import { FinanceFilters } from '@/components/finance/FinanceFilters';
+import { useCompany } from '@/contexts/CompanyContext';
 
 // Define an extended bill type that includes the project name from the join
 type ExtendedBill = DbBill & {
@@ -23,15 +26,35 @@ const AccountsPayable = () => {
   const [selectedBill, setSelectedBill] = useState<ExtendedBill | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { currentCompany } = useCompany();
 
   const fetchBills = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // If no company is selected, don't fetch any data
+      if (!currentCompany?.id) {
+        setBills([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Always filter by company_id first
+      let query = supabase
         .from('bills')
         .select('*, projects(name)')
-        .order('created_at', { ascending: false });
+        .eq('company_id', currentCompany.id);
+        
+      // Apply project filter if selected
+      if (selectedProjectId === 'unassigned') {
+        query = query.is('project_id', null);
+      } else if (selectedProjectId) {
+        query = query.eq('project_id', selectedProjectId);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) {
         throw error;
@@ -53,14 +76,24 @@ const AccountsPayable = () => {
 
   useEffect(() => {
     fetchBills();
-  }, []);
+  }, [selectedProjectId, currentCompany?.id]);
 
   const handleUpdateStatus = async (billId: string, newStatus: BillStatus) => {
+    if (!currentCompany?.id) {
+      toast({
+        title: "No Company Selected",
+        description: "Please select a company first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('bills')
         .update({ status: newStatus })
-        .eq('id', billId);
+        .eq('id', billId)
+        .eq('company_id', currentCompany.id);
         
       if (error) throw error;
       
@@ -85,6 +118,15 @@ const AccountsPayable = () => {
   };
   
   const handlePayBill = (bill: ExtendedBill) => {
+    if (!currentCompany?.id) {
+      toast({
+        title: "No Company Selected",
+        description: "Please select a company first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (bill.status !== 'approved') {
       toast({
         title: "Cannot Process Payment",
@@ -110,7 +152,7 @@ const AccountsPayable = () => {
           <h1 className="text-2xl font-bold">Accounts Payable</h1>
           <div className="ml-auto">
             <Button 
-              onClick={() => navigate('/create-bill')}
+              onClick={() => navigate('/bills/create')}
               className="bg-construction-600 hover:bg-construction-700 flex items-center gap-2"
             >
               <PlusCircle className="h-4 w-4" />
@@ -119,10 +161,19 @@ const AccountsPayable = () => {
           </div>
         </div>
         
+        <FinanceFilters 
+          onFilterChange={setSelectedProjectId}
+          selectedProjectId={selectedProjectId}
+        />
+        
         <div className="dashboard-card mb-6">
           <h2 className="text-lg font-semibold mb-4">Bills</h2>
           
-          {loading ? (
+          {!currentCompany ? (
+            <div className="p-4 bg-yellow-50 rounded-md border border-yellow-200 text-yellow-800">
+              <p>Please select a company to view bills.</p>
+            </div>
+          ) : loading ? (
             <div className="p-8 text-center">
               <p className="text-gray-500">Loading bills...</p>
             </div>
