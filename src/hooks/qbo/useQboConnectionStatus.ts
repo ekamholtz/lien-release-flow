@@ -46,35 +46,35 @@ export function useQboConnectionStatus(companyId?: string) {
       setError(null);
       setDebugInfo(null);
       
-      // Fix: Explicitly type the response data to avoid excessively deep type instantiation
-      const response = await supabase
+      // Fix: Use typed response to avoid TypeScript deep recursion
+      type QboConnectionData = {
+        id: string;
+        expires_at: string;
+        refresh_token: string | null;
+      };
+      
+      // Use type assertion to avoid deep type instantiation
+      const { data, error: queryError } = await supabase
         .from('qbo_connections')
         .select('id,expires_at,refresh_token')
         .eq('company_id', currentCompanyId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle() as { data: QboConnectionData | null, error: any };
       
-      if (response.error) {
-        console.error("Failed to check QBO connection:", response.error.message);
-        throw new Error(`Failed to check QBO connection: ${response.error.message}`);
+      if (queryError) {
+        console.error("Failed to check QBO connection:", queryError.message);
+        throw new Error(`Failed to check QBO connection: ${queryError.message}`);
       }
-
-      // Explicitly type the connectionData to avoid TypeScript issues
-      const connectionData = response.data as { 
-        id: string; 
-        expires_at: string; 
-        refresh_token: string | null;
-      } | null;
       
-      if (connectionData) {
-        if (!connectionData.refresh_token) {
+      if (data) {
+        if (!data.refresh_token) {
           console.error("Missing refresh token in QBO connection");
           setQboStatus("needs_reauth");
           return;
         }
         
-        const expiresAt = new Date(connectionData.expires_at);
+        const expiresAt = new Date(data.expires_at);
         const now = new Date();
         const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
         
