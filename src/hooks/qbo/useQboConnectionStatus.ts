@@ -53,8 +53,8 @@ export function useQboConnectionStatus(companyId?: string) {
       setError(null);
       setDebugInfo(null);
       
-      // Use Promise-based approach and avoid complex type inference
-      const { data, error: queryError } = await supabase
+      // Use Promise-based approach but with explicit any type to avoid deep type inference
+      const result: any = await supabase
         .from('qbo_connections')
         .select('id,expires_at,refresh_token')
         .eq('company_id', currentCompanyId)
@@ -62,22 +62,23 @@ export function useQboConnectionStatus(companyId?: string) {
         .limit(1)
         .maybeSingle();
       
+      // Extract error and data from result
+      const queryError = result.error;
+      const data = result.data;
+      
       if (queryError) {
         console.error("Failed to check QBO connection:", queryError.message);
         throw new Error(`Failed to check QBO connection: ${queryError.message}`);
       }
       
-      // Type assertion to help TypeScript understand the structure
-      const connectionData = data as QboConnection | null;
-      
-      if (connectionData) {
-        if (!connectionData.refresh_token) {
+      if (data) {
+        if (!data.refresh_token) {
           console.error("Missing refresh token in QBO connection");
           setQboStatus("needs_reauth");
           return;
         }
         
-        const expiresAt = new Date(connectionData.expires_at);
+        const expiresAt = new Date(data.expires_at);
         const now = new Date();
         const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
         
