@@ -53,21 +53,24 @@ export function useQboConnectionStatus(companyId?: string) {
       setError(null);
       setDebugInfo(null);
       
-      // Avoid TypeScript inference issues by using raw SQL queries
-      const { data, error: queryError } = await supabase
+      // Execute the query and use type assertion to avoid type inference issues
+      const response = await supabase
         .from('qbo_connections')
         .select('*')
         .eq('company_id', currentCompanyId)
         .order('created_at', { ascending: false })
         .limit(1);
       
-      // Handle the connection data without complex type inference
-      const connectionData = data && data.length > 0 ? data[0] as QboConnection : null;
+      const queryError = response.error;
+      const data = response.data;
       
       if (queryError) {
         console.error("Failed to check QBO connection:", queryError.message);
         throw new Error(`Failed to check QBO connection: ${queryError.message}`);
       }
+      
+      // Extract the first item safely if data exists
+      const connectionData = data && data.length > 0 ? data[0] as QboConnection : null;
       
       if (connectionData) {
         if (!connectionData.refresh_token) {
