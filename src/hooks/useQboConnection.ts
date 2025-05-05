@@ -127,7 +127,6 @@ export function useQboConnection() {
       
       console.log("Calling QBO authorize function");
       
-      // Fixed typing issue by explicitly typing the response
       const response = await fetch(functionUrl, {
         method: "GET",
         headers: {
@@ -156,8 +155,11 @@ export function useQboConnection() {
         throw new Error(`Connection failed: ${errorText || response.statusText}`);
       }
 
-      // Fixed type instantiation by explicitly typing the response data
-      const responseData: QboAuthResponse = await response.json();
+      // Avoiding TypeScript deep recursion by using any as an intermediary step
+      const json: any = await response.json();
+      // Then casting to our interface type
+      const responseData: QboAuthResponse = json;
+      
       console.log("QBO authorization response received");
       
       if (responseData.debug) {
