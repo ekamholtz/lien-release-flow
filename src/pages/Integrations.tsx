@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppHeader } from '@/components/AppHeader';
 import { AppSidebar } from '@/components/AppSidebar';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
+import { useQboConnection } from '@/hooks/useQboConnection';
+import { useCompany } from '@/contexts/CompanyContext';
 
 const IntegrationCard = ({ 
   title, 
@@ -55,90 +57,16 @@ const IntegrationCard = ({
 );
 
 const Integrations = () => {
-  const { user, session } = useAuth();
-  const [qboConnected, setQboConnected] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  
-  useEffect(() => {
-    if (!user || !session?.access_token) return;
-    
-    // Check QBO connection status
-    fetch(
-      `https://oknofqytitpxmlprvekn.supabase.co/rest/v1/qbo_connections?user_id=eq.${user.id}&select=id`,
-      {
-        headers: {
-          apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
-          Authorization: `Bearer ${session.access_token}`,
-        }
-      }
-    )
-      .then((r) => r.ok ? r.json() : [])
-      .then((rows) => {
-        setQboConnected(Array.isArray(rows) && rows.length > 0);
-      })
-      .catch((err) => {
-        console.error("Error checking QBO connection:", err);
-      });
-  }, [user, session]);
+  const { user } = useAuth();
+  const { currentCompany } = useCompany();
+  const { 
+    qboStatus, 
+    error, 
+    debugInfo, 
+    handleConnectQbo 
+  } = useQboConnection();
 
-  const handleConnectQbo = async () => {
-    if (!session?.access_token) {
-      setError("No active session found. Please sign in again.");
-      return;
-    }
-    
-    try {
-      setError(null);
-      setDebugInfo(null);
-      
-      // Call the qbo-authorize edge function with proper Authorization header
-      const res = await fetch(
-        "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
-        { 
-          headers: { 
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ"
-          } 
-        }
-      );
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("QBO authorize error:", errorText);
-        
-        // Try to parse the error response
-        try {
-          const errorJson = JSON.parse(errorText);
-          setDebugInfo(errorJson.debug || {});
-        } catch (e) {
-          // If it's not JSON, just use the text
-        }
-        
-        setError(`Connection failed: ${errorText || res.statusText}`);
-        return;
-      }
-      
-      // Get the Intuit OAuth URL from the response
-      const responseData = await res.json();
-      console.log("QBO response data:", responseData);
-      
-      if (responseData.debug) {
-        setDebugInfo(responseData.debug);
-      }
-      
-      if (!responseData.intuit_oauth_url) {
-        setError("No OAuth URL received from server");
-        return;
-      }
-      
-      // Redirect to Intuit OAuth URL
-      window.location.href = responseData.intuit_oauth_url;
-    } catch (err: any) {
-      console.error("Error connecting to QBO:", err);
-      setError(err.message || "Failed to connect to QuickBooks");
-    }
-  };
+  const isQboConnected = qboStatus === "connected";
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -152,6 +80,7 @@ const Integrations = () => {
               <p className="text-gray-500 mt-1">Connect your payment and accounting services</p>
             </div>
             
+            {/* Payment Processing section */}
             <div className="mb-8">
               <h2 className="text-lg font-semibold mb-4">Payment Processing</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -169,6 +98,7 @@ const Integrations = () => {
               </div>
             </div>
             
+            {/* Electronic Signatures section */}
             <div className="mb-8">
               <h2 className="text-lg font-semibold mb-4">Electronic Signatures</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -185,6 +115,7 @@ const Integrations = () => {
               </div>
             </div>
             
+            {/* Accounting & ERP section */}
             <div>
               <h2 className="text-lg font-semibold mb-4">Accounting & ERP</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -192,8 +123,8 @@ const Integrations = () => {
                   title="QuickBooks Online" 
                   description="Sync invoices and payment data with QuickBooks" 
                   icon="/placeholder.svg" 
-                  isConnected={qboConnected}
-                  buttonText="Connect"
+                  isConnected={isQboConnected}
+                  buttonText={isQboConnected ? "Manage Connection" : "Connect"}
                   onButtonClick={handleConnectQbo}
                 />
                 <IntegrationCard 
@@ -205,6 +136,7 @@ const Integrations = () => {
               </div>
             </div>
             
+            {/* Error and debug info */}
             {error && (
               <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-md">
                 <div className="flex items-start gap-2 text-red-600">

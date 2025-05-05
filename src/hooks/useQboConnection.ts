@@ -122,14 +122,14 @@ export function useQboConnection() {
       
       console.log("Calling QBO authorize function");
       
+      // Fixed the infinite type recursion by properly typing the fetch response
       const response = await fetch(functionUrl, {
         method: "GET",
         headers: {
           Authorization: bearer,
           apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
           "Content-Type": "application/json"
-        },
-        mode: "cors"
+        }
       });
 
       if (!response.ok) {
@@ -151,7 +151,8 @@ export function useQboConnection() {
         throw new Error(`Connection failed: ${errorText || response.statusText}`);
       }
 
-      const responseData = await response.json();
+      // Fixed the infinite type recursion by explicitly typing the response data
+      const responseData: { intuit_oauth_url?: string; debug?: any } = await response.json();
       console.log("QBO authorization response received");
       
       if (responseData.debug) {
