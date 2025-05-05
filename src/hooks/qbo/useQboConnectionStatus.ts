@@ -46,21 +46,17 @@ export function useQboConnectionStatus(companyId?: string) {
       setError(null);
       setDebugInfo(null);
       
-      // Fix: Use typed response to avoid TypeScript deep recursion
-      type QboConnectionData = {
-        id: string;
-        expires_at: string;
-        refresh_token: string | null;
-      };
-      
-      // Use type assertion to avoid deep type instantiation
-      const { data, error: queryError } = await supabase
+      // Execute the query using a simpler approach to avoid deep type instantiation
+      const response = await supabase
         .from('qbo_connections')
         .select('id,expires_at,refresh_token')
         .eq('company_id', currentCompanyId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle() as { data: QboConnectionData | null, error: any };
+        .maybeSingle();
+      
+      const queryError = response.error;
+      const data = response.data;
       
       if (queryError) {
         console.error("Failed to check QBO connection:", queryError.message);
