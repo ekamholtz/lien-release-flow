@@ -16,7 +16,7 @@ interface QboConnection {
 export function useQboConnectionStatus(companyId?: string) {
   const [qboStatus, setQboStatus] = useState<QboConnectionStatus>("loading");
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<Record<string, any> | null>(null); // Use Record type instead of any
+  const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null); // Fixed the type to avoid excessive depth
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   

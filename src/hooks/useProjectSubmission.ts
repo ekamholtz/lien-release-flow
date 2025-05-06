@@ -1,13 +1,14 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ProjectFormData } from '@/hooks/useProjectWizard';
+import { useCompany } from '@/contexts/CompanyContext';
 
 export function useProjectSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { currentCompany } = useCompany();
 
   const submitProject = async (formData: ProjectFormData, userId?: string) => {
     if (!userId) {
@@ -15,10 +16,21 @@ export function useProjectSubmission() {
       return false;
     }
 
+    if (!formData.companyId && !currentCompany?.id) {
+      toast.error('No company selected. Please select a company first.');
+      return false;
+    }
+
+    const companyId = formData.companyId || currentCompany?.id;
+    if (!companyId) {
+      toast.error('No company ID available. Please select a company first.');
+      return false;
+    }
+
     setIsSubmitting(true);
 
     try {
-      console.log('Starting project creation with data:', formData);
+      console.log('Starting project creation with data:', { ...formData, companyId });
       
       // Insert project
       const { data: project, error: projectError } = await supabase
@@ -35,6 +47,7 @@ export function useProjectSubmission() {
           start_date: formData.startDate.toISOString().split('T')[0],
           end_date: formData.endDate ? formData.endDate.toISOString().split('T')[0] : null,
           project_type_id: formData.projectTypeId,
+          company_id: companyId,
           status: 'draft'
         })
         .select('id')
@@ -51,7 +64,7 @@ export function useProjectSubmission() {
       await uploadProjectDocuments(formData.documents, project.id, userId);
 
       // Insert milestones if any
-      await createProjectMilestones(formData.milestones, project.id);
+      await createProjectMilestones(formData.milestones, project.id, companyId);
 
       toast.success('Project created successfully');
       
@@ -132,7 +145,8 @@ export function useProjectSubmission() {
 
   const createProjectMilestones = async (
     milestones: ProjectFormData['milestones'],
-    projectId: string
+    projectId: string,
+    companyId: string
   ) => {
     if (milestones.length === 0) return;
     
@@ -145,7 +159,8 @@ export function useProjectSubmission() {
       amount: milestone.amount,
       percentage: milestone.percentage,
       is_completed: false,
-      due_type: milestone.dueType
+      due_type: milestone.dueType,
+      company_id: companyId // Add company ID to milestones
     }));
 
     const { error: milestonesError } = await supabase

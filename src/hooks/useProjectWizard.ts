@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompany } from '@/contexts/CompanyContext';
 import { toast } from 'sonner';
 import { Milestone } from '@/components/projects/wizard/ProjectMilestones';
 import { ProjectDocument } from '@/components/projects/wizard/ProjectDocuments';
@@ -22,10 +23,12 @@ export interface ProjectFormData {
   projectTypeId?: string;
   documents: ProjectDocument[];
   milestones: Milestone[];
+  companyId?: string; // Add company ID to form data
 }
 
 export function useProjectWizard(initialProjectId?: string | null) {
   const { user } = useAuth();
+  const { currentCompany } = useCompany();
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic-info');
   const [formData, setFormData] = useState<ProjectFormData>({
     name: '',
@@ -33,24 +36,38 @@ export function useProjectWizard(initialProjectId?: string | null) {
     value: 0,
     startDate: new Date(),
     documents: [],
-    milestones: []
+    milestones: [],
+    companyId: currentCompany?.id // Initialize with current company ID
   });
   const [initialLoading, setInitialLoading] = useState(!!initialProjectId);
   const [projectTypes, setProjectTypes] = useState<ProjectType[]>([]);
 
+  // Update company ID when it changes
+  useEffect(() => {
+    if (currentCompany?.id) {
+      setFormData(prev => ({
+        ...prev,
+        companyId: currentCompany.id
+      }));
+    }
+  }, [currentCompany?.id]);
+
   // Load project data if initialProjectId is provided
   useEffect(() => {
     async function loadProjectData() {
-      if (!initialProjectId) return;
+      if (!initialProjectId || !currentCompany?.id) return;
       
       setInitialLoading(true);
       try {
+        console.log(`Loading project data for ID: ${initialProjectId} and company: ${currentCompany.id}`);
+        
         // Fetch project details
         const { data: project, error } = await supabase
           .from('projects')
           .select('*')
           .eq('id', initialProjectId)
-          .single();
+          .eq('company_id', currentCompany.id)
+          .maybeSingle();
           
         if (error) {
           throw error;
@@ -70,6 +87,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
             startDate: project.start_date ? new Date(project.start_date) : new Date(),
             endDate: project.end_date ? new Date(project.end_date) : null,
             projectTypeId: project.project_type_id || undefined,
+            companyId: project.company_id || currentCompany.id,
             documents: [], // These will be loaded separately
             milestones: [] // These will be loaded separately
           });
@@ -87,6 +105,9 @@ export function useProjectWizard(initialProjectId?: string | null) {
             .eq('project_id', initialProjectId);
             
           console.log('Project loaded successfully:', project.name);
+        } else {
+          console.error('Project not found or not accessible');
+          toast.error('Project not found or not accessible');
         }
       } catch (error) {
         console.error('Error loading project:', error);
@@ -97,7 +118,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
     }
     
     loadProjectData();
-  }, [initialProjectId]);
+  }, [initialProjectId, currentCompany?.id]);
 
   const handleNextStep = () => {
     if (currentStep === 'basic-info') {

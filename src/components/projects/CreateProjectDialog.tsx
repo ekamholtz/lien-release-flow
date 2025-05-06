@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from "zod";
@@ -26,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
 
 const formSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -47,6 +47,7 @@ export function CreateProjectDialog({
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { currentCompany } = useCompany();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Fetch project types
@@ -79,10 +80,17 @@ export function CreateProjectDialog({
       toast.error("You must be logged in to create a project");
       return;
     }
+    
+    if (!currentCompany?.id) {
+      toast.error("No company selected. Please select a company first.");
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
+      console.log("Creating project with company ID:", currentCompany.id);
+      
       // Create draft project with minimal info
       const { data: project, error } = await supabase
         .from("projects")
@@ -92,7 +100,8 @@ export function CreateProjectDialog({
           value: values.value,
           project_type_id: values.projectTypeId,
           start_date: new Date().toISOString().split('T')[0],
-          status: "draft"
+          status: "draft",
+          company_id: currentCompany.id // Add company ID to the project
         })
         .select()
         .single();
