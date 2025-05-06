@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
 import { useQboConnection } from '@/hooks/useQboConnection';
 import { useCompany } from '@/contexts/CompanyContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const IntegrationCard = ({ 
   title, 
@@ -142,7 +143,7 @@ const Integrations = () => {
               <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-md">
                 <div className="flex items-start gap-2 text-red-600">
                   <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                  <span>{error}</span>
+                  <span>{String(error)}</span>
                 </div>
               </div>
             )}

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, X } from "lucide-react";
@@ -145,7 +146,7 @@ export function IntegrationsSettings() {
           <AlertTitle>Connection Error</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>{error}</p>
-            {error.includes("token") && (
+            {typeof error === 'string' && error.includes("token") && (
               <p className="text-sm">
                 This usually means your QuickBooks session has expired. Please try reconnecting.
               </p>

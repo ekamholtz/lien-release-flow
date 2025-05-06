@@ -1,18 +1,18 @@
 
 import { useSessionRefresh } from "@/hooks/useSessionRefresh";
-import { useQboConnectionStatus, QboConnectionStatus } from "@/hooks/qbo/useQboConnectionStatus";
+import { useQboConnectionStatus, QboStatus } from "@/hooks/qbo/useQboConnectionStatus";
 import { useQboActions } from "@/hooks/qbo/useQboActions";
 import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 
-export type { QboConnectionStatus };
+export type QboConnectionStatus = QboStatus;
 
 export function useQboConnection() {
   const { session, refreshSession } = useSessionRefresh();
   const { currentCompany } = useCompany();
   
   const {
-    qboStatus,
+    status: qboStatus,
     error,
     setError,
     debugInfo,

@@ -4,61 +4,75 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useCompany } from '@/contexts/CompanyContext';
 
-export type QboStatus = 'connected' | 'disconnected' | 'expired' | 'loading';
+export type QboStatus = 'connected' | 'disconnected' | 'expired' | 'loading' | 'needs_reauth';
 
-export function useQboConnectionStatus() {
+export function useQboConnectionStatus(companyId?: string) {
   const { user } = useAuth();
   const { currentCompany } = useCompany();
   const [status, setStatus] = useState<QboStatus>('loading');
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
-  useEffect(() => {
-    if (!user) {
+  const checkQboConnection = async (companyIdToCheck?: string) => {
+    const effectiveCompanyId = companyIdToCheck || companyId || currentCompany?.id;
+    
+    if (!user || !effectiveCompanyId) {
       setStatus('disconnected');
       setLoading(false);
       return;
     }
 
-    async function checkQboStatus() {
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-        const { data, error } = await supabase
-          .from('qbo_connections')
-          .select('expires_at, realm_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
+      const { data, error: fetchError } = await supabase
+        .from('qbo_connections')
+        .select('expires_at, realm_id')
+        .eq('company_id', effectiveCompanyId)
+        .maybeSingle();
 
-        if (error) throw error;
+      if (fetchError) throw fetchError;
 
-        if (!data) {
-          setStatus('disconnected');
-          return;
-        }
-
-        const expiry = new Date(data.expires_at);
-        setExpiresAt(expiry);
-
-        if (expiry < new Date()) {
-          setStatus('expired');
-        } else {
-          setStatus('connected');
-        }
-      } catch (err) {
-        console.error('Error checking QBO status:', err);
-        setError(err instanceof Error ? err : new Error('Failed to check QBO status'));
+      if (!data) {
         setStatus('disconnected');
-      } finally {
-        setLoading(false);
+        setDebugInfo({ message: "No QBO connection found", timestamp: new Date().toISOString() });
+        return;
       }
-    }
 
-    checkQboStatus();
-    // Fixed: removing the status dependency to prevent infinite loop
-  }, [user]);
+      const expiry = new Date(data.expires_at);
+      setExpiresAt(expiry);
+
+      if (expiry < new Date()) {
+        setStatus('expired');
+        setDebugInfo({ 
+          message: "QBO token expired", 
+          expiryDate: expiry.toISOString(),
+          currentDate: new Date().toISOString() 
+        });
+      } else {
+        setStatus('connected');
+        setDebugInfo({ 
+          message: "QBO connection active",
+          realmId: data.realm_id,
+          expiryDate: expiry.toISOString() 
+        });
+      }
+    } catch (err: any) {
+      console.error('Error checking QBO status:', err);
+      setError(err?.message || 'Failed to check QBO status');
+      setStatus('disconnected');
+      setDebugInfo({ error: err?.message || String(err) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    checkQboConnection();
+  }, [user, companyId, currentCompany?.id]);
 
   const getConnectionUrl = () => {
     const baseUrl = window.location.origin;
@@ -75,6 +89,10 @@ export function useQboConnectionStatus() {
     expiresAt,
     loading,
     error,
+    debugInfo,
+    setError,
+    setDebugInfo,
+    checkQboConnection,
     getConnectionUrl,
   };
 }
