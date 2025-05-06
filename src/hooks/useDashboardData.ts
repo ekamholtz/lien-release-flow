@@ -61,7 +61,7 @@ export function useDashboardData(): DashboardSummary {
       // Calculate total outstanding
       const totalOutstanding = invoices
         ?.filter(inv => inv.status !== 'paid')
-        ?.reduce((sum, inv) => sum + parseFloat(inv.amount), 0) || 0;
+        ?.reduce((sum, inv) => sum + parseFloat(String(inv.amount)), 0) || 0;
       
       // Calculate changes (mock for now, would need historical data)
       const totalOutstandingChange = 12.5; // This would be calculated based on historical data

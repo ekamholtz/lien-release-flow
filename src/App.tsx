@@ -185,6 +185,16 @@ const App = () => {
             </ProtectedRoute>
           } 
         />
+        {/* Add route for lien-release without ID parameter */}
+        <Route 
+          path="/lien-release" 
+          element={
+            <ProtectedRoute>
+              <LienRelease />
+            </ProtectedRoute>
+          } 
+        />
+        {/* Keep the existing route with ID parameter */}
         <Route 
           path="/lien-release/:id" 
           element={
@@ -193,7 +203,6 @@ const App = () => {
             </ProtectedRoute>
           } 
         />
-        {/* Removed /integrations route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
