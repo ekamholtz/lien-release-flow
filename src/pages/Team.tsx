@@ -59,6 +59,8 @@ const Team = () => {
     checkPermission();
   }, [isCompanyOwner, can]);
 
+  // No automatic redirects here
+
   return (
     <AppLayout>
       <div className="container mx-auto py-6 px-4 md:px-6">

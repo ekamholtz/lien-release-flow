@@ -73,8 +73,8 @@ export function PersonalInfoSetup() {
     }
   }, [user, form]);
 
-  React.useEffect(() => {
-    // Check if user has any pending invitations
+  // Check for pending invitations only once when the component mounts
+  useEffect(() => {
     const checkInvitations = async () => {
       if (user?.email) {
         try {
@@ -87,10 +87,10 @@ export function PersonalInfoSetup() {
       }
     };
     
-    if (user) {
+    if (user && hasInvitations === null) {
       checkInvitations();
     }
-  }, [user]);
+  }, [user, hasInvitations]);
 
   const onSubmit = async (values: PersonalInfoValues) => {
     if (!user) return;
