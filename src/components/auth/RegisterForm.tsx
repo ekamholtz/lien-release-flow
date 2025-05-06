@@ -121,11 +121,11 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
           // Self-registration - User is immediately signed in (email confirmation disabled)
           toast({
             title: "Account created successfully",
-            description: "Welcome to PaymentFlow! Please set up your company.",
+            description: "Welcome to PaymentFlow! Please complete your profile.",
           });
           
-          // Redirect to company setup page
-          navigate('/onboarding/company');
+          // Redirect to personal info setup page first
+          navigate('/onboarding/personal-info');
         } else {
           // Email confirmation is required
           toast({

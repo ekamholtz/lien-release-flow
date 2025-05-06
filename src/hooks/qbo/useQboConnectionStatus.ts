@@ -53,17 +53,16 @@ export function useQboConnectionStatus(companyId?: string) {
       setError(null);
       setDebugInfo(null);
       
-      // Use a simpler approach that avoids complex type inference
-      const { data, error } = await supabase
+      // Fix the type inference issue by separating the query and the type assertion
+      const response = await supabase
         .from('qbo_connections')
         .select('id, expires_at, refresh_token')
         .eq('company_id', currentCompanyId)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .then(result => ({
-          data: result.data as QboConnection[] | null,
-          error: result.error
-        }));
+        .limit(1);
+      
+      const error = response.error;
+      const data = response.data as QboConnection[] | null;
       
       if (error) {
         console.error("Failed to check QBO connection:", error.message);

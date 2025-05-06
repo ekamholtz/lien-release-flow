@@ -2,9 +2,11 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { CompanySetup } from '@/components/onboarding/CompanySetup';
+import { PersonalInfoSetup } from '@/components/onboarding/PersonalInfoSetup';
 import { AuthLogo } from '@/components/auth/AuthLogo';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
+import { InvitationsCheck } from '@/components/onboarding/InvitationsCheck';
 
 const OnboardingPage = () => {
   const { step } = useParams<{ step: string }>();
@@ -30,9 +32,14 @@ const OnboardingPage = () => {
           <AuthLogo />
         </div>
         
-        {step === 'company' && <CompanySetup />}
+        {/* Check for pending invitations */}
+        <InvitationsCheck />
         
-        {/* Add more onboarding steps here as needed */}
+        {/* Personal information step */}
+        {step === 'personal-info' && <PersonalInfoSetup />}
+        
+        {/* Company setup step */}
+        {step === 'company' && <CompanySetup />}
       </div>
       <div className="mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

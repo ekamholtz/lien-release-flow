@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -46,7 +45,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const needsCompany = !routesNotRequiringCompany.some(route => currentPath.startsWith(route));
   
   if (needsCompany && !currentCompany) {
-    return <Navigate to="/onboarding/company" replace />;
+    return <Navigate to="/onboarding/personal-info" replace />;
   }
   
   return <>{children}</>;

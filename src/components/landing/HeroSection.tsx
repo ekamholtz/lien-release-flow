@@ -4,9 +4,19 @@ import { ArrowRight, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { RetroGrid } from '@/components/ui/retro-grid';
+import { useAuth } from '@/hooks/useAuth';
 
 export function HeroSection() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const handleGetStarted = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth');
+    }
+  };
   
   return (
     <section className="bg-gradient-to-br from-construction-50 to-gray-100 py-20 relative overflow-hidden">
@@ -24,7 +34,7 @@ export function HeroSection() {
               <Button 
                 size="lg"
                 className="bg-construction-600 hover:bg-construction-700" 
-                onClick={() => navigate('/auth')}
+                onClick={handleGetStarted}
               >
                 Start Free Trial
                 <ArrowRight className="ml-2 h-5 w-5" />
