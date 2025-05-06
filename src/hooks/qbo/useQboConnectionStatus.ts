@@ -67,7 +67,7 @@ export function useQboConnectionStatus(companyId?: string) {
       }
       
       // Process connection data
-      const connectionData = data && data.length > 0 ? data[0] : null;
+      const connectionData: QboConnection | null = data && data.length > 0 ? data[0] as QboConnection : null;
       
       if (connectionData) {
         if (!connectionData.refresh_token) {
