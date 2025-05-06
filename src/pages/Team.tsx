@@ -23,8 +23,6 @@ const Team = () => {
     refetch 
   } = useCompanyMembers(currentCompany?.id);
 
-  // Role migration is no longer needed as we updated the schema directly
-  
   const handleMemberAdded = () => {
     refetch();
   };
@@ -93,7 +91,7 @@ const Team = () => {
               <div className="dashboard-card overflow-hidden">
                 <TeamMemberTable 
                   teamMembers={members} 
-                  onStatusChange={handleStatusChange} 
+                  onStatusChange={handleStatusChange}
                   canManageUsers={canManageUsers}
                 />
               </div>

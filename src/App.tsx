@@ -19,7 +19,7 @@ import Settings from './pages/Settings';
 import Team from './pages/Team';
 import Subscription from './pages/Subscription';
 import LienRelease from './pages/LienRelease';
-import Integrations from './pages/Integrations';
+// Removed Integrations import
 import NotFound from './pages/NotFound';
 import OnboardingPage from './pages/OnboardingPage';
 import { useCompany } from './contexts/CompanyContext';
@@ -193,14 +193,7 @@ const App = () => {
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="/integrations" 
-          element={
-            <ProtectedRoute>
-              <Integrations />
-            </ProtectedRoute>
-          } 
-        />
+        {/* Removed /integrations route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
