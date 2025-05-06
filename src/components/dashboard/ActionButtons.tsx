@@ -21,7 +21,7 @@ export function ActionButtons() {
         </Button>
       </Link>
       
-      <Link to="/projects/create" className="w-full">
+      <Link to="/projects/new" className="w-full">
         <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
           <FolderPlus className="h-5 w-5" />
           <span>Create Project</span>
