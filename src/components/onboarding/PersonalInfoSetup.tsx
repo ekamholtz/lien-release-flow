@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { invitationService } from '@/services/invitationService';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompany } from '@/contexts/CompanyContext';
 
 const personalInfoSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -37,6 +38,7 @@ export function PersonalInfoSetup() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { companies } = useCompany();
   
   const form = useForm<PersonalInfoValues>({
     resolver: zodResolver(personalInfoSchema),
@@ -47,6 +49,20 @@ export function PersonalInfoSetup() {
       jobTitle: "",
     },
   });
+
+  // Check if user has already completed onboarding
+  useEffect(() => {
+    // If user has metadata and companies, they've likely completed onboarding
+    if (user?.user_metadata && (user.user_metadata.first_name || user.user_metadata.last_name)) {
+      if (companies.length > 0) {
+        // User already has companies, redirect to dashboard
+        navigate('/dashboard');
+      } else {
+        // User has personal info but no company, redirect to company setup
+        navigate('/onboarding/company');
+      }
+    }
+  }, [user, companies, navigate]);
 
   // Pre-populate form with user metadata if available
   useEffect(() => {
@@ -80,6 +96,11 @@ export function PersonalInfoSetup() {
         try {
           const invitations = await invitationService.checkPendingInvitations(user.email);
           setHasInvitations(invitations.length > 0);
+          
+          // If user has invitations, no need to collect personal info again
+          if (invitations.length > 0) {
+            navigate('/dashboard');
+          }
         } catch (error) {
           console.error("Error checking invitations:", error);
           setHasInvitations(false);
@@ -90,7 +111,7 @@ export function PersonalInfoSetup() {
     if (user && hasInvitations === null) {
       checkInvitations();
     }
-  }, [user, hasInvitations]);
+  }, [user, hasInvitations, navigate]);
 
   const onSubmit = async (values: PersonalInfoValues) => {
     if (!user) return;

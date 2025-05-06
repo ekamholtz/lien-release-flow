@@ -1,18 +1,28 @@
 
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { CompanySetup } from '@/components/onboarding/CompanySetup';
 import { PersonalInfoSetup } from '@/components/onboarding/PersonalInfoSetup';
 import { AuthLogo } from '@/components/auth/AuthLogo';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { InvitationsCheck } from '@/components/onboarding/InvitationsCheck';
+import { useCompany } from '@/contexts/CompanyContext';
 
 const OnboardingPage = () => {
   const { step } = useParams<{ step: string }>();
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const { companies, isLoading: companiesLoading } = useCompany();
   
-  if (loading) {
+  useEffect(() => {
+    // If the user has completed setup and has companies, redirect to dashboard
+    if (user && !loading && !companiesLoading && companies.length > 0 && step === 'personal-info') {
+      navigate('/dashboard');
+    }
+  }, [user, loading, companiesLoading, companies, step, navigate]);
+  
+  if (loading || companiesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p>Loading...</p>

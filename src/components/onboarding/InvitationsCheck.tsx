@@ -15,12 +15,16 @@ export function InvitationsCheck() {
   const { toast } = useToast();
   const { invitations, isLoading, processingId, checkForInvitations, acceptInvitation, declineInvitation } = useInvitations();
   const { refreshCompanies } = useCompany();
+  const [hasChecked, setHasChecked] = useState(false);
   
   useEffect(() => {
-    if (user?.email) {
-      checkForInvitations();
+    // Only check for invitations once when the user is available
+    if (user?.email && !hasChecked) {
+      checkForInvitations().finally(() => {
+        setHasChecked(true);
+      });
     }
-  }, [user?.email, checkForInvitations]);
+  }, [user?.email, checkForInvitations, hasChecked]);
   
   const handleAccept = async (invitationId: string) => {
     try {
