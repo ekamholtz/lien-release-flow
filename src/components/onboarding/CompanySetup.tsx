@@ -27,7 +27,7 @@ type CompanySetupValues = z.infer<typeof companySetupSchema>;
 export function CompanySetup() {
   const [isLoading, setIsLoading] = useState(false);
   const { createCompany } = useCompanies();
-  const { switchCompany } = useCompany();
+  const { switchCompany, refreshCompanies } = useCompany();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -51,19 +51,39 @@ export function CompanySetup() {
       // First create the company with basic info
       const company = await createCompany.mutateAsync(values.name);
       
-      // TODO: In the future, we can add more company details to a company_details table
+      if (!company || !company.id) {
+        throw new Error("Failed to create company");
+      }
       
-      // Switch to the new company context
-      await switchCompany(company.id);
+      console.log("Company created successfully:", company);
       
-      // Show success message
-      toast({
-        title: "Company setup complete",
-        description: "Your company has been created successfully. You can now use the platform.",
-      });
+      // Refresh the companies list to ensure the new company is loaded
+      await refreshCompanies();
       
-      // Redirect to dashboard
-      navigate('/dashboard');
+      // Short delay to ensure company data is available
+      setTimeout(async () => {
+        try {
+          // Then switch to the new company context
+          await switchCompany(company.id);
+          
+          // Show success message
+          toast({
+            title: "Company setup complete",
+            description: "Your company has been created successfully. You can now use the platform.",
+          });
+          
+          // Redirect to dashboard
+          navigate('/dashboard');
+        } catch (switchError: any) {
+          console.error('Error switching to company:', switchError);
+          toast({
+            title: "Couldn't set company context",
+            description: "Your company was created but we had trouble setting it as your active company. Please try again from the dashboard.",
+            variant: "destructive",
+          });
+          navigate('/dashboard');
+        }
+      }, 500);
     } catch (error: any) {
       console.error('Company setup error:', error);
       toast({
@@ -71,7 +91,6 @@ export function CompanySetup() {
         description: error.message || "There was an error setting up your company",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };

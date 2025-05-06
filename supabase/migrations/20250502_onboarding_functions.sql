@@ -20,12 +20,11 @@ BEGIN
     cm.company_id,
     c.name AS company_name,
     cm.role,
-    COALESCE(p.first_name || ' ' || p.last_name, 'Administrator') AS invited_by,
+    COALESCE(auth.email(), 'Administrator') AS invited_by,
     cm.invited_email,
     cm.status
   FROM company_members cm
   JOIN companies c ON cm.company_id = c.id
-  LEFT JOIN profiles p ON cm.created_by = p.id
   WHERE 
     cm.invited_email = p_email 
     AND cm.status = 'pending'

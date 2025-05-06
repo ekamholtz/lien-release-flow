@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -46,6 +47,31 @@ export function PersonalInfoSetup() {
       jobTitle: "",
     },
   });
+
+  // Pre-populate form with user metadata if available
+  useEffect(() => {
+    if (user?.user_metadata) {
+      const { full_name, first_name, last_name, phone, job_title } = user.user_metadata;
+      
+      // If we have a full name but not first/last name, try to parse it
+      if (full_name && (!first_name && !last_name)) {
+        const nameParts = full_name.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+        
+        form.setValue('firstName', firstName);
+        form.setValue('lastName', lastName);
+      } else {
+        // Use specific first/last name if available
+        if (first_name) form.setValue('firstName', first_name);
+        if (last_name) form.setValue('lastName', last_name);
+      }
+      
+      // Set other fields if available
+      if (phone) form.setValue('phoneNumber', phone);
+      if (job_title) form.setValue('jobTitle', job_title);
+    }
+  }, [user, form]);
 
   React.useEffect(() => {
     // Check if user has any pending invitations

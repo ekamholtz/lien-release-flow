@@ -75,9 +75,16 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
     setIsLoading(true);
     
     try {
+      // Parse the full name into first and last name
+      const nameParts = values.fullName.trim().split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      
       // Base user data
       const userData = {
         full_name: values.fullName,
+        first_name: firstName,
+        last_name: lastName
       };
       
       // Register the user with Supabase auth

@@ -1,128 +1,136 @@
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { invitationService, InvitationDetails } from '@/services/invitationService';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { Loader2, X, Check } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/hooks/useAuth';
+import { useInvitations } from '@/hooks/useInvitations';
+import { useCompany } from '@/contexts/CompanyContext';
 
 export function InvitationsCheck() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [invitations, setInvitations] = useState<InvitationDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [processingId, setProcessingId] = useState<string | null>(null);
-
+  const { toast } = useToast();
+  const { invitations, isLoading, processingId, checkForInvitations, acceptInvitation, declineInvitation } = useInvitations();
+  const { refreshCompanies } = useCompany();
+  
   useEffect(() => {
     if (user?.email) {
-      checkForInvitations(user.email);
+      checkForInvitations();
     }
-  }, [user?.email]);
-
-  const checkForInvitations = async (email: string) => {
+  }, [user?.email, checkForInvitations]);
+  
+  const handleAccept = async (invitationId: string) => {
     try {
-      setIsLoading(true);
-      const invites = await invitationService.checkPendingInvitations(email);
-      setInvitations(invites);
-    } catch (error) {
-      console.error('Error checking for invitations:', error);
-      toast.error('Failed to check for invitations');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAcceptInvitation = async (invitationId: string) => {
-    if (!user?.id) return;
-    
-    try {
-      setProcessingId(invitationId);
-      const success = await invitationService.acceptInvitation(invitationId, user.id);
-      
+      const success = await acceptInvitation(invitationId);
       if (success) {
-        toast.success('Invitation accepted successfully');
-        setInvitations(invitations.filter(inv => inv.id !== invitationId));
+        toast({
+          title: "Invitation accepted",
+          description: "You have successfully joined the company.",
+        });
+        
+        // Refresh companies and redirect to dashboard
+        await refreshCompanies();
         navigate('/dashboard');
       } else {
-        toast.error('Failed to accept invitation');
+        toast({
+          title: "Could not accept invitation",
+          description: "There was an error accepting the invitation.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Error accepting invitation:', error);
-      toast.error('Failed to accept invitation');
-    } finally {
-      setProcessingId(null);
+      console.error("Error accepting invitation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to accept the invitation. Please try again.",
+        variant: "destructive",
+      });
     }
   };
-
-  const handleDeclineInvitation = async (invitationId: string) => {
+  
+  const handleDecline = async (invitationId: string) => {
     try {
-      setProcessingId(invitationId);
-      const success = await invitationService.declineInvitation(invitationId);
-      
+      const success = await declineInvitation(invitationId);
       if (success) {
-        toast.success('Invitation declined');
-        setInvitations(invitations.filter(inv => inv.id !== invitationId));
+        toast({
+          title: "Invitation declined",
+          description: "The invitation has been declined.",
+        });
       } else {
-        toast.error('Failed to decline invitation');
+        toast({
+          title: "Could not decline invitation",
+          description: "There was an error declining the invitation.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Error declining invitation:', error);
-      toast.error('Failed to decline invitation');
-    } finally {
-      setProcessingId(null);
+      console.error("Error declining invitation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to decline the invitation. Please try again.",
+        variant: "destructive",
+      });
     }
   };
-
+  
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-6">
-        <Loader2 className="h-8 w-8 animate-spin text-cnstrct-orange" />
-        <span className="ml-2">Checking for invitations...</span>
+      <div className="flex justify-center py-8">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-5 w-5 animate-spin text-construction-600" />
+          <span className="text-sm text-gray-600">Checking for invitations...</span>
+        </div>
       </div>
     );
   }
-
-  if (invitations.length === 0) {
+  
+  if (!invitations || invitations.length === 0) {
     return null;
   }
-
+  
   return (
-    <div className="space-y-4 my-6">
-      <h2 className="text-xl font-semibold">Pending Invitations</h2>
+    <div className="max-w-3xl mx-auto mb-8">
       {invitations.map(invitation => (
-        <Card key={invitation.id} className="border-cnstrct-orange/20">
-          <CardHeader>
-            <CardTitle className="text-lg">
-              Invitation to join {invitation.company_name}
-            </CardTitle>
+        <Card key={invitation.id} className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle>You've been invited!</CardTitle>
             <CardDescription>
-              You've been invited by {invitation.invited_by} to join as a {invitation.role.replace('_', ' ')}
+              {invitation.invited_by} has invited you to join {invitation.company_name}
             </CardDescription>
           </CardHeader>
-          <CardFooter className="flex justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => handleDeclineInvitation(invitation.id)}
+          <CardContent>
+            <p className="text-sm text-gray-700">
+              You've been invited to join as a <span className="font-medium">{invitation.role.replace('_', ' ')}</span>. 
+              Would you like to accept this invitation?
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleDecline(invitation.id)}
               disabled={!!processingId}
             >
               {processingId === invitation.id ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
               ) : (
-                <XCircle className="h-4 w-4 mr-2" />
+                <X className="h-4 w-4 mr-1" />
               )}
               Decline
             </Button>
-            <Button
-              onClick={() => handleAcceptInvitation(invitation.id)}
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => handleAccept(invitation.id)}
               disabled={!!processingId}
-              className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
             >
               {processingId === invitation.id ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
               ) : (
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <Check className="h-4 w-4 mr-1" />
               )}
               Accept
             </Button>
