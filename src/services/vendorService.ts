@@ -13,6 +13,14 @@ export type Vendor = {
   updated_at: string;
 };
 
+export type CreateVendorInput = {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  company_id: string;
+};
+
 export async function getVendors(companyId?: string) {
   try {
     if (!companyId) {
@@ -53,7 +61,7 @@ export async function getVendorById(vendorId: string) {
   }
 }
 
-export async function createVendor(vendor: Omit<Vendor, 'id' | 'created_at' | 'updated_at'>) {
+export async function createVendor(vendor: CreateVendorInput) {
   try {
     const { data, error } = await supabase
       .from('vendors')

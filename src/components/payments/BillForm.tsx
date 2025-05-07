@@ -8,7 +8,7 @@ import { Form } from "@/components/ui/form";
 import { toast } from "sonner";
 import { FileUpload } from "./FileUpload";
 import { FilePreview } from "./FilePreview";
-import { BillFormFields } from "./BillFormFields";
+import { BillFormFields } from "./bill/BillFormFields";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { BillStatus } from "@/lib/supabase";

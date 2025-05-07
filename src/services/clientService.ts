@@ -13,6 +13,14 @@ export type Client = {
   updated_at: string;
 };
 
+export type CreateClientInput = {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  company_id: string;
+};
+
 export async function getClients(companyId?: string) {
   try {
     if (!companyId) {
@@ -53,7 +61,7 @@ export async function getClientById(clientId: string) {
   }
 }
 
-export async function createClient(client: Omit<Client, 'id' | 'created_at' | 'updated_at'>) {
+export async function createClient(client: CreateClientInput) {
   try {
     const { data, error } = await supabase
       .from('clients')
