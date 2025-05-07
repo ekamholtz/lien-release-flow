@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -10,7 +11,7 @@ export function useProjectSubmission() {
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
 
-  const submitProject = async (formData: ProjectFormData, userId?: string) => {
+  const submitProject = async (formData: ProjectFormData, userId?: string, initialProjectId?: string) => {
     if (!userId) {
       toast.error('You must be logged in to create a project');
       return false;
@@ -30,48 +31,105 @@ export function useProjectSubmission() {
     setIsSubmitting(true);
 
     try {
-      console.log('Starting project creation with data:', { ...formData, companyId });
+      console.log('Starting project submission with data:', { 
+        ...formData, 
+        companyId, 
+        initialProjectId: initialProjectId || 'None' 
+      });
       
-      // Insert project
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .insert({
-          name: formData.name,
-          client: formData.client,
-          location: formData.location,
-          contact_name: formData.contactName,
-          contact_email: formData.contactEmail,
-          contact_phone: formData.contactPhone,
-          description: formData.description,
-          value: formData.value,
-          start_date: formData.startDate.toISOString().split('T')[0],
-          end_date: formData.endDate ? formData.endDate.toISOString().split('T')[0] : null,
-          project_type_id: formData.projectTypeId,
-          company_id: companyId,
-          status: 'draft'
-        })
-        .select('id')
-        .single();
+      let projectId: string;
+      
+      // Check if we're updating an existing project or creating a new one
+      if (initialProjectId) {
+        console.log('Updating existing project:', initialProjectId);
+        
+        // Update project with new data
+        const { data: updatedProject, error: updateError } = await supabase
+          .from('projects')
+          .update({
+            name: formData.name,
+            client: formData.client,
+            location: formData.location,
+            contact_name: formData.contactName,
+            contact_email: formData.contactEmail,
+            contact_phone: formData.contactPhone,
+            description: formData.description,
+            value: formData.value,
+            start_date: formData.startDate.toISOString().split('T')[0],
+            end_date: formData.endDate ? formData.endDate.toISOString().split('T')[0] : null,
+            project_type_id: formData.projectTypeId,
+            company_id: companyId,
+            status: 'active', // Update status to active
+          })
+          .eq('id', initialProjectId)
+          .select('id')
+          .single();
 
-      if (projectError) {
-        console.error('Error creating project:', projectError);
-        throw projectError;
+        if (updateError) {
+          console.error('Error updating project:', updateError);
+          throw updateError;
+        }
+        
+        projectId = updatedProject.id;
+        console.log('Project updated successfully:', projectId);
+      } else {
+        // Insert new project
+        console.log('Creating new project');
+        
+        const { data: project, error: projectError } = await supabase
+          .from('projects')
+          .insert({
+            name: formData.name,
+            client: formData.client,
+            location: formData.location,
+            contact_name: formData.contactName,
+            contact_email: formData.contactEmail,
+            contact_phone: formData.contactPhone,
+            description: formData.description,
+            value: formData.value,
+            start_date: formData.startDate.toISOString().split('T')[0],
+            end_date: formData.endDate ? formData.endDate.toISOString().split('T')[0] : null,
+            project_type_id: formData.projectTypeId,
+            company_id: companyId,
+            status: 'active' // Set status to active for new projects
+          })
+          .select('id')
+          .single();
+
+        if (projectError) {
+          console.error('Error creating project:', projectError);
+          throw projectError;
+        }
+        
+        projectId = project.id;
+        console.log('Project created successfully:', projectId);
       }
       
-      console.log('Project created successfully:', project);
+      // If we're updating an existing project, clean up old milestones if needed
+      if (initialProjectId) {
+        const { error: deleteError } = await supabase
+          .from('milestones')
+          .delete()
+          .eq('project_id', initialProjectId);
+          
+        if (deleteError) {
+          console.error('Error cleaning up old milestones:', deleteError);
+          // Continue execution - non-critical error
+        }
+      }
 
       // Upload documents if any
-      await uploadProjectDocuments(formData.documents, project.id, userId);
+      await uploadProjectDocuments(formData.documents, projectId, userId);
 
       // Insert milestones if any
-      await createProjectMilestones(formData.milestones, project.id, companyId);
+      await createProjectMilestones(formData.milestones, projectId, companyId);
 
-      toast.success('Project created successfully');
+      toast.success(initialProjectId ? 'Project updated successfully' : 'Project created successfully');
       
       // Navigate to the project page
-      if (project && project.id) {
-        console.log('Navigating to project page:', project.id);
-        navigate(`/projects/${project.id}`);
+      if (projectId) {
+        console.log('Navigating to project page:', projectId);
+        navigate(`/projects/${projectId}`);
       } else {
         console.log('No project ID found, navigating to projects list');
         navigate('/projects');
@@ -80,8 +138,8 @@ export function useProjectSubmission() {
       return true;
 
     } catch (error) {
-      console.error('Error creating project:', error);
-      toast.error('Failed to create project. Please try again.');
+      console.error('Error saving project:', error);
+      toast.error('Failed to save project. Please try again.');
       return false;
     } finally {
       setIsSubmitting(false);

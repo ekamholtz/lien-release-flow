@@ -6,6 +6,15 @@ import { useCompany } from '@/contexts/CompanyContext';
 
 export type QboStatus = 'connected' | 'disconnected' | 'expired' | 'loading' | 'needs_reauth';
 
+interface QboDebugInfo {
+  message?: string;
+  timestamp?: string;
+  expiryDate?: string;
+  currentDate?: string;
+  realmId?: string;
+  error?: string;
+}
+
 export function useQboConnectionStatus(companyId?: string) {
   const { user } = useAuth();
   const { currentCompany } = useCompany();
@@ -13,7 +22,7 @@ export function useQboConnectionStatus(companyId?: string) {
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<QboDebugInfo | null>(null);
 
   const checkQboConnection = async (companyIdToCheck: string) => {
     if (!user || !companyIdToCheck) {
@@ -77,14 +86,14 @@ export function useQboConnectionStatus(companyId?: string) {
     }
   }, [user, companyId, currentCompany?.id]);
 
-  // Get the connection URL without circular reference
+  // Get the connection URL
   const getConnectionUrl = () => {
     const baseUrl = window.location.origin;
     const redirectUrl = `${baseUrl}/settings`;
     return `/api/qbo/authorize?redirectUrl=${encodeURIComponent(redirectUrl)}`;
   };
 
-  // Create a non-recursive function to avoid TypeScript's infinite type error
+  // Function to refresh connection status
   const refreshConnectionStatus = () => {
     const idToCheck = companyId || currentCompany?.id;
     if (idToCheck) {

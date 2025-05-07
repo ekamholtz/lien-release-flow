@@ -86,6 +86,23 @@ export function InvoiceForm() {
         throw new Error(`Error fetching client: ${clientError.message}`);
       }
       
+      // Try to get project company_id if a project is selected
+      let companyId = currentCompany.id;
+      if (values.project) {
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('company_id')
+          .eq('id', values.project)
+          .maybeSingle();
+          
+        if (!projectError && projectData && projectData.company_id) {
+          companyId = projectData.company_id;
+          console.log('Using project company_id:', companyId);
+        } else {
+          console.log('Falling back to current company_id:', companyId);
+        }
+      }
+      
       // Save invoice to Supabase
       const { data, error } = await supabase
         .from('invoices')
@@ -94,13 +111,13 @@ export function InvoiceForm() {
           client_id: values.clientId,
           client_name: clientData.name,
           client_email: clientData.email || '',
-          project_id: values.project,
+          project_id: values.project || null,
           amount: amountNumber,
           due_date: formattedDueDate,
           status: 'draft' as InvoiceStatus,
           payment_method: values.paymentMethod,
           user_id: user.id,
-          company_id: currentCompany.id
+          company_id: companyId
         })
         .select();
       

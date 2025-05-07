@@ -72,6 +72,23 @@ export function BillForm() {
       if (vendorError) {
         throw new Error(`Error fetching vendor: ${vendorError.message}`);
       }
+
+      // Try to get project company_id if a project is selected
+      let companyId = currentCompany.id;
+      if (values.project) {
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('company_id')
+          .eq('id', values.project)
+          .maybeSingle();
+          
+        if (!projectError && projectData && projectData.company_id) {
+          companyId = projectData.company_id;
+          console.log('Using project company_id:', companyId);
+        } else {
+          console.log('Falling back to current company_id:', companyId);
+        }
+      }
       
       // Save bill to Supabase
       const { data, error } = await supabase
@@ -81,11 +98,11 @@ export function BillForm() {
           vendor_id: values.vendorId,
           vendor_name: vendorData.name,
           vendor_email: vendorData.email || '',
-          project_id: values.project,
+          project_id: values.project || null,
           amount: amountNumber,
           due_date: formattedDueDate,
           status: 'pending' as BillStatus,
-          company_id: currentCompany.id,
+          company_id: companyId,
           requires_lien_release: values.requiresLien
         })
         .select();

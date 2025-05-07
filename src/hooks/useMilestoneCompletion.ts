@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { DbMilestone } from '@/lib/supabase';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface UseMilestoneCompletionOptions {
   onSuccess?: () => void;
@@ -12,6 +13,7 @@ interface UseMilestoneCompletionOptions {
 export function useMilestoneCompletion(options?: UseMilestoneCompletionOptions) {
   const [isCompleting, setIsCompleting] = useState<boolean>(false);
   const queryClient = useQueryClient();
+  const { currentCompany } = useCompany();
 
   const completeMilestone = async (milestone: DbMilestone) => {
     if (milestone.is_completed) {
@@ -22,6 +24,13 @@ export function useMilestoneCompletion(options?: UseMilestoneCompletionOptions) 
     // Only event-based milestones can be manually completed
     if (milestone.due_type !== 'event') {
       toast.error("Only event-based milestones can be manually completed");
+      return;
+    }
+
+    // Ensure we have a company ID (either from milestone or current company)
+    const companyId = milestone.company_id || currentCompany?.id;
+    if (!companyId) {
+      toast.error("No company ID found. Please select a company first.");
       return;
     }
 
@@ -49,11 +58,14 @@ export function useMilestoneCompletion(options?: UseMilestoneCompletionOptions) 
       // Get project details for the invoice
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('client, contact_email')
+        .select('client, contact_email, company_id')
         .eq('id', milestone.project_id)
         .single();
 
       if (projectError) throw projectError;
+
+      // Prefer project's company_id over the milestone's (which could be current company)
+      const invoiceCompanyId = project.company_id || companyId;
 
       // Create the invoice
       const { data: invoice, error: invoiceError } = await supabase
@@ -66,7 +78,8 @@ export function useMilestoneCompletion(options?: UseMilestoneCompletionOptions) 
           amount: milestone.amount,
           due_date: dueDate.toISOString().split('T')[0],
           status: 'draft',
-          source_milestone_id: milestone.id
+          source_milestone_id: milestone.id,
+          company_id: invoiceCompanyId
         })
         .select()
         .single();

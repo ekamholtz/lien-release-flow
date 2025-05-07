@@ -75,13 +75,15 @@ export function ClientForm({
         client = await updateClient(initialData.id, {
           ...values,
           company_id: currentCompany.id,
+          // Ensure name is always passed since it's required
+          name: values.name,
         });
       } else {
-        // Ensure name is always passed, TypeScript will know name is required
-        // because it's coming from the validated values object
         client = await createClient({
           ...values,
           company_id: currentCompany.id,
+          // Ensure name is always passed since it's required
+          name: values.name,
         });
       }
       
