@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { InvoiceFormFields } from "./InvoiceFormFields";
 import { PaymentMethodSelector } from "./PaymentMethodSelector";
 import { InvoiceOptions } from "./InvoiceOptions";
@@ -15,12 +15,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { InvoiceStatus } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/contexts/CompanyContext";
 
 const formSchema = z.object({
   invoiceNumber: z.string().min(1, { message: "Invoice number is required" }),
-  clientName: z.string().min(1, { message: "Client name is required" }),
-  clientEmail: z.string().email({ message: "Invalid email address" }),
-  clientPhone: z.string().min(10, { message: "Valid phone number is required" }).optional(),
+  clientId: z.string().min(1, { message: "Client is required" }),
   project: z.string().min(1, { message: "Project name is required" }),
   amount: z.string().min(1, { message: "Amount is required" }),
   dueDate: z.date({ required_error: "Due date is required" }),
@@ -37,14 +36,13 @@ export function InvoiceForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { currentCompany } = useCompany();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       invoiceNumber: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
-      clientName: "",
-      clientEmail: "",
-      clientPhone: "",
+      clientId: "",
       project: "",
       amount: "",
       description: "",
@@ -56,11 +54,12 @@ export function InvoiceForm() {
 
   async function onSubmit(values: FormValues) {
     if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to create invoices",
-        variant: "destructive"
-      });
+      toast.error("You must be logged in to create invoices");
+      return;
+    }
+    
+    if (!currentCompany?.id) {
+      toast.error("Please select a company first");
       return;
     }
 
@@ -76,36 +75,48 @@ export function InvoiceForm() {
       // Format due date as ISO string (YYYY-MM-DD)
       const formattedDueDate = values.dueDate.toISOString().split('T')[0];
       
+      // Get client details
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('name, email')
+        .eq('id', values.clientId)
+        .single();
+        
+      if (clientError) {
+        throw new Error(`Error fetching client: ${clientError.message}`);
+      }
+      
       // Save invoice to Supabase
       const { data, error } = await supabase
         .from('invoices')
         .insert({
           invoice_number: values.invoiceNumber,
-          client_name: values.clientName,
-          client_email: values.clientEmail,
+          client_id: values.clientId,
+          client_name: clientData.name,
+          client_email: clientData.email || '',
           project_id: values.project,
           amount: amountNumber,
           due_date: formattedDueDate,
           status: 'draft' as InvoiceStatus,
           payment_method: values.paymentMethod,
-          user_id: user.id
+          user_id: user.id,
+          company_id: currentCompany.id
         })
         .select();
       
       if (error) {
         console.error('Error saving invoice:', error);
-        toast({
-          title: "Error",
-          description: `Failed to create invoice: ${error.message}`,
-          variant: "destructive"
-        });
+        toast.error(`Failed to create invoice: ${error.message}`);
         return;
       }
       
-      toast({
-        title: "Invoice created",
-        description: `Invoice ${values.invoiceNumber} has been created successfully with ${files.length} attachment(s)`,
-      });
+      // Handle file uploads if there are any
+      if (files.length > 0 && data?.[0]?.id) {
+        // Upload logic here (can be expanded in the future)
+        toast.info(`${files.length} files will be processed for upload.`);
+      }
+      
+      toast.success(`Invoice ${values.invoiceNumber} has been created successfully with ${files.length} attachment(s)`);
       
       // Reset form
       form.reset();
@@ -115,11 +126,7 @@ export function InvoiceForm() {
       navigate('/accounts-receivable');
     } catch (err) {
       console.error('Error in invoice submission:', err);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
+      toast.error("An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
     }

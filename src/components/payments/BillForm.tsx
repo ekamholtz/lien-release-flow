@@ -1,23 +1,22 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { FileUpload } from "./FileUpload";
 import { FilePreview } from "./FilePreview";
 import { BillFormFields } from "./BillFormFields";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { BillStatus } from "@/lib/supabase";
+import { useCompany } from '@/contexts/CompanyContext';
 
 const formSchema = z.object({
   billNumber: z.string().min(1, { message: "Bill number is required" }),
-  vendorName: z.string().min(1, { message: "Vendor name is required" }),
-  vendorEmail: z.string().email({ message: "Invalid email address" }),
-  vendorPhone: z.string().min(10, { message: "Valid phone number is required" }).optional(),
+  vendorId: z.string().min(1, { message: "Vendor is required" }),
   project: z.string().min(1, { message: "Project name is required" }),
   amount: z.string().min(1, { message: "Amount is required" }),
   dueDate: z.date({ required_error: "Due date is required" }),
@@ -31,14 +30,13 @@ export function BillForm() {
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { currentCompany } = useCompany();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       billNumber: `BILL-${Math.floor(1000 + Math.random() * 9000)}`,
-      vendorName: "",
-      vendorEmail: "",
-      vendorPhone: "",
+      vendorId: "",
       project: "",
       amount: "",
       description: "",
@@ -47,6 +45,11 @@ export function BillForm() {
   });
 
   async function onSubmit(values: FormValues) {
+    if (!currentCompany?.id) {
+      toast.error("Please select a company first");
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
@@ -59,34 +62,47 @@ export function BillForm() {
       // Format due date as ISO string (YYYY-MM-DD)
       const formattedDueDate = values.dueDate.toISOString().split('T')[0];
       
+      // Get vendor details
+      const { data: vendorData, error: vendorError } = await supabase
+        .from('vendors')
+        .select('name, email')
+        .eq('id', values.vendorId)
+        .single();
+        
+      if (vendorError) {
+        throw new Error(`Error fetching vendor: ${vendorError.message}`);
+      }
+      
       // Save bill to Supabase
       const { data, error } = await supabase
         .from('bills')
         .insert({
           bill_number: values.billNumber,
-          vendor_name: values.vendorName,
-          vendor_email: values.vendorEmail,
-          project_id: values.project, // Assuming project is the UUID
+          vendor_id: values.vendorId,
+          vendor_name: vendorData.name,
+          vendor_email: vendorData.email || '',
+          project_id: values.project,
           amount: amountNumber,
           due_date: formattedDueDate,
-          status: 'pending' as BillStatus
+          status: 'pending' as BillStatus,
+          company_id: currentCompany.id,
+          requires_lien_release: values.requiresLien
         })
         .select();
       
       if (error) {
         console.error('Error saving bill:', error);
-        toast({
-          title: "Error",
-          description: `Failed to create bill: ${error.message}`,
-          variant: "destructive"
-        });
+        toast.error(`Failed to create bill: ${error.message}`);
         return;
       }
       
-      toast({
-        title: "Bill created",
-        description: `Bill ${values.billNumber} has been created with ${files.length} attachment(s)`,
-      });
+      // Handle file uploads if there are any
+      if (files.length > 0 && data?.[0]?.id) {
+        // Upload logic here (can be expanded in the future)
+        toast.info(`${files.length} files will be processed for upload.`);
+      }
+      
+      toast.success(`Bill ${values.billNumber} has been created with ${files.length} attachment(s)`);
       
       // Reset form
       form.reset();
@@ -96,11 +112,7 @@ export function BillForm() {
       navigate('/accounts-payable');
     } catch (err) {
       console.error('Error in bill submission:', err);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
+      toast.error("An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
     }

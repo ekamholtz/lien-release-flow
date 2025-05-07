@@ -1,27 +1,16 @@
 
-import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Phone } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Control } from "react-hook-form";
 import { ProjectSelectWithCreate } from "../projects/ProjectSelectWithCreate";
-
-interface InvoiceFormValues {
-  invoiceNumber: string;
-  clientName: string;
-  clientEmail: string;
-  clientPhone: string;
-  project: string;
-  amount: string;
-  dueDate: Date;
-  description: string;
-}
+import { ClientSelector } from '../clients/ClientSelector';
 
 interface InvoiceFormFieldsProps {
   control: Control<any>;
@@ -60,54 +49,21 @@ export function InvoiceFormFields({ control }: InvoiceFormFieldsProps) {
         />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormField
-          control={control}
-          name="clientName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Client Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter client name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={control}
-          name="clientEmail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Client Email</FormLabel>
-              <FormControl>
-                <Input placeholder="client@example.com" type="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+      <FormField
+        control={control}
+        name="clientId"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Client</FormLabel>
+            <FormControl>
+              <ClientSelector value={field.value} onChange={field.onChange} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormField
-          control={control}
-          name="clientPhone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Client Phone</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                  <Input className="pl-10" placeholder="(555) 123-4567" {...field} />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
         <FormField
           control={control}
           name="project"
@@ -122,49 +78,49 @@ export function InvoiceFormFields({ control }: InvoiceFormFieldsProps) {
             </FormItem>
           )}
         />
+        
+        <FormField
+          control={control}
+          name="dueDate"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Due Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date < new Date(new Date().setHours(0, 0, 0, 0))
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </div>
-      
-      <FormField
-        control={control}
-        name="dueDate"
-        render={({ field }) => (
-          <FormItem className="flex flex-col">
-            <FormLabel>Due Date</FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground"
-                    )}
-                  >
-                    {field.value ? (
-                      format(field.value, "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={field.onChange}
-                  disabled={(date) =>
-                    date < new Date(new Date().setHours(0, 0, 0, 0))
-                  }
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
       
       <FormField
         control={control}

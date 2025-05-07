@@ -2,8 +2,26 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Make sure the 'project-documents' bucket exists
+async function ensureBucketExists() {
+  const { data: buckets } = await supabase.storage.listBuckets();
+  if (!buckets?.find(b => b.name === 'project-documents')) {
+    try {
+      await supabase.storage.createBucket('project-documents', {
+        public: false,
+        fileSizeLimit: 10485760, // 10MB
+      });
+    } catch (error) {
+      // Bucket might have been created in another call
+      console.log('Bucket creation error (might already exist):', error);
+    }
+  }
+}
+
 export async function getDocumentUrl(filePath: string, expirySeconds = 60) {
   try {
+    await ensureBucketExists();
+    
     const { data, error } = await supabase.storage
       .from('project-documents')
       .createSignedUrl(filePath, expirySeconds);
@@ -18,6 +36,24 @@ export async function getDocumentUrl(filePath: string, expirySeconds = 60) {
   }
 }
 
+export async function uploadDocument(file: File, path: string) {
+  try {
+    await ensureBucketExists();
+    
+    const { data, error } = await supabase.storage
+      .from('project-documents')
+      .upload(path, file);
+      
+    if (error) throw error;
+    
+    return data.path;
+  } catch (error) {
+    console.error('Error uploading document:', error);
+    toast.error('Failed to upload document');
+    return null;
+  }
+}
+
 export async function downloadDocument(filePath: string, fileName: string) {
   try {
     const url = await getDocumentUrl(filePath);
@@ -27,12 +63,12 @@ export async function downloadDocument(filePath: string, fileName: string) {
     }
     
     // Create and trigger a download link
-    const a = window.document.createElement('a');
+    const a = document.createElement('a');
     a.href = url;
     a.download = fileName;
-    window.document.body.appendChild(a);
+    document.body.appendChild(a);
     a.click();
-    window.document.body.removeChild(a);
+    document.body.removeChild(a);
     
     return true;
   } catch (error) {
