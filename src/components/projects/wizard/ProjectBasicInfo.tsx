@@ -39,7 +39,7 @@ export function ProjectBasicInfo({ initialData, onSubmit }: ProjectBasicInfoProp
     resolver: zodResolver(projectBasicInfoSchema),
     defaultValues: {
       name: initialData?.name || '',
-      client: initialData?.client || '',
+      clientId: initialData?.clientId || '',
       location: initialData?.location || '',
       contactName: initialData?.contactName || '',
       contactEmail: initialData?.contactEmail || '',

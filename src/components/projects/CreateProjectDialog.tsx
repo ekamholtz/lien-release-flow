@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from "zod";
@@ -26,10 +27,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/contexts/CompanyContext";
+import { ClientSelector } from '@/components/clients/ClientSelector';
 
 const formSchema = z.object({
   name: z.string().min(1, "Project name is required"),
-  client: z.string().min(1, "Client name is required"),
+  clientId: z.string().min(1, "Client is required"),
   value: z.coerce.number().min(0, "Value must be a positive number"),
   projectTypeId: z.string().min(1, "Project type is required"),
 });
@@ -69,7 +71,7 @@ export function CreateProjectDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      client: "",
+      clientId: "",
       value: 0,
       projectTypeId: "",
     },
@@ -96,7 +98,7 @@ export function CreateProjectDialog({
         .from("projects")
         .insert({
           name: values.name,
-          client: values.client,
+          client_id: values.clientId,
           value: values.value,
           project_type_id: values.projectTypeId,
           start_date: new Date().toISOString().split('T')[0],
@@ -178,12 +180,12 @@ export function CreateProjectDialog({
             
             <FormField
               control={form.control}
-              name="client"
+              name="clientId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Client Name*</FormLabel>
+                  <FormLabel>Client*</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter client name" {...field} />
+                    <ClientSelector value={field.value} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

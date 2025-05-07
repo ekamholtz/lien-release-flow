@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { UseFormReturn } from 'react-hook-form';
 import { ProjectBasicInfoFormValues } from './types';
+import { ClientSelector } from '@/components/clients/ClientSelector';
 
 interface ProjectInfoFieldsProps {
   form: UseFormReturn<ProjectBasicInfoFormValues>;
@@ -34,12 +35,12 @@ export function ProjectInfoFields({ form }: ProjectInfoFieldsProps) {
       
       <FormField
         control={form.control}
-        name="client"
+        name="clientId"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Client *</FormLabel>
             <FormControl>
-              <Input placeholder="Enter client name" {...field} />
+              <ClientSelector value={field.value} onChange={field.onChange} />
             </FormControl>
             <FormMessage />
           </FormItem>

@@ -15,6 +15,11 @@ interface QboDebugInfo {
   error?: string;
 }
 
+interface QboConnectionData {
+  expires_at: string;
+  realm_id: string;
+}
+
 export function useQboConnectionStatus(companyId?: string) {
   const { user } = useAuth();
   const { currentCompany } = useCompany();
@@ -36,13 +41,11 @@ export function useQboConnectionStatus(companyId?: string) {
       setError(null);
 
       // Fix the type instantiation issue by explicitly typing the database response
-      const response = await supabase
+      const { data, error: fetchError } = await supabase
         .from('qbo_connections')
         .select('expires_at, realm_id')
         .eq('company_id', companyIdToCheck)
-        .maybeSingle();
-        
-      const { data, error: fetchError } = response;
+        .maybeSingle<QboConnectionData>();
 
       if (fetchError) throw fetchError;
 

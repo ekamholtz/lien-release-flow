@@ -11,7 +11,7 @@ import { WizardStep } from '@/components/projects/wizard/WizardProgress';
 
 export interface ProjectFormData {
   name: string;
-  client: string;
+  clientId: string;
   location?: string;
   contactName?: string;
   contactEmail?: string;
@@ -32,7 +32,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic-info');
   const [formData, setFormData] = useState<ProjectFormData>({
     name: '',
-    client: '',
+    clientId: '',
     value: 0,
     startDate: new Date(),
     documents: [],
@@ -64,7 +64,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
         // Fetch project details
         const { data: project, error } = await supabase
           .from('projects')
-          .select('*')
+          .select('*, clients(*)')
           .eq('id', initialProjectId)
           .eq('company_id', currentCompany.id)
           .maybeSingle();
@@ -77,7 +77,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
           // Convert the data format to match our form data
           setFormData({
             name: project.name || '',
-            client: project.client || '',
+            clientId: project.client_id || '',
             location: project.location || '',
             contactName: project.contact_name || '',
             contactEmail: project.contact_email || '',
