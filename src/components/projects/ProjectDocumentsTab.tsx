@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileText, Search } from 'lucide-react';
@@ -126,12 +127,14 @@ export function ProjectDocumentsTab({ projectId }: ProjectDocumentsTabProps) {
 
   if (loading) {
     return (
-      <div>Loading project documents...</div>
+      <div className="w-full min-h-[400px] flex items-center justify-center">
+        Loading project documents...
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <div className="flex items-center justify-between">
         <div className="relative max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -155,17 +158,19 @@ export function ProjectDocumentsTab({ projectId }: ProjectDocumentsTabProps) {
       </div>
       
       {filteredDocuments.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <FileText className="mx-auto h-10 w-10 text-gray-400 my-2" />
-            <h3 className="text-lg font-medium">No documents</h3>
-            <p className="text-gray-500 mt-1">
-              {documents.length > 0 
-                ? "No documents match your search." 
-                : "Upload project documents to get started."}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="min-h-[400px] flex items-center justify-center">
+          <Card className="w-full">
+            <CardContent className="p-6 text-center">
+              <FileText className="mx-auto h-10 w-10 text-gray-400 my-2" />
+              <h3 className="text-lg font-medium">No documents</h3>
+              <p className="text-gray-500 mt-1">
+                {documents.length > 0 
+                  ? "No documents match your search." 
+                  : "Upload project documents to get started."}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredDocuments.map((projectDoc) => (

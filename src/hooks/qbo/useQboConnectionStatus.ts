@@ -15,11 +15,8 @@ export function useQboConnectionStatus(companyId?: string) {
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>(null);
 
-  const checkQboConnection = async (companyIdToCheck?: string) => {
-    // Fix for TypeScript infinite depth error - don't call useCompany() again inside this function
-    const effectiveCompanyId = companyIdToCheck || companyId;
-    
-    if (!user || !effectiveCompanyId) {
+  const checkQboConnection = async (companyIdToCheck: string) => {
+    if (!user || !companyIdToCheck) {
       setStatus('disconnected');
       setLoading(false);
       return;
@@ -32,7 +29,7 @@ export function useQboConnectionStatus(companyId?: string) {
       const { data, error: fetchError } = await supabase
         .from('qbo_connections')
         .select('expires_at, realm_id')
-        .eq('company_id', effectiveCompanyId)
+        .eq('company_id', companyIdToCheck)
         .maybeSingle();
 
       if (fetchError) throw fetchError;
@@ -72,8 +69,11 @@ export function useQboConnectionStatus(companyId?: string) {
   };
 
   useEffect(() => {
-    if (companyId || currentCompany?.id) {
-      checkQboConnection(companyId || currentCompany?.id);
+    if (user && (companyId || currentCompany?.id)) {
+      const effectiveCompanyId = companyId || currentCompany?.id;
+      if (effectiveCompanyId) {
+        checkQboConnection(effectiveCompanyId);
+      }
     }
   }, [user, companyId, currentCompany?.id]);
 
@@ -95,7 +95,15 @@ export function useQboConnectionStatus(companyId?: string) {
     debugInfo,
     setError,
     setDebugInfo,
-    checkQboConnection,
+    checkQboConnection: (companyIdToCheck?: string) => {
+      if (companyIdToCheck) {
+        checkQboConnection(companyIdToCheck);
+      } else if (companyId) {
+        checkQboConnection(companyId);
+      } else if (currentCompany?.id) {
+        checkQboConnection(currentCompany.id);
+      }
+    },
     getConnectionUrl,
   };
 }

@@ -141,7 +141,7 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
   };
 
   return (
-    <div>
+    <div className="w-full">
       <h2 className="text-lg font-semibold mb-4">Transactions</h2>
       
       <Tabs defaultValue="invoices">

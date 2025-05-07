@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from '@tanstack/react-query';
@@ -42,7 +41,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {/* Financial metrics */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>

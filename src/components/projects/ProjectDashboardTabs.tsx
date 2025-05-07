@@ -23,22 +23,24 @@ export function ProjectDashboardTabs({ project }: ProjectDashboardTabsProps) {
         <TabsTrigger value="documents">Documents</TabsTrigger>
       </TabsList>
       
-      <div className="bg-white shadow rounded-lg">
-        <TabsContent value="overview" className="p-6">
-          <ProjectOverview project={project} />
-        </TabsContent>
-        
-        <TabsContent value="milestones" className="p-6">
-          <ProjectMilestonesTab projectId={project.id} />
-        </TabsContent>
-        
-        <TabsContent value="transactions" className="p-6">
-          <ProjectTransactions project={project} />
-        </TabsContent>
-        
-        <TabsContent value="documents" className="p-6">
-          <ProjectDocumentsTab projectId={project.id} />
-        </TabsContent>
+      <div className="bg-white shadow rounded-lg w-full">
+        <div className="min-h-[600px] w-full">
+          <TabsContent value="overview" className="p-6 h-full">
+            <ProjectOverview project={project} />
+          </TabsContent>
+          
+          <TabsContent value="milestones" className="p-6 h-full">
+            <ProjectMilestonesTab projectId={project.id} />
+          </TabsContent>
+          
+          <TabsContent value="transactions" className="p-6 h-full">
+            <ProjectTransactions project={project} />
+          </TabsContent>
+          
+          <TabsContent value="documents" className="p-6 h-full">
+            <ProjectDocumentsTab projectId={project.id} />
+          </TabsContent>
+        </div>
       </div>
     </Tabs>
   );

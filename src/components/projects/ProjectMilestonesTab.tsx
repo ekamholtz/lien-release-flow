@@ -43,16 +43,18 @@ export function ProjectMilestonesTab({ projectId }: ProjectMilestonesTabProps) {
   });
 
   if (isLoading) {
-    return <div>Loading milestone data...</div>;
+    return <div className="w-full min-h-[400px] flex items-center justify-center">Loading milestone data...</div>;
   }
 
   if (!milestones?.length) {
     return (
-      <Card>
-        <CardContent className="py-6">
-          <p className="text-center text-muted-foreground">No milestones found for this project.</p>
-        </CardContent>
-      </Card>
+      <div className="w-full min-h-[400px]">
+        <Card>
+          <CardContent className="py-6">
+            <p className="text-center text-muted-foreground">No milestones found for this project.</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -71,7 +73,7 @@ export function ProjectMilestonesTab({ projectId }: ProjectMilestonesTabProps) {
   const totalAmount = milestones.reduce((sum, milestone) => sum + (milestone.amount || 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <Card className="bg-muted/40">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Payment Schedule</CardTitle>
