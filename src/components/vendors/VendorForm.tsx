@@ -75,13 +75,13 @@ export function VendorForm({
         vendor = await updateVendor(initialData.id, {
           ...values,
           company_id: currentCompany.id,
+          name: values.name, // Ensure name is explicitly passed
         });
       } else {
-        // Ensure name is always passed, TypeScript will know name is required
-        // because it's coming from the validated values object
         vendor = await createVendor({
           ...values,
           company_id: currentCompany.id,
+          name: values.name, // Ensure name is explicitly passed
         });
       }
       

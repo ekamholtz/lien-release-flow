@@ -7,14 +7,7 @@ import { ProjectBasicInfo } from './wizard/ProjectBasicInfo';
 import { ProjectMilestones } from './wizard/ProjectMilestones';
 import { ProjectDocuments } from './wizard/ProjectDocuments';
 import { ProjectWizardSummary } from './wizard/ProjectWizardSummary';
-import { WizardProgress } from './wizard/WizardProgress';
-
-enum WizardStep {
-  BasicInfo = 0,
-  Documents = 1,
-  Milestones = 2,
-  Summary = 3,
-}
+import { WizardProgress, WizardStep } from './wizard/WizardProgress';
 
 interface ProjectWizardProps {
   onClose: () => void;
@@ -22,22 +15,29 @@ interface ProjectWizardProps {
 }
 
 export function ProjectWizard({ onClose, initialProjectId }: ProjectWizardProps) {
-  const [currentStep, setCurrentStep] = useState<WizardStep>(WizardStep.BasicInfo);
+  const [currentStep, setCurrentStep] = useState<WizardStep>('basic-info');
   const { user } = useAuth();
   const { formData, updateFormData } = useProjectWizard();
   const { submitProject, isSubmitting } = useProjectSubmission();
   
-  const totalSteps = Object.keys(WizardStep).length / 2;
-  
   const handleNext = () => {
-    setCurrentStep((prev) => {
-      const nextStep = prev + 1;
-      return nextStep < totalSteps ? nextStep : prev;
-    });
+    if (currentStep === 'basic-info') {
+      setCurrentStep('documents');
+    } else if (currentStep === 'documents') {
+      setCurrentStep('milestones');
+    } else if (currentStep === 'milestones') {
+      setCurrentStep('summary');
+    }
   };
   
   const handleBack = () => {
-    setCurrentStep((prev) => (prev > 0 ? prev - 1 : prev));
+    if (currentStep === 'documents') {
+      setCurrentStep('basic-info');
+    } else if (currentStep === 'milestones') {
+      setCurrentStep('documents');
+    } else if (currentStep === 'summary') {
+      setCurrentStep('milestones');
+    }
   };
   
   const handleSubmit = async () => {
@@ -52,47 +52,57 @@ export function ProjectWizard({ onClose, initialProjectId }: ProjectWizardProps)
   return (
     <div className="space-y-6 w-full">
       <WizardProgress 
-        currentStep={currentStep} 
-        totalSteps={totalSteps}
+        currentStep={currentStep}
       />
       
       <div className="pt-4">
-        {currentStep === WizardStep.BasicInfo && (
+        {currentStep === 'basic-info' && (
           <ProjectBasicInfo 
-            formData={formData}
-            onUpdate={updateFormData}
-            onNext={handleNext}
+            initialData={formData}
+            onSubmit={(data) => {
+              updateFormData(data);
+              handleNext();
+            }}
           />
         )}
         
-        {currentStep === WizardStep.Documents && (
+        {currentStep === 'documents' && (
           <ProjectDocuments
-            documents={formData.documents}
-            onUpdate={(documents) => updateFormData({ documents })}
-            onNext={handleNext}
+            initialDocuments={formData.documents}
             onBack={handleBack}
+            onSubmit={(documents) => {
+              updateFormData({ documents });
+              handleNext();
+            }}
           />
         )}
         
-        {currentStep === WizardStep.Milestones && (
+        {currentStep === 'milestones' && (
           <ProjectMilestones
             initialMilestones={formData.milestones}
             projectTypeId={formData.projectTypeId}
             projectValue={formData.value}
+            onBack={handleBack}
             onSubmit={(milestones) => {
               updateFormData({ milestones });
               handleNext();
             }}
-            onBack={handleBack}
           />
         )}
         
-        {currentStep === WizardStep.Summary && (
+        {currentStep === 'summary' && (
           <ProjectWizardSummary
-            formData={formData}
+            projectData={{
+              ...formData,
+              documents: formData.documents.map(doc => ({
+                ...doc.file,
+                sharedWithClient: doc.sharedWithClient,
+                description: doc.description
+              }))
+            }}
+            isLoading={isSubmitting}
             onBack={handleBack}
             onSubmit={handleSubmit}
-            isSubmitting={isSubmitting}
           />
         )}
       </div>

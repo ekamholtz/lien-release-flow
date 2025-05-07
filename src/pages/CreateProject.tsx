@@ -36,6 +36,10 @@ const CreateProject = () => {
     }
   }, [error, navigate]);
 
+  const handleClose = () => {
+    navigate('/projects');
+  };
+
   return (
     <AppLayout>
       <div className="max-w-5xl mx-auto p-6">
@@ -47,7 +51,10 @@ const CreateProject = () => {
           </div>
         ) : (
           <div className="dashboard-card">
-            <ProjectWizard initialProjectId={projectId} />
+            <ProjectWizard 
+              initialProjectId={projectId || undefined} 
+              onClose={handleClose}
+            />
           </div>
         )}
       </div>

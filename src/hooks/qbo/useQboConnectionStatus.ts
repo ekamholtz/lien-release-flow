@@ -35,11 +35,14 @@ export function useQboConnectionStatus(companyId?: string) {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      // Fix the type instantiation issue by explicitly typing the database response
+      const response = await supabase
         .from('qbo_connections')
         .select('expires_at, realm_id')
         .eq('company_id', companyIdToCheck)
         .maybeSingle();
+        
+      const { data, error: fetchError } = response;
 
       if (fetchError) throw fetchError;
 

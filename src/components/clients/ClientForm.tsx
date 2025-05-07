@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -75,15 +74,13 @@ export function ClientForm({
         client = await updateClient(initialData.id, {
           ...values,
           company_id: currentCompany.id,
-          // Ensure name is always passed since it's required
-          name: values.name,
+          name: values.name, // Explicitly passing name to ensure it's included
         });
       } else {
         client = await createClient({
           ...values,
           company_id: currentCompany.id,
-          // Ensure name is always passed since it's required
-          name: values.name,
+          name: values.name, // Explicitly passing name to ensure it's included
         });
       }
       
