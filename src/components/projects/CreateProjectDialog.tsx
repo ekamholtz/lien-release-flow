@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from "zod";
@@ -93,17 +92,29 @@ export function CreateProjectDialog({
     try {
       console.log("Creating project with company ID:", currentCompany.id);
       
+      // First, get the client name for the legacy client field
+      const { data: clientData, error: clientError } = await supabase
+        .from("clients")
+        .select("name")
+        .eq("id", values.clientId)
+        .single();
+        
+      if (clientError) {
+        throw new Error(`Failed to fetch client details: ${clientError.message}`);
+      }
+
       // Create draft project with minimal info
       const { data: project, error } = await supabase
         .from("projects")
         .insert({
           name: values.name,
           client_id: values.clientId,
+          client: clientData.name, // Include the client name for the legacy field
           value: values.value,
           project_type_id: values.projectTypeId,
           start_date: new Date().toISOString().split('T')[0],
           status: "draft",
-          company_id: currentCompany.id // Add company ID to the project
+          company_id: currentCompany.id
         })
         .select()
         .single();

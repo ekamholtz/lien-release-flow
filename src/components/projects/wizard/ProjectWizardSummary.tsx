@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { WizardActions } from './WizardActions';
 import { ProjectWizardSummaryContent } from './summary/ProjectWizardSummaryContent';
+import { supabase } from '@/integrations/supabase/client';
 
 // Extend the File type to include our custom properties
 interface ExtendedFile extends File {
@@ -13,7 +14,8 @@ interface ExtendedFile extends File {
 interface ProjectWizardSummaryProps {
   projectData: {
     name: string;
-    client: string;
+    clientId: string;
+    client?: string; // Make client optional
     location?: string;
     contactName?: string;
     contactEmail?: string;
@@ -44,10 +46,39 @@ export function ProjectWizardSummary({
   onBack, 
   onSubmit 
 }: ProjectWizardSummaryProps) {
+  const [clientName, setClientName] = useState<string>(projectData.client || "");
   const isValid = projectData.name && 
-    projectData.client && 
+    projectData.clientId && 
     projectData.value > 0 && 
     projectData.startDate;
+    
+  // Fetch client name if not provided
+  useEffect(() => {
+    const fetchClientName = async () => {
+      if (!projectData.client && projectData.clientId) {
+        try {
+          const { data } = await supabase
+            .from('clients')
+            .select('name')
+            .eq('id', projectData.clientId)
+            .single();
+            
+          if (data) {
+            setClientName(data.name);
+          }
+        } catch (error) {
+          console.error('Error fetching client name:', error);
+        }
+      }
+    };
+    
+    fetchClientName();
+  }, [projectData.clientId, projectData.client]);
+
+  const summaryData = {
+    ...projectData,
+    client: clientName
+  };
 
   return (
     <div className="space-y-6">
@@ -58,7 +89,7 @@ export function ProjectWizardSummary({
         </p>
       </div>
       
-      <ProjectWizardSummaryContent projectData={projectData} />
+      <ProjectWizardSummaryContent projectData={summaryData} />
       
       <WizardActions
         showBack={true}

@@ -23,7 +23,7 @@ export interface ProjectFormData {
   projectTypeId?: string;
   documents: ProjectDocument[];
   milestones: Milestone[];
-  companyId?: string; // Add company ID to form data
+  companyId?: string;
 }
 
 export function useProjectWizard(initialProjectId?: string | null) {
@@ -37,7 +37,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
     startDate: new Date(),
     documents: [],
     milestones: [],
-    companyId: currentCompany?.id // Initialize with current company ID
+    companyId: currentCompany?.id
   });
   const [initialLoading, setInitialLoading] = useState(!!initialProjectId);
   const [projectTypes, setProjectTypes] = useState<ProjectType[]>([]);

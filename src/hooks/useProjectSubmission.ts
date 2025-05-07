@@ -48,7 +48,7 @@ export function useProjectSubmission() {
           .from('projects')
           .update({
             name: formData.name,
-            client: formData.client,
+            client_id: formData.clientId,
             location: formData.location,
             contact_name: formData.contactName,
             contact_email: formData.contactEmail,
@@ -80,7 +80,7 @@ export function useProjectSubmission() {
           .from('projects')
           .insert({
             name: formData.name,
-            client: formData.client,
+            client_id: formData.clientId,
             location: formData.location,
             contact_name: formData.contactName,
             contact_email: formData.contactEmail,

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ProjectBasicInfo } from './wizard/ProjectBasicInfo';
 import { ProjectDocuments } from './wizard/ProjectDocuments';
@@ -8,6 +8,7 @@ import { ProjectWizardSummary } from './wizard/ProjectWizardSummary';
 import { WizardProgress } from './wizard/WizardProgress';
 import { useProjectWizard } from '@/hooks/useProjectWizard';
 import { useProjectSubmission } from '@/hooks/useProjectSubmission';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectWizardContainerProps {
   initialProjectId?: string | null;
@@ -26,6 +27,30 @@ export function ProjectWizardContainer({ initialProjectId }: ProjectWizardContai
   } = useProjectWizard(initialProjectId);
 
   const { submitProject, isSubmitting } = useProjectSubmission();
+  const [clientName, setClientName] = useState("");
+
+  // Fetch client name when clientId changes
+  useEffect(() => {
+    const fetchClientName = async () => {
+      if (formData.clientId) {
+        try {
+          const { data } = await supabase
+            .from('clients')
+            .select('name')
+            .eq('id', formData.clientId)
+            .single();
+            
+          if (data) {
+            setClientName(data.name);
+          }
+        } catch (error) {
+          console.error('Error fetching client name:', error);
+        }
+      }
+    };
+    
+    fetchClientName();
+  }, [formData.clientId]);
 
   const handleBasicInfoSubmit = (data: Partial<typeof formData>) => {
     updateFormData(data);
@@ -88,6 +113,7 @@ export function ProjectWizardContainer({ initialProjectId }: ProjectWizardContai
           <ProjectWizardSummary
             projectData={{
               ...formData,
+              client: clientName,
               documents: formData.documents.map(doc => ({
                 ...doc.file,
                 sharedWithClient: doc.sharedWithClient,

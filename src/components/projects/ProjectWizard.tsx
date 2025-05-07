@@ -8,6 +8,7 @@ import { ProjectMilestones } from './wizard/ProjectMilestones';
 import { ProjectDocuments } from './wizard/ProjectDocuments';
 import { ProjectWizardSummary } from './wizard/ProjectWizardSummary';
 import { WizardProgress, WizardStep } from './wizard/WizardProgress';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectWizardProps {
   onClose: () => void;
@@ -47,6 +48,36 @@ export function ProjectWizard({ onClose, initialProjectId }: ProjectWizardProps)
     if (success) {
       onClose();
     }
+  };
+
+  // Function to fetch client name from client ID
+  const getProjectDataForSummary = async () => {
+    let clientName = "";
+    if (formData.clientId) {
+      try {
+        const { data } = await supabase
+          .from('clients')
+          .select('name')
+          .eq('id', formData.clientId)
+          .single();
+        
+        if (data) {
+          clientName = data.name;
+        }
+      } catch (error) {
+        console.error('Error fetching client name:', error);
+      }
+    }
+    
+    return {
+      ...formData,
+      client: clientName,
+      documents: formData.documents.map(doc => ({
+        ...doc.file,
+        sharedWithClient: doc.sharedWithClient,
+        description: doc.description
+      }))
+    };
   };
 
   return (
@@ -94,6 +125,7 @@ export function ProjectWizard({ onClose, initialProjectId }: ProjectWizardProps)
           <ProjectWizardSummary
             projectData={{
               ...formData,
+              client: "", // This is now handled at render time
               documents: formData.documents.map(doc => ({
                 ...doc.file,
                 sharedWithClient: doc.sharedWithClient,
