@@ -6,7 +6,7 @@ import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { ProjectDashboardTabs } from '@/components/projects/ProjectDashboardTabs';
 import { useProject } from '@/hooks/useProject';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ProjectDashboard = () => {
@@ -18,6 +18,13 @@ const ProjectDashboard = () => {
     if (project && project.id) {
       navigate(`/projects/create?id=${project.id}`);
       toast.success("Continuing project setup");
+    }
+  };
+
+  const handleEditProject = () => {
+    if (project && project.id) {
+      navigate(`/projects/create?id=${project.id}&edit=true`);
+      toast.success("Editing project");
     }
   };
 
@@ -39,12 +46,20 @@ const ProjectDashboard = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
           <ProjectHeader project={project} />
           
-          {project.status === 'draft' && (
+          {project.status === 'draft' ? (
             <Button 
               className="mt-4 sm:mt-0"
               onClick={handleContinueSetup}
             >
               Continue Setup <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button 
+              className="mt-4 sm:mt-0"
+              variant="outline"
+              onClick={handleEditProject}
+            >
+              Edit Project <Edit className="ml-2 h-4 w-4" />
             </Button>
           )}
         </div>
