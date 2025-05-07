@@ -77,6 +77,7 @@ export function useQboConnectionStatus(companyId?: string) {
     }
   }, [user, companyId, currentCompany?.id]);
 
+  // Fixed version that avoids circular dependencies
   const getConnectionUrl = () => {
     const baseUrl = window.location.origin;
     const redirectUrl = `${baseUrl}/settings`;
@@ -87,6 +88,15 @@ export function useQboConnectionStatus(companyId?: string) {
     return `/api/qbo/authorize?redirectUrl=${encodedRedirectUrl}`;
   };
 
+  // Create a non-recursive check function to avoid TypeScript's infinite type error
+  const refreshConnectionStatus = () => {
+    if (companyId) {
+      checkQboConnection(companyId);
+    } else if (currentCompany?.id) {
+      checkQboConnection(currentCompany.id);
+    }
+  };
+
   return {
     status,
     expiresAt,
@@ -95,15 +105,8 @@ export function useQboConnectionStatus(companyId?: string) {
     debugInfo,
     setError,
     setDebugInfo,
-    checkQboConnection: (companyIdToCheck?: string) => {
-      if (companyIdToCheck) {
-        checkQboConnection(companyIdToCheck);
-      } else if (companyId) {
-        checkQboConnection(companyId);
-      } else if (currentCompany?.id) {
-        checkQboConnection(currentCompany.id);
-      }
-    },
+    checkQboConnection,
+    refreshConnectionStatus,
     getConnectionUrl,
   };
 }

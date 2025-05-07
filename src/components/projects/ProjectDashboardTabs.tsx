@@ -24,20 +24,21 @@ export function ProjectDashboardTabs({ project }: ProjectDashboardTabsProps) {
       </TabsList>
       
       <div className="bg-white shadow rounded-lg w-full">
-        <div className="min-h-[600px] w-full">
-          <TabsContent value="overview" className="p-6 h-full">
+        {/* Set a fixed height container with overflow for scrolling */}
+        <div className="h-[700px] w-full overflow-y-auto">
+          <TabsContent value="overview" className="p-6 min-w-full">
             <ProjectOverview project={project} />
           </TabsContent>
           
-          <TabsContent value="milestones" className="p-6 h-full">
+          <TabsContent value="milestones" className="p-6 min-w-full">
             <ProjectMilestonesTab projectId={project.id} />
           </TabsContent>
           
-          <TabsContent value="transactions" className="p-6 h-full">
+          <TabsContent value="transactions" className="p-6 min-w-full">
             <ProjectTransactions project={project} />
           </TabsContent>
           
-          <TabsContent value="documents" className="p-6 h-full">
+          <TabsContent value="documents" className="p-6 min-w-full">
             <ProjectDocumentsTab projectId={project.id} />
           </TabsContent>
         </div>
