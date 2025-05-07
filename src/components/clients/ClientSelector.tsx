@@ -34,9 +34,18 @@ export function ClientSelector({ value, onChange, disabled = false }: ClientSele
   
   const handleCreateSuccess = (client: Client) => {
     // Add the new client to the list and select it
-    setClients([...clients, client]);
+    setClients(prev => [...prev, client]);
     onChange(client.id);
     setIsFormOpen(false);
+  };
+
+  const handleCreateNew = (e: React.MouseEvent) => {
+    // Stop event propagation to prevent dropdown from closing
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Open client form dialog
+    setIsFormOpen(true);
   };
   
   const clientOptions: EntityOption[] = clients.map((client) => ({
@@ -54,7 +63,7 @@ export function ClientSelector({ value, onChange, disabled = false }: ClientSele
         placeholder="Select a client"
         emptyMessage="No clients found"
         loading={loading}
-        onCreateNew={() => setIsFormOpen(true)}
+        onCreateNew={handleCreateNew}
         createNewLabel="Add New Client"
         disabled={disabled}
       />

@@ -32,7 +32,7 @@ interface EntitySelectorProps {
   placeholder?: string;
   emptyMessage?: string;
   loading?: boolean;
-  onCreateNew?: () => void;
+  onCreateNew?: (e: React.MouseEvent) => void;
   createNewLabel?: string;
   disabled?: boolean;
 }
@@ -62,14 +62,23 @@ export function EntitySelector({
   }, [value, options]);
 
   const handleSelect = (currentValue: string) => {
-    if (currentValue === 'create-new') {
-      onCreateNew && onCreateNew();
-      setOpen(false);
+    if (currentValue === 'create-new' && onCreateNew) {
+      // Don't close popover yet - let the onCreateNew handler decide
       return;
     }
     
     onChange(currentValue);
     setOpen(false);
+  };
+
+  const handleCreateNewClick = (e: React.MouseEvent) => {
+    // Prevent the dropdown from closing automatically
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (onCreateNew) {
+      onCreateNew(e);
+    }
   };
 
   return (
@@ -123,11 +132,18 @@ export function EntitySelector({
                 <CommandGroup>
                   <CommandItem 
                     value="create-new" 
-                    onSelect={() => handleSelect('create-new')}
-                    className="text-primary"
+                    className="text-primary cursor-pointer"
+                    onSelect={(value) => {
+                      // No-op to prevent default behavior
+                    }}
                   >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span>{createNewLabel}</span>
+                    <div 
+                      className="flex items-center w-full"
+                      onClick={handleCreateNewClick}
+                    >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      <span>{createNewLabel}</span>
+                    </div>
                   </CommandItem>
                 </CommandGroup>
               </>

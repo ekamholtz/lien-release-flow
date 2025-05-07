@@ -40,7 +40,7 @@ export function useQboConnectionStatus(companyId?: string) {
       setLoading(true);
       setError(null);
 
-      // Use explicit type for data to avoid deep instantiation issue
+      // Explicitly type the response to avoid deep instantiation
       const { data, error: fetchError } = await supabase
         .from('qbo_connections')
         .select('expires_at, realm_id')
