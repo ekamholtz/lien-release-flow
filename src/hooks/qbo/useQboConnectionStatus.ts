@@ -77,23 +77,18 @@ export function useQboConnectionStatus(companyId?: string) {
     }
   }, [user, companyId, currentCompany?.id]);
 
-  // Fixed version that avoids circular dependencies
+  // Get the connection URL without circular reference
   const getConnectionUrl = () => {
     const baseUrl = window.location.origin;
     const redirectUrl = `${baseUrl}/settings`;
-    
-    // Using encodeURIComponent to properly encode the URL
-    const encodedRedirectUrl = encodeURIComponent(redirectUrl);
-    
-    return `/api/qbo/authorize?redirectUrl=${encodedRedirectUrl}`;
+    return `/api/qbo/authorize?redirectUrl=${encodeURIComponent(redirectUrl)}`;
   };
 
-  // Create a non-recursive check function to avoid TypeScript's infinite type error
+  // Create a non-recursive function to avoid TypeScript's infinite type error
   const refreshConnectionStatus = () => {
-    if (companyId) {
-      checkQboConnection(companyId);
-    } else if (currentCompany?.id) {
-      checkQboConnection(currentCompany.id);
+    const idToCheck = companyId || currentCompany?.id;
+    if (idToCheck) {
+      checkQboConnection(idToCheck);
     }
   };
 
