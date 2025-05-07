@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileText, Search } from 'lucide-react';
@@ -127,9 +126,7 @@ export function ProjectDocumentsTab({ projectId }: ProjectDocumentsTabProps) {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <p>Loading project documents...</p>
-      </div>
+      <div>Loading project documents...</div>
     );
   }
 

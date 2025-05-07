@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvoicesTable } from '@/components/payments/InvoicesTable';
@@ -142,7 +141,7 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
+    <div>
       <h2 className="text-lg font-semibold mb-4">Transactions</h2>
       
       <Tabs defaultValue="invoices">

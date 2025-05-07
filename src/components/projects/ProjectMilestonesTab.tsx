@@ -43,7 +43,7 @@ export function ProjectMilestonesTab({ projectId }: ProjectMilestonesTabProps) {
   });
 
   if (isLoading) {
-    return <div className="py-6">Loading milestone data...</div>;
+    return <div>Loading milestone data...</div>;
   }
 
   if (!milestones?.length) {

@@ -16,7 +16,8 @@ export function useQboConnectionStatus(companyId?: string) {
   const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const checkQboConnection = async (companyIdToCheck?: string) => {
-    const effectiveCompanyId = companyIdToCheck || companyId || currentCompany?.id;
+    // Fix for TypeScript infinite depth error - don't call useCompany() again inside this function
+    const effectiveCompanyId = companyIdToCheck || companyId;
     
     if (!user || !effectiveCompanyId) {
       setStatus('disconnected');
@@ -71,7 +72,9 @@ export function useQboConnectionStatus(companyId?: string) {
   };
 
   useEffect(() => {
-    checkQboConnection();
+    if (companyId || currentCompany?.id) {
+      checkQboConnection(companyId || currentCompany?.id);
+    }
   }, [user, companyId, currentCompany?.id]);
 
   const getConnectionUrl = () => {
