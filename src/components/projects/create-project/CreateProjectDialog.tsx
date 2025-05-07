@@ -68,7 +68,10 @@ export function CreateProjectDialog({
       
       // Create the project
       const project = await createDraftProject({
-        ...values,
+        name: values.name,
+        clientId: values.clientId,
+        value: values.value,
+        projectTypeId: values.projectTypeId,
         companyId: currentCompany.id,
         clientName
       });

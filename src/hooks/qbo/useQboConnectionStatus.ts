@@ -40,15 +40,16 @@ export function useQboConnectionStatus(companyId?: string) {
       setLoading(true);
       setError(null);
 
-      // Use the explicit type to avoid deep instantiation issue
+      // Use explicit type for data to avoid deep instantiation issue
       const { data, error: fetchError } = await supabase
         .from('qbo_connections')
         .select('expires_at, realm_id')
         .eq('company_id', companyIdToCheck)
-        .maybeSingle<QboConnectionData>();
+        .single();
 
       if (fetchError) throw fetchError;
 
+      // Check if data exists and has expected properties before processing
       if (!data) {
         setStatus('disconnected');
         setDebugInfo({ message: "No QBO connection found", timestamp: new Date().toISOString() });

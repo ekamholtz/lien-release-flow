@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AppHeader } from './AppHeader';
 import { AppSidebar } from './AppSidebar';
-import { CreateProjectDialog } from './projects/CreateProjectDialog';
+import { CreateProjectDialog } from './projects/create-project/CreateProjectDialog';
 import { Toaster } from 'sonner';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
