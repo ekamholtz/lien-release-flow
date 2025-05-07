@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
+import { CreateProjectDialog } from '@/components/projects/create-project/CreateProjectDialog';
 import { ArrowRight } from "lucide-react";
 
 const NewProject = () => {

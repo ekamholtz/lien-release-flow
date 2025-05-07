@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { CreateProjectDialog } from "./CreateProjectDialog";
+import { CreateProjectDialog } from "./create-project/CreateProjectDialog";
 
 interface ProjectSelectWithCreateProps {
   value: string;

@@ -39,6 +39,19 @@ export function useProjectSubmission() {
       
       let projectId: string;
       
+      // First, get the client name for the legacy client field
+      const { data: clientData, error: clientError } = await supabase
+        .from("clients")
+        .select("name")
+        .eq("id", formData.clientId)
+        .single();
+        
+      if (clientError) {
+        throw new Error(`Failed to fetch client details: ${clientError.message}`);
+      }
+
+      const clientName = clientData.name;
+      
       // Check if we're updating an existing project or creating a new one
       if (initialProjectId) {
         console.log('Updating existing project:', initialProjectId);
@@ -49,6 +62,7 @@ export function useProjectSubmission() {
           .update({
             name: formData.name,
             client_id: formData.clientId,
+            client: clientName, // Use client name from fetched data
             location: formData.location,
             contact_name: formData.contactName,
             contact_email: formData.contactEmail,
@@ -81,6 +95,7 @@ export function useProjectSubmission() {
           .insert({
             name: formData.name,
             client_id: formData.clientId,
+            client: clientName, // Use client name from fetched data
             location: formData.location,
             contact_name: formData.contactName,
             contact_email: formData.contactEmail,

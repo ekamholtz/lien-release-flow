@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlusCircle } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
-import { CreateProjectDialog } from './CreateProjectDialog';
+import { CreateProjectDialog } from '../projects/create-project/CreateProjectDialog';
 
 interface ProjectSelectorProps {
   value: string;
