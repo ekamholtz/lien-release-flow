@@ -97,10 +97,20 @@ export function EntitySelector({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent 
+        className="w-[--radix-popover-trigger-width] p-0" 
+        align="start"
+        // Add a higher z-index for dialog contexts
+        style={{ 
+          zIndex: 1000, 
+        }}
+      >
         <Command>
           <CommandInput placeholder={`Search...`} className="h-9" />
-          <CommandList>
+          <CommandList
+            // Ensure this element captures mouse events
+            className="pointer-events-auto"
+          >
             <CommandEmpty>
               {loading ? "Loading..." : emptyMessage}
             </CommandEmpty>
@@ -110,6 +120,7 @@ export function EntitySelector({
                   key={option.id}
                   value={option.id}
                   onSelect={handleSelect}
+                  className="cursor-pointer"
                 >
                   <div className="flex flex-col">
                     <span>{option.name}</span>

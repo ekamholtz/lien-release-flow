@@ -40,12 +40,15 @@ export function useQboConnectionStatus(companyId?: string) {
       setLoading(true);
       setError(null);
 
-      // Explicitly type the response to avoid deep instantiation
+      // Fix the typing issue by using a type assertion
       const { data, error: fetchError } = await supabase
         .from('qbo_connections')
         .select('expires_at, realm_id')
         .eq('company_id', companyIdToCheck)
-        .single();
+        .single() as { 
+          data: QboConnectionData | null; 
+          error: any;
+        };
 
       if (fetchError) throw fetchError;
 

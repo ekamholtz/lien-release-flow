@@ -68,11 +68,14 @@ export function ClientSelector({ value, onChange, disabled = false }: ClientSele
         disabled={disabled}
       />
       
-      <ClientForm
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSuccess={handleCreateSuccess}
-      />
+      {/* Render the form outside any nested contexts to avoid portal conflicts */}
+      {isFormOpen && (
+        <ClientForm
+          isOpen={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          onSuccess={handleCreateSuccess}
+        />
+      )}
     </>
   );
 }
