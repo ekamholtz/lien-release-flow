@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -116,16 +117,14 @@ export function useChangeOrderWizard(projectId?: string | null) {
 
       // Step 3: Clear all non-completed milestones
       if (existingMilestones && existingMilestones.length > 0) {
-        // Find all pending milestones that can be safely deleted
-        // TODO: Implement logic here to identify and exclude pending milestone IDs that are linked to invoices
-        // This is crucial to prevent foreign key constraint errors if trying to delete invoiced milestones.
-        // For example, fetch from an 'invoice_milestones' table and exclude those IDs.
+        // Find all non-completed milestones that can be safely deleted
+        // FIXED: Use is_completed field instead of status field to identify pending milestones
         const pendingMilestoneIds = existingMilestones
-          .filter(m => m.status === 'pending') 
+          .filter(m => m.is_completed === false)
           // .filter(m => !invoicedMilestoneIds.includes(m.id)) // Example placeholder for filtering out invoiced milestones
           .map(m => m.id);
 
-        console.log('Pending milestone IDs to delete:', pendingMilestoneIds);
+        console.log('Non-completed milestone IDs to delete:', pendingMilestoneIds);
 
         if (pendingMilestoneIds.length > 0) {
           // Delete all pending milestones in one operation
@@ -140,7 +139,7 @@ export function useChangeOrderWizard(projectId?: string | null) {
             setIsSubmitting(false);
             return false; // Stop the process if deletion fails
           }
-          console.log(`Successfully deleted ${pendingMilestoneIds.length} pending milestones`);
+          console.log(`Successfully deleted ${pendingMilestoneIds.length} non-completed milestones`);
         }
       }
 
@@ -157,7 +156,7 @@ export function useChangeOrderWizard(projectId?: string | null) {
       }
 
       // Step 5: Extract just the completed milestones from the remaining ones
-      const completedMilestones = remainingMilestones?.filter(m => m.status === 'completed') || [];
+      const completedMilestones = remainingMilestones?.filter(m => m.is_completed === true) || [];
       console.log('Completed milestones to preserve:', completedMilestones.length);
 
       // Step 6: Create the new pending milestones from the form data

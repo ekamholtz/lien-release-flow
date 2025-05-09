@@ -173,36 +173,36 @@ export type Database = {
       }
       change_orders: {
         Row: {
-          id: string
-          project_id: string
-          description: string
           amount: number
-          date: string
-          status: 'pending' | 'approved' | 'rejected'
-          created_by: string
-          created_at: string
+          created_at: string | null
+          created_by: string | null
+          date: string | null
+          description: string | null
+          id: string
+          project_id: string | null
+          status: string | null
           updated_at: string | null
         }
         Insert: {
-          id?: string
-          project_id: string
-          description: string
           amount: number
-          date: string
-          status: 'pending' | 'approved' | 'rejected'
-          created_by: string
-          created_at?: string
+          created_at?: string | null
+          created_by?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
-          id?: string
-          project_id?: string
-          description?: string
           amount?: number
-          date?: string
-          status?: 'pending' | 'approved' | 'rejected'
-          created_by?: string
-          created_at?: string
+          created_at?: string | null
+          created_by?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -213,13 +213,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "change_orders_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
         ]
       }
       clients: {
@@ -555,6 +548,7 @@ export type Database = {
       milestones: {
         Row: {
           amount: number
+          change_order_id: string | null
           company_id: string | null
           completed_at: string | null
           created_at: string
@@ -572,6 +566,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          change_order_id?: string | null
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -589,6 +584,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          change_order_id?: string | null
           company_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -605,6 +601,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "milestones_change_order_id_fkey"
+            columns: ["change_order_id"]
+            isOneToOne: false
+            referencedRelation: "change_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "milestones_company_id_fkey"
             columns: ["company_id"]
@@ -770,6 +773,7 @@ export type Database = {
           id: string
           location: string | null
           name: string
+          original_value: number | null
           project_type_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["project_status"] | null
@@ -789,6 +793,7 @@ export type Database = {
           id?: string
           location?: string | null
           name: string
+          original_value?: number | null
           project_type_id?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["project_status"] | null
@@ -808,6 +813,7 @@ export type Database = {
           id?: string
           location?: string | null
           name?: string
+          original_value?: number | null
           project_type_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["project_status"] | null
@@ -1116,6 +1122,16 @@ export type Database = {
         Args: { p_invitation_id: string; p_user_id: string }
         Returns: boolean
       }
+      create_change_order: {
+        Args: {
+          p_project_id: string
+          p_description: string
+          p_amount: number
+          p_status: string
+          p_created_by: string
+        }
+        Returns: string
+      }
       create_company_with_admin: {
         Args: { p_name: string; p_user_id: string; p_email: string }
         Returns: {
@@ -1245,6 +1261,10 @@ export type Database = {
           user_id: string | null
         }
       }
+      update_project_status: {
+        Args: { p_project_id: string; p_status: string }
+        Returns: undefined
+      }
       update_sync_status: {
         Args: {
           p_entity_type: string
@@ -1272,7 +1292,13 @@ export type Database = {
       }
     }
     Enums: {
-      project_status: "draft" | "active" | "completed" | "cancelled"
+      project_status:
+        | "draft"
+        | "active"
+        | "completed"
+        | "cancelled"
+        | "in_progress"
+        | "closed"
       qbo_sync_status: "pending" | "success" | "error"
       role_code:
         | "company_admin"
@@ -1397,7 +1423,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      project_status: ["draft", "active", "completed", "cancelled"],
+      project_status: [
+        "draft",
+        "active",
+        "completed",
+        "cancelled",
+        "in_progress",
+        "closed",
+      ],
       qbo_sync_status: ["pending", "success", "error"],
       role_code: [
         "company_admin",
