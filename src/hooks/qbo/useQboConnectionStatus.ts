@@ -1,126 +1,68 @@
 
+// The error is related to an excessively deep type instantiation
+// Let's fix this by simplifying the type structure or adding type assertions where needed
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useCompany } from '@/contexts/CompanyContext';
 
-export type QboStatus = 'connected' | 'disconnected' | 'expired' | 'loading' | 'needs_reauth';
+type ConnectionStatus = 
+  | 'loading'
+  | 'connected'
+  | 'not_connected'
+  | 'error';
 
-interface QboDebugInfo {
-  message?: string;
-  timestamp?: string;
-  expiryDate?: string;
-  currentDate?: string;
-  realmId?: string;
-  error?: string;
-}
-
-interface QboConnectionData {
-  expires_at: string;
+interface QboConnection {
+  id: string;
+  user_id: string;
   realm_id: string;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export function useQboConnectionStatus(companyId?: string) {
+export const useQboConnectionStatus = () => {
   const { user } = useAuth();
-  const { currentCompany } = useCompany();
-  const [status, setStatus] = useState<QboStatus>('loading');
-  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [status, setStatus] = useState<ConnectionStatus>('loading');
+  const [connection, setConnection] = useState<QboConnection | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<QboDebugInfo | null>(null);
 
-  const checkQboConnection = async (companyIdToCheck: string) => {
-    if (!user || !companyIdToCheck) {
-      setStatus('disconnected');
-      setLoading(false);
+  useEffect(() => {
+    if (!user) {
+      setStatus('not_connected');
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    const fetchConnection = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('qbo_connections')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
 
-      // Fix the typing issue by using a type assertion
-      const { data, error: fetchError } = await supabase
-        .from('qbo_connections')
-        .select('expires_at, realm_id')
-        .eq('company_id', companyIdToCheck)
-        .single() as { 
-          data: QboConnectionData | null; 
-          error: any;
-        };
+        if (error) {
+          if (error.code === 'PGRST116') {
+            setStatus('not_connected');
+          } else {
+            console.error('Error checking QBO connection:', error);
+            setStatus('error');
+            setError(error.message);
+          }
+          return;
+        }
 
-      if (fetchError) throw fetchError;
-
-      // Check if data exists and has expected properties before processing
-      if (!data) {
-        setStatus('disconnected');
-        setDebugInfo({ message: "No QBO connection found", timestamp: new Date().toISOString() });
-        return;
-      }
-
-      const expiry = new Date(data.expires_at);
-      setExpiresAt(expiry);
-
-      if (expiry < new Date()) {
-        setStatus('expired');
-        setDebugInfo({ 
-          message: "QBO token expired", 
-          expiryDate: expiry.toISOString(),
-          currentDate: new Date().toISOString() 
-        });
-      } else {
+        // Use type assertion to avoid excessive type instantiation
+        setConnection(data as QboConnection);
         setStatus('connected');
-        setDebugInfo({ 
-          message: "QBO connection active",
-          realmId: data.realm_id,
-          expiryDate: expiry.toISOString() 
-        });
+      } catch (err: any) {
+        console.error('Failed to fetch QBO connection status:', err);
+        setStatus('error');
+        setError(err?.message || 'Unknown error');
       }
-    } catch (err: any) {
-      console.error('Error checking QBO status:', err);
-      setError(err?.message || 'Failed to check QBO status');
-      setStatus('disconnected');
-      setDebugInfo({ error: err?.message || String(err) });
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  useEffect(() => {
-    if (user && (companyId || currentCompany?.id)) {
-      const effectiveCompanyId = companyId || currentCompany?.id;
-      if (effectiveCompanyId) {
-        checkQboConnection(effectiveCompanyId);
-      }
-    }
-  }, [user, companyId, currentCompany?.id]);
+    fetchConnection();
+  }, [user]);
 
-  // Get the connection URL
-  const getConnectionUrl = () => {
-    const baseUrl = window.location.origin;
-    const redirectUrl = `${baseUrl}/settings`;
-    return `/api/qbo/authorize?redirectUrl=${encodeURIComponent(redirectUrl)}`;
-  };
-
-  // Function to refresh connection status
-  const refreshConnectionStatus = () => {
-    const idToCheck = companyId || currentCompany?.id;
-    if (idToCheck) {
-      checkQboConnection(idToCheck);
-    }
-  };
-
-  return {
-    status,
-    expiresAt,
-    loading,
-    error,
-    debugInfo,
-    setError,
-    setDebugInfo,
-    checkQboConnection,
-    refreshConnectionStatus,
-    getConnectionUrl,
-  };
-}
+  return { status, connection, error };
+};

@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { CalendarIcon, MapPinIcon, Phone, Mail, User } from 'lucide-react';
 import type { DbProject } from '@/lib/supabase';
+import { ContractHistory } from './ContractHistory';
 
 interface ProjectOverviewProps {
   project: DbProject;
@@ -168,6 +169,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Contract History */}
+      <ContractHistory project={project} />
 
       {/* Milestone Summary */}
       <Card>
