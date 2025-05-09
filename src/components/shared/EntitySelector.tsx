@@ -1,21 +1,15 @@
 
 import { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, PlusCircle, Search } from 'lucide-react';
+import { Check, ChevronDown, PlusCircle, Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 export interface EntityOption {
@@ -50,6 +44,7 @@ export function EntitySelector({
 }: EntitySelectorProps) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<EntityOption | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Find the selected option when value changes
   useEffect(() => {
@@ -62,28 +57,34 @@ export function EntitySelector({
   }, [value, options]);
 
   const handleSelect = (currentValue: string) => {
-    if (currentValue === 'create-new' && onCreateNew) {
-      // Don't close popover yet - let the onCreateNew handler decide
-      return;
+    const selectedOption = options.find(option => option.id === currentValue);
+    if (selectedOption) {
+      onChange(currentValue);
+      setOpen(false);
     }
-    
-    onChange(currentValue);
-    setOpen(false);
   };
 
   const handleCreateNewClick = (e: React.MouseEvent) => {
-    // Prevent the dropdown from closing automatically
     e.preventDefault();
     e.stopPropagation();
     
     if (onCreateNew) {
       onCreateNew(e);
     }
+    setOpen(false);
   };
 
+  // Filter options based on search query
+  const filteredOptions = searchQuery 
+    ? options.filter(option => 
+        option.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (option.description && option.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : options;
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
@@ -94,74 +95,69 @@ export function EntitySelector({
           <span className="truncate">
             {selected ? selected.name : placeholder}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent 
-        className="w-[--radix-popover-trigger-width] p-0" 
+      </DropdownMenuTrigger>
+      <DropdownMenuContent 
+        className="w-[--radix-dropdown-menu-trigger-width] p-0" 
         align="start"
-        // Add a higher z-index for dialog contexts
         style={{ 
-          zIndex: 1000, 
+          zIndex: 9999, // Increase z-index to ensure visibility
+          minWidth: '200px',
         }}
       >
-        <Command>
-          <CommandInput placeholder={`Search...`} className="h-9" />
-          <CommandList
-            // Ensure this element captures mouse events
-            className="pointer-events-auto"
-          >
-            <CommandEmpty>
-              {loading ? "Loading..." : emptyMessage}
-            </CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.id}
-                  value={option.id}
-                  onSelect={handleSelect}
-                  className="cursor-pointer"
-                >
-                  <div className="flex flex-col">
-                    <span>{option.name}</span>
-                    {option.description && (
-                      <span className="text-xs text-muted-foreground">{option.description}</span>
-                    )}
-                  </div>
-                  <Check
-                    className={cn(
-                      "ml-auto h-4 w-4",
-                      value === option.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-            {onCreateNew && (
-              <>
-                <CommandSeparator />
-                <CommandGroup>
-                  <CommandItem 
-                    value="create-new" 
-                    className="text-primary cursor-pointer"
-                    onSelect={(value) => {
-                      // No-op to prevent default behavior
-                    }}
-                  >
-                    <div 
-                      className="flex items-center w-full"
-                      onClick={handleCreateNewClick}
-                    >
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      <span>{createNewLabel}</span>
-                    </div>
-                  </CommandItem>
-                </CommandGroup>
-              </>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+        <div className="p-2">
+          <input
+            placeholder="Search..."
+            className="w-full border rounded p-2 text-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        {loading ? (
+          <DropdownMenuLabel>Loading...</DropdownMenuLabel>
+        ) : filteredOptions.length === 0 ? (
+          <DropdownMenuLabel>{emptyMessage}</DropdownMenuLabel>
+        ) : (
+          <>
+            <DropdownMenuLabel>Options</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {filteredOptions.map((option) => (
+              <DropdownMenuItem
+                key={option.id}
+                onClick={() => handleSelect(option.id)}
+                className="cursor-pointer pointer-events-auto"
+              >
+                <div className="flex flex-col flex-1">
+                  <span>{option.name}</span>
+                  {option.description && (
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
+                  )}
+                </div>
+                {value === option.id && (
+                  <Check className="ml-auto h-4 w-4" />
+                )}
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
+        
+        {onCreateNew && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="text-primary cursor-pointer pointer-events-auto"
+              onClick={handleCreateNewClick}
+            >
+              <div className="flex items-center w-full">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                <span>{createNewLabel}</span>
+              </div>
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

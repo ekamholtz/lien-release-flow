@@ -6,10 +6,14 @@ import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { ProjectDashboardTabs } from '@/components/projects/ProjectDashboardTabs';
 import { useProject } from '@/hooks/useProject';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Edit } from 'lucide-react';
+import { ArrowRight, Edit, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
-const ProjectDashboard = () => {
+interface ProjectDashboardProps {
+  documentsOnly?: boolean;
+}
+
+const ProjectDashboard = ({ documentsOnly = false }: ProjectDashboardProps) => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { project, loading, error } = useProject(projectId);
@@ -23,7 +27,7 @@ const ProjectDashboard = () => {
 
   const handleEditProject = () => {
     if (project && project.id) {
-      navigate(`/projects/create?id=${project.id}&edit=true`);
+      navigate(`/projects/${project.id}/edit-options`);
       toast.success("Editing project");
     }
   };
@@ -43,6 +47,20 @@ const ProjectDashboard = () => {
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto p-6">
+        {/* Navigation Row */}
+        <div className="mb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/projects')}
+            className="flex items-center gap-1"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Projects
+          </Button>
+        </div>
+        
+        {/* Project Info and Actions Row */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
           <ProjectHeader project={project} />
           
@@ -65,7 +83,11 @@ const ProjectDashboard = () => {
         </div>
         
         <div className="mt-6">
-          <ProjectDashboardTabs project={project} />
+          {documentsOnly ? (
+            <ProjectDashboardTabs project={project} defaultTab="documents" />
+          ) : (
+            <ProjectDashboardTabs project={project} />
+          )}
         </div>
       </div>
     </AppLayout>

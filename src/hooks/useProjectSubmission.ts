@@ -122,14 +122,45 @@ export function useProjectSubmission() {
       
       // If we're updating an existing project, clean up old milestones if needed
       if (initialProjectId) {
-        const { error: deleteError } = await supabase
+        // First, get existing milestones
+        const { data: existingMilestones, error: fetchError } = await supabase
           .from('milestones')
-          .delete()
+          .select('id')
           .eq('project_id', initialProjectId);
           
-        if (deleteError) {
-          console.error('Error cleaning up old milestones:', deleteError);
-          // Continue execution - non-critical error
+        if (fetchError) {
+          console.error('Error fetching existing milestones:', fetchError);
+        } else if (existingMilestones && existingMilestones.length > 0) {
+          // Get list of milestone IDs that are safe to delete (not referenced by invoices)
+          const { data: referencedMilestones, error: refError } = await supabase
+            .from('invoices')
+            .select('source_milestone_id')
+            .in('source_milestone_id', existingMilestones.map(m => m.id));
+            
+          if (refError) {
+            console.error('Error checking referenced milestones:', refError);
+          } else {
+            // Create a set of milestone IDs that are referenced by invoices
+            const referencedIds = new Set(referencedMilestones?.map(r => r.source_milestone_id) || []);
+            
+            // Filter out milestones that are referenced by invoices
+            const deletableMilestoneIds = existingMilestones
+              .filter(m => !referencedIds.has(m.id))
+              .map(m => m.id);
+            
+            if (deletableMilestoneIds.length > 0) {
+              // Delete only milestones that are not referenced by invoices
+              const { error: deleteError } = await supabase
+                .from('milestones')
+                .delete()
+                .in('id', deletableMilestoneIds);
+                
+              if (deleteError) {
+                console.error('Error cleaning up old milestones:', deleteError);
+                // Continue execution - non-critical error
+              }
+            }
+          }
         }
       }
 

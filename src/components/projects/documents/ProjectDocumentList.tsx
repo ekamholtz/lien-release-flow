@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText } from 'lucide-react';
+import { FileText, Trash2 } from 'lucide-react';
 
 interface ProjectDocument {
   id: string;
@@ -17,9 +17,10 @@ interface ProjectDocument {
 interface ProjectDocumentListProps {
   documents: ProjectDocument[];
   onDownload: (document: ProjectDocument) => void;
+  onDelete?: (document: ProjectDocument) => void;
 }
 
-export function ProjectDocumentList({ documents, onDownload }: ProjectDocumentListProps) {
+export function ProjectDocumentList({ documents, onDownload, onDelete }: ProjectDocumentListProps) {
   if (documents.length === 0) {
     return (
       <div className="min-h-[400px] flex items-center justify-center">
@@ -37,12 +38,13 @@ export function ProjectDocumentList({ documents, onDownload }: ProjectDocumentLi
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {documents.map((document) => (
         <DocumentCard 
           key={document.id} 
           document={document} 
           onDownload={onDownload} 
+          onDelete={onDelete}
         />
       ))}
     </div>
@@ -52,35 +54,52 @@ export function ProjectDocumentList({ documents, onDownload }: ProjectDocumentLi
 interface DocumentCardProps {
   document: ProjectDocument;
   onDownload: (document: ProjectDocument) => void;
+  onDelete?: (document: ProjectDocument) => void;
 }
 
-function DocumentCard({ document, onDownload }: DocumentCardProps) {
+function DocumentCard({ document, onDownload, onDelete }: DocumentCardProps) {
   return (
     <Card key={document.id}>
-      <CardContent className="p-4 flex flex-col justify-between h-full">
-        <div>
-          <div className="h-24 flex items-center justify-center bg-gray-100 rounded mb-3">
-            <FileText className="h-10 w-10 text-gray-400" />
+      <CardContent className="p-5 flex flex-col h-full space-y-4">
+        {/* Document Header */}
+        <div className="flex items-start space-x-3">
+          <div className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded">
+            <FileText className="h-6 w-6 text-gray-500" />
           </div>
-          <h3 className="font-medium truncate">{document.name}</h3>
-          {document.description && (
-            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{document.description}</p>
-          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-sm truncate">{document.name}</h3>
+            <p className="text-xs text-gray-500">
+              {new Date(document.created_at).toLocaleDateString()}
+            </p>
+          </div>
         </div>
         
-        <div className="mt-4 flex justify-between items-center">
-          <p className="text-xs text-gray-500">
-            {new Date(document.created_at).toLocaleDateString()}
-          </p>
-          <div className="flex gap-2">
+        {/* Description (if exists) */}
+        {document.description && (
+          <p className="text-xs text-gray-600 line-clamp-2 pt-1">{document.description}</p>
+        )}
+        
+        {/* Actions */}
+        <div className="flex justify-end gap-2 mt-auto pt-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="text-xs px-2 h-8"
+            onClick={() => onDownload(document)}
+          >
+            Download
+          </Button>
+          {onDelete && (
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="sm"
-              onClick={() => onDownload(document)}
+              className="text-xs px-2 h-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+              onClick={() => onDelete(document)}
             >
-              Download
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
             </Button>
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>

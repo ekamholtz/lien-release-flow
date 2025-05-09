@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,9 +17,13 @@ import { projectBasicInfoSchema, ProjectBasicInfoFormValues } from './basic-info
 interface ProjectBasicInfoProps {
   initialData?: Partial<ProjectBasicInfoFormValues>;
   onSubmit: (data: ProjectBasicInfoFormValues) => void;
+  onCancel?: () => void;
 }
 
-export function ProjectBasicInfo({ initialData, onSubmit }: ProjectBasicInfoProps) {
+export function ProjectBasicInfo({ initialData, onSubmit, onCancel }: ProjectBasicInfoProps) {
+  // Debug: Log what initialData is being received
+  console.log("ProjectBasicInfo received initialData:", initialData);
+  
   const [showCreateTypeDialog, setShowCreateTypeDialog] = useState(false);
 
   const { data: projectTypes = [], refetch: refetchProjectTypes } = useQuery({
@@ -51,6 +54,26 @@ export function ProjectBasicInfo({ initialData, onSubmit }: ProjectBasicInfoProp
       projectTypeId: initialData?.projectTypeId || undefined,
     },
   });
+
+  // Reset form values when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      console.log("Resetting form with initialData:", initialData);
+      form.reset({
+        name: initialData.name || '',
+        clientId: initialData.clientId || '',
+        location: initialData.location || '',
+        contactName: initialData.contactName || '',
+        contactEmail: initialData.contactEmail || '',
+        contactPhone: initialData.contactPhone || '',
+        description: initialData.description || '',
+        value: initialData.value || 0,
+        startDate: initialData.startDate || new Date(),
+        endDate: initialData.endDate || null,
+        projectTypeId: initialData.projectTypeId || undefined,
+      });
+    }
+  }, [form, initialData]);
 
   const handleCreateProjectType = () => {
     setShowCreateTypeDialog(true);
@@ -89,7 +112,12 @@ export function ProjectBasicInfo({ initialData, onSubmit }: ProjectBasicInfoProp
           
           <DescriptionField form={form} />
           
-          <div className="flex justify-end">
+          <div className="flex justify-end space-x-2">
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+            )}
             <Button type="submit">Continue</Button>
           </div>
         </form>

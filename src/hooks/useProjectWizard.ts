@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -41,6 +40,8 @@ export function useProjectWizard(initialProjectId?: string | null) {
   });
   const [initialLoading, setInitialLoading] = useState(!!initialProjectId);
   const [projectTypes, setProjectTypes] = useState<ProjectType[]>([]);
+  // Flag to track if data has been loaded to prevent duplicate loads
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Update company ID when it changes
   useEffect(() => {
@@ -55,7 +56,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
   // Load project data if initialProjectId is provided
   useEffect(() => {
     async function loadProjectData() {
-      if (!initialProjectId || !currentCompany?.id) return;
+      if (!initialProjectId || !currentCompany?.id || dataLoaded) return;
       
       setInitialLoading(true);
       try {
@@ -74,6 +75,25 @@ export function useProjectWizard(initialProjectId?: string | null) {
         }
         
         if (project) {
+          // Debug: Log raw project data from DB
+          console.log('Raw project data from DB:', project);
+          
+          // Load project documents first
+          const { data: documents = [] } = await supabase
+            .from('project_files')
+            .select('*')
+            .eq('project_id', initialProjectId);
+            
+          // Load project milestones
+          const { data: milestones = [] } = await supabase
+            .from('milestones')
+            .select('*')
+            .eq('project_id', initialProjectId);
+          
+          console.log('Documents loaded:', documents?.length || 0);
+          console.log('Milestones loaded:', milestones?.length || 0);
+          
+          // IMPORTANT: Set formData AFTER all data is loaded
           // Convert the data format to match our form data
           setFormData({
             name: project.name || '',
@@ -88,21 +108,28 @@ export function useProjectWizard(initialProjectId?: string | null) {
             endDate: project.end_date ? new Date(project.end_date) : null,
             projectTypeId: project.project_type_id || undefined,
             companyId: project.company_id || currentCompany.id,
-            documents: [], // These will be loaded separately
-            milestones: [] // These will be loaded separately
+            documents: documents?.map(doc => ({
+              file: new File([], doc.name, { type: doc.file_type }), // Placeholder file
+              sharedWithClient: doc.shared_with_client,
+              description: doc.description || ''
+            })) || [],
+            milestones: milestones?.map(milestone => ({
+              name: milestone.name,
+              description: milestone.description || '',
+              dueDate: milestone.due_date ? new Date(milestone.due_date) : null,
+              amount: milestone.amount,
+              percentage: milestone.percentage,
+              dueType: milestone.due_type as 'time' | 'event'
+            })) || []
           });
           
-          // Load project documents
-          const { data: documents } = await supabase
-            .from('project_files')
-            .select('*')
-            .eq('project_id', initialProjectId);
-            
-          // Load project milestones
-          const { data: milestones } = await supabase
-            .from('milestones')
-            .select('*')
-            .eq('project_id', initialProjectId);
+          // Debug: Log what formData is being set
+          console.log('Final formData being set:', {
+            name: project.name,
+            clientId: project.client_id,
+            value: project.value,
+            projectTypeId: project.project_type_id
+          });
             
           console.log('Project loaded successfully:', project.name);
         } else {
@@ -117,8 +144,10 @@ export function useProjectWizard(initialProjectId?: string | null) {
       }
     }
     
-    loadProjectData();
-  }, [initialProjectId, currentCompany?.id]);
+    if (initialProjectId && !dataLoaded) {
+      loadProjectData();
+    }
+  }, [initialProjectId, currentCompany?.id, dataLoaded]);
 
   const handleNextStep = () => {
     if (currentStep === 'basic-info') {

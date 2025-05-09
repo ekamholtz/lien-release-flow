@@ -171,6 +171,57 @@ export type Database = {
           },
         ]
       }
+      change_orders: {
+        Row: {
+          id: string
+          project_id: string
+          description: string
+          amount: number
+          date: string
+          status: 'pending' | 'approved' | 'rejected'
+          created_by: string
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          description: string
+          amount: number
+          date: string
+          status: 'pending' | 'approved' | 'rejected'
+          created_by: string
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          description?: string
+          amount?: number
+          date?: string
+          status?: 'pending' | 'approved' | 'rejected'
+          created_by?: string
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       clients: {
         Row: {
           address: string | null

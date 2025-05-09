@@ -1,31 +1,42 @@
-
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { ProjectWizard } from '@/components/projects/ProjectWizard';
 import { toast } from 'sonner';
 import { useProject } from '@/hooks/useProject';
 
-const CreateProject = () => {
+interface CreateProjectProps {
+  basicInfoOnly?: boolean;
+}
+
+const CreateProject = ({ basicInfoOnly = false }: CreateProjectProps) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { projectId: pathProjectId } = useParams<{ projectId: string }>();
   const [projectId, setProjectId] = useState<string | null>(null);
   const { project, loading, error } = useProject(projectId);
 
   useEffect(() => {
-    // Extract project ID from URL query parameters
+    // First check for project ID in URL path parameters (for edit routes)
+    if (pathProjectId) {
+      console.log(`Loading project with ID from path: ${pathProjectId}`);
+      setProjectId(pathProjectId);
+      return;
+    }
+    
+    // Fall back to checking URL query parameters (for backwards compatibility)
     const params = new URLSearchParams(location.search);
     const id = params.get('id');
     
     if (id) {
-      console.log(`Loading project with ID: ${id}`);
+      console.log(`Loading project with ID from query: ${id}`);
       setProjectId(id);
     } else {
       // If no project ID is provided, redirect back to the projects page
       toast.error("Missing project ID. Redirecting to projects page.");
       navigate('/projects');
     }
-  }, [location.search, navigate]);
+  }, [location.search, navigate, pathProjectId]);
 
   // Handle project loading error
   useEffect(() => {
@@ -54,6 +65,7 @@ const CreateProject = () => {
             <ProjectWizard 
               initialProjectId={projectId || undefined} 
               onClose={handleClose}
+              basicInfoOnly={basicInfoOnly}
             />
           </div>
         )}

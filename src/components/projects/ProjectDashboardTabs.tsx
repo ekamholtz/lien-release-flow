@@ -9,13 +9,17 @@ import { DbProject } from '@/lib/supabase';
 
 interface ProjectDashboardTabsProps {
   project: DbProject;
+  defaultTab?: 'overview' | 'milestones' | 'transactions' | 'documents';
 }
 
-export function ProjectDashboardTabs({ project }: ProjectDashboardTabsProps) {
-  const [activeTab, setActiveTab] = useState('overview');
+export function ProjectDashboardTabs({ project, defaultTab = 'overview' }: ProjectDashboardTabsProps) {
+  const [activeTab, setActiveTab] = useState(defaultTab);
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+    <Tabs 
+      value={activeTab} 
+      onValueChange={(value) => setActiveTab(value as 'overview' | 'milestones' | 'transactions' | 'documents')} 
+      className="space-y-4">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="milestones">Milestones</TabsTrigger>

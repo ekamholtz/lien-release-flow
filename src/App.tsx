@@ -10,6 +10,8 @@ import Projects from './pages/Projects';
 import NewProject from './pages/NewProject';
 import CreateProject from './pages/CreateProject';
 import ProjectDashboard from './pages/ProjectDashboard';
+import ProjectEditOptions from './components/projects/ProjectEditOptions';
+import ChangeOrderWizard from './components/projects/change-order/ChangeOrderWizard';
 import AccountsReceivable from './pages/AccountsReceivable';
 import CreateInvoice from './pages/CreateInvoice';
 import AccountsPayable from './pages/AccountsPayable';
@@ -107,6 +109,46 @@ const App = () => {
           element={
             <ProtectedRoute>
               <ProjectDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects/:projectId/edit-options" 
+          element={
+            <ProtectedRoute>
+              <ProjectEditOptions />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects/:projectId/edit" 
+          element={
+            <ProtectedRoute>
+              <CreateProject />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects/:projectId/edit-basic" 
+          element={
+            <ProtectedRoute>
+              <CreateProject basicInfoOnly={true} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects/:projectId/change-order" 
+          element={
+            <ProtectedRoute>
+              <ChangeOrderWizard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/projects/:projectId/documents" 
+          element={
+            <ProtectedRoute>
+              <ProjectDashboard documentsOnly={true} />
             </ProtectedRoute>
           } 
         />

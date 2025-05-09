@@ -72,6 +72,41 @@ export function ProjectDocumentsTab({ projectId }: ProjectDocumentsTabProps) {
     await downloadDocument(document.file_path, document.name);
   };
 
+  const handleDelete = async (document: ProjectDocument) => {
+    try {
+      // Show a loading toast
+      toast.loading(`Deleting ${document.name}...`);
+      
+      // Delete from the database
+      const { error } = await supabase
+        .from('project_files')
+        .delete()
+        .eq('id', document.id);
+        
+      if (error) throw error;
+      
+      // Also delete from storage if needed
+      const { error: storageError } = await supabase
+        .storage
+        .from('project-documents')
+        .remove([document.file_path]);
+        
+      if (storageError) {
+        console.error('Error deleting file from storage:', storageError);
+        // Continue anyway as the database record is gone
+      }
+      
+      // Update the local state
+      setDocuments(prev => prev.filter(doc => doc.id !== document.id));
+      
+      // Show success message
+      toast.success(`${document.name} deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error(`Failed to delete ${document.name}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full min-h-[400px] flex items-center justify-center">
@@ -102,6 +137,7 @@ export function ProjectDocumentsTab({ projectId }: ProjectDocumentsTabProps) {
       <ProjectDocumentList 
         documents={filteredDocuments}
         onDownload={handleDownload}
+        onDelete={handleDelete}
       />
     </div>
   );

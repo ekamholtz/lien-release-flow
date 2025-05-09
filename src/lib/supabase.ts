@@ -41,7 +41,7 @@ export type DbProject = {
   name: string;
   client: string;
   value: number;
-  status: string;
+  status: 'draft' | 'active' | 'in_progress' | 'completed' | 'closed' | 'cancelled';
   start_date: string;
   end_date: string | null;
   created_at: string;
@@ -121,4 +121,17 @@ export type DbMilestone = {
   created_at: string;
   updated_at: string;
   company_id: string;
+  change_order_id?: string;
+}
+
+export type DbChangeOrder = {
+  id: string;
+  project_id: string;
+  description: string;
+  amount: number;
+  date: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }

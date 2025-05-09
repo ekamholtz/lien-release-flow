@@ -10,14 +10,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ClientSelector } from '@/components/clients/ClientSelector';
 import { projectFormSchema, ProjectFormValues } from "./projectFormSchema";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { ProjectTypeSelector } from "@/components/projects/wizard/basic-info/ProjectTypeSelector";
+import { CreateProjectTypeDialog } from "@/components/projects/wizard/CreateProjectTypeDialog";
+import { ProjectType } from "@/types/project";
 
 interface ProjectFormProps {
-  projectTypes: Array<{ id: string, name: string }>;
+  projectTypes: ProjectType[];
   onSubmit: (values: ProjectFormValues) => Promise<void>;
   onClose: () => void;
   isSubmitting: boolean;
@@ -30,6 +33,7 @@ export function ProjectForm({
   isSubmitting
 }: ProjectFormProps) {
   const navigate = useNavigate();
+  const [showCreateTypeDialog, setShowCreateTypeDialog] = useState(false);
   
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
@@ -40,6 +44,16 @@ export function ProjectForm({
       projectTypeId: "",
     },
   });
+
+  const handleCreateProjectType = () => {
+    setShowCreateTypeDialog(true);
+  };
+
+  const handleProjectTypeCreated = () => {
+    // We would ideally refetch project types here, but since they're passed as props,
+    // we'll just close the dialog and let the parent component handle refetching if needed
+    setShowCreateTypeDialog(false);
+  };
 
   const handleSubmit = async (values: ProjectFormValues) => {
     await onSubmit(values);
@@ -68,23 +82,13 @@ export function ProjectForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Project Type*</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select project type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {projectTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <ProjectTypeSelector
+                  form={form}
+                  projectTypes={projectTypes}
+                  onCreateProjectType={handleCreateProjectType}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -154,6 +158,13 @@ export function ProjectForm({
           </Button>
         </div>
       </form>
+      
+      {/* Add the CreateProjectTypeDialog */}
+      <CreateProjectTypeDialog 
+        open={showCreateTypeDialog} 
+        onOpenChange={setShowCreateTypeDialog} 
+        onSuccess={handleProjectTypeCreated}
+      />
     </Form>
   );
 }
