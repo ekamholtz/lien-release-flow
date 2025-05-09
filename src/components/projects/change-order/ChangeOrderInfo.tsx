@@ -65,10 +65,15 @@ const ChangeOrderInfo = ({ initialData, projectValue, updateFormData }: ChangeOr
   }, [form, projectValue]);
 
   const onSubmit = (data: ChangeOrderInfoValues) => {
+    // Ensure amount is a number - this is critical for calculations later
+    const numericAmount = typeof data.amount === 'string' ? parseFloat(data.amount) : Number(data.amount);
+    
     updateFormData({
       description: data.description,
-      amount: data.amount,
+      amount: numericAmount,
     });
+    
+    console.log('Submitting change order amount:', numericAmount, typeof numericAmount);
   };
 
   return (
@@ -86,7 +91,7 @@ const ChangeOrderInfo = ({ initialData, projectValue, updateFormData }: ChangeOr
       </Card>
       
       <Form {...form}>
-        <form onChange={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onChange={form.handleSubmit(onSubmit)} onBlur={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
             control={form.control}
             name="description"

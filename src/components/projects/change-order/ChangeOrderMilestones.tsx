@@ -1,60 +1,80 @@
-
-import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
+// Define the Milestone interface
 interface Milestone {
   id?: string;
   name: string;
-  percentage: number;
+  percentage?: number;
   amount: number;
   description?: string;
   status: 'pending' | 'completed';
 }
 
-// Interface for database milestone which might have a string status
-interface DbMilestone extends Omit<Milestone, 'status'> {
-  status: string;
-  is_completed?: boolean;
-  company_id?: string;
-  project_id?: string;
-  created_at?: string;
-  updated_at?: string;
-  completed_at?: string;
-  due_date?: string;
-  due_type?: string;
-  invoice_id?: string;
+// Define ChangeOrderFormData interface
+interface ChangeOrderFormData {
+  description: string;
+  amount: number;
+  milestones: Milestone[];
 }
+
+// Helper function for consistent currency formatting
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', { 
+    style: 'currency', 
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+};
 
 interface ChangeOrderMilestonesProps {
-  initialData: any;
-  updateFormData: (data: any) => void;
-  projectId?: string;
+  formData: ChangeOrderFormData;
+  updateFormData: (data: Partial<ChangeOrderFormData>) => void;
+  projectId: string;
+  changeOrderAmount: number;
+  originalProjectValue: number;
 }
 
-const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: ChangeOrderMilestonesProps) => {
+const ChangeOrderMilestones: React.FC<ChangeOrderMilestonesProps> = ({
+  formData,
+  updateFormData,
+  projectId,
+  changeOrderAmount,
+  originalProjectValue,
+}) => {
   // Use refs to prevent infinite loops
   const initialRenderDone = useRef(false);
   const userChanging = useRef(false);
   const lastSubmittedData = useRef<{ milestones: Milestone[], amount: number } | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
-  const [originalProjectValue, setOriginalProjectValue] = useState(0);
-  const [changeOrderAmount, setChangeOrderAmount] = useState(initialData?.amount || 0);
   const [pendingMilestones, setPendingMilestones] = useState<Milestone[]>([]);
   const [completedMilestones, setCompletedMilestones] = useState<Milestone[]>([]);
-  const [totalPercentage, setTotalPercentage] = useState(0);
   
-  // Total project value (original + change order)
-  const totalProjectValue = originalProjectValue + changeOrderAmount;
-
+  // Calculate the total project value (original + change order)
+  // Ensure both values are treated as numbers
+  const numericOriginalValue = Number(originalProjectValue) || 0;
+  const numericChangeAmount = Number(changeOrderAmount) || 0;
+  const totalProjectValue = numericOriginalValue + numericChangeAmount;
+  
+  // Debug output to console
+  useEffect(() => {
+    console.log('ChangeOrderMilestones values:', {
+      originalProjectValue,
+      changeOrderAmount,
+      numericOriginalValue,
+      numericChangeAmount,
+      totalProjectValue
+    });
+  }, [originalProjectValue, changeOrderAmount, numericOriginalValue, numericChangeAmount, totalProjectValue]);
+  
   // Load project data and milestones once
   useEffect(() => {
     const loadData = async () => {
@@ -81,13 +101,10 @@ const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: Chang
           
         if (milestonesError) throw milestonesError;
         
-        setOriginalProjectValue(project.value);
-        
         // Convert DB milestones to the expected format
-        const validMilestones = (milestones || []).map((m: DbMilestone): Milestone => ({
+        const validMilestones = (milestones || []).map((m: any): Milestone => ({
           id: m.id,
           name: m.name,
-          percentage: m.percentage,
           amount: m.amount,
           description: m.description,
           status: m.status === 'completed' ? 'completed' : 'pending'
@@ -100,19 +117,13 @@ const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: Chang
         setCompletedMilestones(completed);
         
         // Initialize milestones from form data or database
-        if (initialData?.milestones?.length > 0) {
-          setPendingMilestones(initialData.milestones);
+        if (formData?.milestones?.length > 0) {
+          setPendingMilestones(formData.milestones);
         } else {
           setPendingMilestones(pending);
         }
-        
-        // Set change order amount from initialData if it exists
-        if (initialData?.amount) {
-          setChangeOrderAmount(initialData.amount);
-        }
       } catch (error) {
         console.error('Error loading milestones:', error);
-        toast.error('Failed to load project milestones');
       } finally {
         setIsLoading(false);
         // Mark initial render as complete
@@ -123,73 +134,69 @@ const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: Chang
     loadData();
   }, [projectId]); // Only depends on projectId
   
-  // Calculate total percentage whenever milestones change or change order amount changes
-  useEffect(() => {
-    // When change order amount changes, we need to recalculate percentages based on new total
-    if (changeOrderAmount > 0 && totalProjectValue > 0) {
-      // Calculate the total amount from all milestones
-      const completedAmount = completedMilestones.reduce((sum, m) => sum + (m.amount || 0), 0);
-      const pendingAmount = pendingMilestones.reduce((sum, m) => sum + (m.amount || 0), 0);
-      const totalAmount = completedAmount + pendingAmount;
-      
-      // Calculate percentage based on the new total project value
-      const calculatedPercentage = (totalAmount / totalProjectValue) * 100;
-      setTotalPercentage(parseFloat(calculatedPercentage.toFixed(2)));
-    } else {
-      // If no change order amount, calculate percentage normally
-      const completedPercentage = completedMilestones.reduce((sum, m) => sum + (m.percentage || 0), 0);
-      const pendingPercentage = pendingMilestones.reduce((sum, m) => sum + (m.percentage || 0), 0);
-      setTotalPercentage(completedPercentage + pendingPercentage);
-    }
-  }, [pendingMilestones, completedMilestones, changeOrderAmount, totalProjectValue]);
-  
-  // Update parent form data, but only when:
-  // 1. We're not in the initial render
-  // 2. This isn't triggered by a user currently changing something
-  // 3. The data has actually changed from what we last sent
-  useEffect(() => {
-    const newData = {
-      milestones: pendingMilestones,
-      amount: changeOrderAmount
-    };
-    
-    const lastData = lastSubmittedData.current;
-    const dataChanged = !lastData || 
-                        lastData.amount !== newData.amount || 
-                        JSON.stringify(lastData.milestones) !== JSON.stringify(newData.milestones);
-    
-    if (initialRenderDone.current && !userChanging.current && dataChanged) {
-      lastSubmittedData.current = newData;
-      updateFormData(newData);
-    }
-  }, [pendingMilestones, changeOrderAmount, updateFormData]);
 
-  // Handle change order amount change
-  const handleChangeOrderAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
-    userChanging.current = true;
-    const newAmount = parseFloat(e.target.value) || 0;
-    setChangeOrderAmount(newAmount);
-    
-    // Calculate the new total project value
-    const newTotalValue = originalProjectValue + newAmount;
-    
-    // Recalculate milestone amounts based on the new total
-    const updatedMilestones = pendingMilestones.map(milestone => {
-      // Maintain the same percentage but update the amount
-      const calculatedAmount = (milestone.percentage / 100) * newTotalValue;
-      return {
-        ...milestone,
-        amount: parseFloat(calculatedAmount.toFixed(2))
-      };
-    });
-    
-    setPendingMilestones(updatedMilestones);
-    
-    // Reset the user flag after update
-    setTimeout(() => {
-      userChanging.current = false;
+  
+  // Helper function to get the total milestone amount - ensures numeric addition
+  const getTotalMilestoneAmount = (): number => {
+    // Calculate completed milestones total (with explicit number conversion)
+    const completedAmount = completedMilestones.reduce((sum, m) => {
+      const amount = typeof m.amount === 'number' ? m.amount : Number(m.amount) || 0;
+      return sum + amount;
     }, 0);
+    
+    // Calculate pending milestones total (with explicit number conversion)
+    const pendingAmount = pendingMilestones.reduce((sum, m) => {
+      const amount = typeof m.amount === 'number' ? m.amount : Number(m.amount) || 0;
+      return sum + amount;
+    }, 0);
+    
+    // Return the sum as a number
+    return Number(completedAmount) + Number(pendingAmount);
   };
+
+  // Update parent form data, but only when:
+  // 1. Initial render is done
+  // 2. User has made changes or we have not yet submitted these milestones
+  // 3. Current pending milestones don't match what we last submitted
+  useEffect(() => {
+    if (!initialRenderDone.current) return;
+    
+    const currentData = { milestones: pendingMilestones, amount: changeOrderAmount };
+    const previousData = lastSubmittedData.current;
+    
+    const dataChanged = userChanging.current || 
+      !previousData || 
+      JSON.stringify(previousData.milestones) !== JSON.stringify(currentData.milestones) ||
+      previousData.amount !== currentData.amount;
+      
+    if (dataChanged) {
+      lastSubmittedData.current = { ...currentData };
+      userChanging.current = false;
+      
+      // Calculate the percentage based on amount if not provided
+      const milestonesWithPercentage = pendingMilestones.map(m => {
+        if (totalProjectValue > 0) {
+          return {
+            ...m,
+            percentage: Number(((Number(m.amount) / totalProjectValue) * 100).toFixed(2))
+          };
+        }
+        return m;
+      });
+      
+      // Update the parent form data with both pending and completed milestones
+      // This ensures completed milestones are included in total calculations
+      updateFormData({
+        milestones: [...completedMilestones, ...milestonesWithPercentage]
+      });
+      
+      console.log('Updated parent form data with all milestones:', {
+        completed: completedMilestones.length, 
+        pending: milestonesWithPercentage.length, 
+        total: completedMilestones.length + milestonesWithPercentage.length
+      });
+    }
+  }, [pendingMilestones, completedMilestones, changeOrderAmount, updateFormData, totalProjectValue]);
 
   // Add a new milestone
   const addMilestone = () => {
@@ -197,14 +204,21 @@ const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: Chang
     
     const newMilestone: Milestone = {
       name: '',
-      percentage: 0,
       amount: 0,
+      percentage: 0,
       status: 'pending',
       description: ''
     };
     
-    setPendingMilestones([...pendingMilestones, newMilestone]);
+    const updatedMilestones = [...pendingMilestones, newMilestone];
+    setPendingMilestones(updatedMilestones);
     
+    // Directly update the parent's formData with the new milestones
+    updateFormData({
+      milestones: updatedMilestones
+    });
+    
+    // Reset the user flag after update
     setTimeout(() => {
       userChanging.current = false;
     }, 0);
@@ -214,11 +228,15 @@ const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: Chang
   const removeMilestone = (index: number) => {
     userChanging.current = true;
     
-    setPendingMilestones(pendingMilestones.filter((_, i) => i !== index));
+    const updatedMilestones = [...pendingMilestones];
+    updatedMilestones.splice(index, 1);
     
-    setTimeout(() => {
-      userChanging.current = false;
-    }, 0);
+    setPendingMilestones(updatedMilestones);
+    
+    // Immediately update parent form data
+    updateFormData({
+      milestones: updatedMilestones
+    });
   };
 
   // Update a milestone field
@@ -229,36 +247,40 @@ const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: Chang
     const updatedMilestone = { ...updatedMilestones[index] };
     
     // Handle the update based on which field changed
-    if (field === 'percentage') {
-      // Update percentage directly
-      const newPercentage = parseFloat(value) || 0;
-      updatedMilestone.percentage = newPercentage;
+    if (field === 'amount') {
+      // Ensure amount is always stored as a number
+      const numericValue = typeof value === 'string' ? value.replace(/[^0-9.]/g, '') : value;
+      updatedMilestone.amount = Number(numericValue) || 0;
       
-      // Calculate the corresponding amount based on total project value
-      const newAmount = (newPercentage / 100) * totalProjectValue;
-      updatedMilestone.amount = parseFloat(newAmount.toFixed(2));
-    } 
-    else if (field === 'amount') {
-      // Update amount directly
-      const newAmount = parseFloat(value) || 0;
-      updatedMilestone.amount = newAmount;
-      
-      // Calculate the corresponding percentage based on total project value
-      const newPercentage = totalProjectValue > 0 ? ((newAmount / totalProjectValue) * 100) : 0;
-      updatedMilestone.percentage = parseFloat(newPercentage.toFixed(2));
-    }
-    else {
-      // For other fields, just update the value
-      updatedMilestone[field] = value;
+      // If we have a percentage field, update it based on the new amount
+      if (totalProjectValue > 0) {
+        const newPercentage = (updatedMilestone.amount / totalProjectValue) * 100;
+        updatedMilestone.percentage = Number(newPercentage.toFixed(2));
+      }
+    } else {
+      // For other fields (like name or description), just update the value
+      (updatedMilestone[field] as any) = value;
     }
     
-    // Update the milestone in the array
     updatedMilestones[index] = updatedMilestone;
-
-    // Update state
     setPendingMilestones(updatedMilestones);
-
-    // Reset the flag after update
+    
+    // Immediately update parent form data (debounce this for text fields like name/description)
+    if (field === 'amount') {
+      updateFormData({
+        milestones: updatedMilestones
+      });
+    } else {
+      // For other fields, use a short timeout to avoid excessive updates
+      setTimeout(() => {
+        if (!userChanging.current) return; // Only update if user is still changing
+        updateFormData({
+          milestones: updatedMilestones
+        });
+      }, 300);
+    }
+    
+    // Reset the user flag after update
     setTimeout(() => {
       userChanging.current = false;
     }, 0);
@@ -284,35 +306,18 @@ const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: Chang
       {/* Project Value and Change Order Amount */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Original Value</CardTitle>
-          </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{formatCurrency(originalProjectValue)}</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Change Order</CardTitle>
-          </CardHeader>
           <CardContent>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={changeOrderAmount}
-              onChange={handleChangeOrderAmountChange}
-              placeholder="Enter change order amount"
-              className="mb-2"
-            />
+            <p className="text-2xl font-bold">{formatCurrency(changeOrderAmount)}</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">New Total Value</CardTitle>
-          </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{formatCurrency(totalProjectValue)}</p>
           </CardContent>
@@ -327,14 +332,10 @@ const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: Chang
             {completedMilestones.map((milestone, index) => (
               <Card key={`completed-${index}`} className="bg-gray-50">
                 <CardContent className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="md:col-span-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-1">
                       <Label>Name</Label>
                       <p className="font-medium">{milestone.name}</p>
-                    </div>
-                    <div>
-                      <Label>Percentage</Label>
-                      <p className="font-medium">{milestone.percentage}%</p>
                     </div>
                     <div>
                       <Label>Amount</Label>
@@ -376,26 +377,14 @@ const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: Chang
             {pendingMilestones.map((milestone, index) => (
               <Card key={`pending-${index}`}>
                 <CardContent className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="md:col-span-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-1">
                       <Label htmlFor={`name-${index}`}>Name</Label>
                       <Input
                         id={`name-${index}`}
                         value={milestone.name}
                         onChange={(e) => updateMilestone(index, 'name', e.target.value)}
                         placeholder="Milestone name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`percentage-${index}`}>Percentage (%)</Label>
-                      <Input
-                        id={`percentage-${index}`}
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={milestone.percentage}
-                        onChange={(e) => updateMilestone(index, 'percentage', e.target.value)}
                       />
                     </div>
                     <div>
@@ -438,41 +427,54 @@ const ChangeOrderMilestones = ({ initialData, updateFormData, projectId }: Chang
         )}
       </div>
       
-      {/* Total Percentage */}
-      <Card className={totalPercentage !== 100 ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'}>
+      {/* Total Coverage */}
+      <Card className={Math.abs(totalProjectValue - getTotalMilestoneAmount()) > 0.01 ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'}>
         <CardContent className="p-4">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="font-medium">Total Percentage</h3>
+              <h3 className="font-medium">Total Coverage</h3>
               <p className="text-sm text-muted-foreground">
-                The total percentage across all milestones must equal 100%
+                The total value of all milestones must equal the total contract value ({formatCurrency(totalProjectValue)})
+              </p>
+            </div>
+            <div className="text-xl font-bold">
+              {formatCurrency(getTotalMilestoneAmount())}
+            </div>
+          </div>
+          
+          <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
+            <div>Original Contract Value:</div>
+            <div>{formatCurrency(originalProjectValue)}</div>
+          </div>
+          <div className="flex justify-between items-center text-sm text-muted-foreground">
+            <div>Change Order Amount:</div>
+            <div>{formatCurrency(changeOrderAmount)}</div>
+          </div>
+          <div className="flex justify-between items-center font-medium">
+            <div>Total Contract Value:</div>
+            <div>{formatCurrency(totalProjectValue)}</div>
+          </div>
+          
+          {!isLoading && Math.abs(totalProjectValue - getTotalMilestoneAmount()) > 0.01 && (
+            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md mt-4">
+              <p className="text-yellow-800">
+                <strong>Warning:</strong> Total milestone amount is {formatCurrency(getTotalMilestoneAmount())}. 
+                It should equal the total contract value of {formatCurrency(totalProjectValue)}.
+              </p>
+            </div>
+          )}
+          
+          {Math.abs(totalProjectValue - getTotalMilestoneAmount()) > 0.01 && (
+            <p className="text-red-600 text-sm mt-2">
+              {totalProjectValue < getTotalMilestoneAmount() 
+                ? `You need to remove ${formatCurrency(getTotalMilestoneAmount() - totalProjectValue)} to reach the total contract value`
+                : `You need to add ${formatCurrency(totalProjectValue - getTotalMilestoneAmount())} more to reach the total contract value`}
             </p>
-          </div>
-          <div className="text-xl font-bold">
-            {totalPercentage.toFixed(2)}%
-          </div>
-        </div>
-        
-        {!isLoading && Math.abs(totalPercentage - 100) > 0.01 && (
-          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
-            <p className="text-yellow-800">
-              <strong>Warning:</strong> Total milestone percentage is {totalPercentage.toFixed(2)}%. 
-              It should be exactly 100%.
-            </p>
-          </div>
-        )}
-        
-        {totalPercentage !== 100 && (
-          <p className="text-red-600 text-sm mt-2">
-            {totalPercentage < 100 
-              ? `You need to add ${(100 - totalPercentage).toFixed(2)}% more to reach 100%`
-              : `You are ${(totalPercentage - 100).toFixed(2)}% over 100%`}
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  </div>
-);
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
 
 export default ChangeOrderMilestones;

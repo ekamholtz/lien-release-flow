@@ -11,7 +11,7 @@ interface WizardProgressProps {
   setStep?: (step: WizardStep) => void;
 }
 
-export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setStep }: WizardProgressProps) {
+export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setStep, ...restProps }: WizardProgressProps) {
   const isStepActive = (step: WizardStep) => {
     // If custom steps are provided, use their order
     if (steps) {
@@ -36,10 +36,14 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
     return (
       <div className="flex justify-center mb-6">
         <div className="flex items-center">
-          {steps.map((step, index) => (
-            <React.Fragment key={step.id}>
-              {/* Step circle */}
+          {steps.map((step, index) => {
+            // Instead of using React.Fragment, use an array of elements
+            const elements = [];
+            
+            // Step circle
+            elements.push(
               <div 
+                key={`step-${step.id}-${index}`}
                 className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center cursor-pointer",
                   isStepActive(step.id) ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
@@ -48,18 +52,22 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
               >
                 {index + 1}
               </div>
-              
-              {/* Connector (except after last step) */}
-              {index < steps.length - 1 && (
-                <div className="w-12 h-1 bg-gray-200">
+            );
+            
+            // Connector (except after last step)
+            if (index < steps.length - 1) {
+              elements.push(
+                <div key={`connector-${step.id}-${index}`} className="w-12 h-1 bg-gray-200">
                   <div className={cn(
                     "h-1",
                     isStepActive(steps[index + 1].id) ? "bg-blue-500" : "bg-gray-200"
                   )} style={{ width: '100%' }}></div>
                 </div>
-              )}
-            </React.Fragment>
-          ))}
+              );
+            }
+            
+            return elements;
+          })}
         </div>
       </div>
     );

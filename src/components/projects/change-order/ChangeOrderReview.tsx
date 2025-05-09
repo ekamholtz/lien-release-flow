@@ -21,9 +21,25 @@ interface ChangeOrderReviewProps {
   project: any;
 }
 
+// Using the imported formatCurrency from lib/utils
+
 const ChangeOrderReview = ({ formData, project }: ChangeOrderReviewProps) => {
-  const newProjectValue = project.value + formData.amount;
-  const totalMilestonePercentage = formData.milestones.reduce((sum, m) => sum + (m.percentage || 0), 0);
+  // Calculate the new project value
+  const originalValue = Number(project.value) || 0;
+  const changeAmount = Number(formData.amount) || 0;
+  const newProjectValue = originalValue + changeAmount;
+  
+  // Calculate total of milestone dollar amounts
+  const totalMilestoneAmount = formData.milestones.reduce(
+    (sum, m) => sum + (typeof m.amount === 'number' ? m.amount : Number(m.amount) || 0), 
+    0
+  );
+  
+  // For backward compatibility, still calculate the percentage
+  const totalMilestonePercentage = formData.milestones.reduce(
+    (sum, m) => sum + (m.percentage || 0), 
+    0
+  );
   
   return (
     <div className="space-y-6">
@@ -98,7 +114,7 @@ const ChangeOrderReview = ({ formData, project }: ChangeOrderReviewProps) => {
         </CardHeader>
         <CardContent>
           {formData.milestones.length === 0 ? (
-            <p className="text-muted-foreground italic">No pending milestones defined.</p>
+            <p className="text-muted-foreground italic">No milestones defined.</p>
           ) : (
             <>
               <div className="mb-4">
@@ -109,27 +125,65 @@ const ChangeOrderReview = ({ formData, project }: ChangeOrderReviewProps) => {
                   <div className="col-span-2">Status</div>
                 </div>
                 
-                <div className="space-y-2">
-                  {formData.milestones.map((milestone, index) => (
-                    <div key={index} className="grid grid-cols-12 gap-4 py-2 border-b">
-                      <div className="col-span-5">
-                        {milestone.name}
-                        {milestone.description && (
-                          <p className="text-xs text-muted-foreground mt-1">{milestone.description}</p>
-                        )}
-                      </div>
-                      <div className="col-span-2">{milestone.percentage}%</div>
-                      <div className="col-span-3">{formatCurrency(milestone.amount)}</div>
-                      <div className="col-span-2 capitalize">{milestone.status}</div>
+                {/* Display completed milestones first */}
+                {formData.milestones.filter(m => m.status === 'completed').length > 0 && (
+                  <>
+                    <p className="text-sm font-medium mb-2">Completed Milestones</p>
+                    <div className="space-y-2 mb-4">
+                      {formData.milestones
+                        .filter(milestone => milestone.status === 'completed')
+                        .map((milestone, index) => (
+                          <div key={`completed-${index}`} className="grid grid-cols-12 gap-4 py-2 border-b bg-gray-50">
+                            <div className="col-span-5">
+                              {milestone.name}
+                              {milestone.description && (
+                                <p className="text-xs text-muted-foreground mt-1">{milestone.description}</p>
+                              )}
+                            </div>
+                            <div className="col-span-2">{milestone.percentage}%</div>
+                            <div className="col-span-3">{formatCurrency(milestone.amount)}</div>
+                            <div className="col-span-2 capitalize text-green-600">{milestone.status}</div>
+                          </div>
+                        ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
+                
+                {/* Display pending milestones */}
+                {formData.milestones.filter(m => m.status === 'pending').length > 0 && (
+                  <>
+                    <p className="text-sm font-medium mb-2">Pending Milestones</p>
+                    <div className="space-y-2">
+                      {formData.milestones
+                        .filter(milestone => milestone.status === 'pending')
+                        .map((milestone, index) => (
+                          <div key={`pending-${index}`} className="grid grid-cols-12 gap-4 py-2 border-b">
+                            <div className="col-span-5">
+                              {milestone.name}
+                              {milestone.description && (
+                                <p className="text-xs text-muted-foreground mt-1">{milestone.description}</p>
+                              )}
+                            </div>
+                            <div className="col-span-2">{milestone.percentage}%</div>
+                            <div className="col-span-3">{formatCurrency(milestone.amount)}</div>
+                            <div className="col-span-2 capitalize">{milestone.status}</div>
+                          </div>
+                        ))}
+                    </div>
+                  </>
+                )}
               </div>
               
               <div className="flex justify-between items-center pt-2 font-medium">
-                <span>Total Percentage:</span>
-                <span className={totalMilestonePercentage === 100 ? 'text-green-600' : 'text-red-600'}>
-                  {totalMilestonePercentage}%
+                <span>Total Milestone Amount:</span>
+                <span className={Math.abs(totalMilestoneAmount - newProjectValue) <= 0.01 ? 'text-green-600' : 'text-red-600'}>
+                  {formatCurrency(totalMilestoneAmount)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span>New Project Value:</span>
+                <span>
+                  {formatCurrency(newProjectValue)}
                 </span>
               </div>
             </>
@@ -137,13 +191,13 @@ const ChangeOrderReview = ({ formData, project }: ChangeOrderReviewProps) => {
         </CardContent>
       </Card>
       
-      {/* Warning if total percentage is not 100% */}
-      {totalMilestonePercentage !== 100 && (
+      {/* Warning if total amount does not match new project value */}
+      {Math.abs(totalMilestoneAmount - newProjectValue) > 0.01 && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <p className="text-red-600 font-medium">Warning</p>
           <p className="text-sm text-red-600">
-            The total milestone percentage must equal 100% before you can submit this change order.
-            Please go back and adjust your milestones.
+            The total milestone amount ({formatCurrency(totalMilestoneAmount)}) must equal the new project value ({formatCurrency(newProjectValue)}).
+            Please go back and adjust your milestones to reach the correct total.
           </p>
         </div>
       )}

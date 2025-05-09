@@ -103,9 +103,11 @@ export const ChangeOrderWizard = () => {
 
           {currentStep === 'change-milestones' && (
             <ChangeOrderMilestones
-              initialData={formData}
+              formData={formData}
               updateFormData={updateFormData}
               projectId={projectId}
+              originalProjectValue={Number(project?.value) || 0}
+              changeOrderAmount={Number(formData?.amount) || 0}
             />
           )}
 
