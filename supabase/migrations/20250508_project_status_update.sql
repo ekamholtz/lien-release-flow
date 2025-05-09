@@ -1,3 +1,4 @@
+
 -- Update the projects table to support more granular status options
 
 -- First, check if project_status is an enum type
@@ -152,31 +153,40 @@ CREATE OR REPLACE FUNCTION public.update_project_status_on_milestone_change()
 RETURNS TRIGGER AS $$
 DECLARE
   project_record RECORD;
-  all_completed BOOLEAN;
-  any_completed BOOLEAN;
-  has_milestones BOOLEAN;
+  total_milestones INT;
+  completed_milestones INT;
+  new_status TEXT;
 BEGIN
   -- Get current project status
   SELECT * INTO project_record FROM public.projects WHERE id = NEW.project_id;
   
-  -- Check milestone completion status
+  -- Count total and completed milestones
   SELECT 
-    bool_and(status = 'completed') as all_completed,
-    bool_or(status = 'completed') as any_completed,
-    count(*) > 0 as has_milestones
-  INTO all_completed, any_completed, has_milestones
+    COUNT(*), 
+    COUNT(*) FILTER (WHERE is_completed = true)
+  INTO 
+    total_milestones, 
+    completed_milestones
   FROM public.milestones
   WHERE project_id = NEW.project_id;
   
-  -- Update project status based on milestone completion
-  IF has_milestones THEN
-    IF all_completed THEN
-      UPDATE public.projects SET status = 'completed' WHERE id = NEW.project_id;
-    ELSIF any_completed THEN
-      -- If any milestone is completed but not all, set to in_progress
-      UPDATE public.projects SET status = 'in_progress' WHERE id = NEW.project_id;
-    END IF;
+  -- Determine the new status
+  IF completed_milestones = 0 THEN
+    new_status := 'active';
+  ELSIF completed_milestones < total_milestones THEN
+    new_status := 'in_progress';
+  ELSE
+    new_status := 'completed';
   END IF;
+  
+  -- Log for debugging
+  RAISE LOG 'Project % status update: % of % milestones completed, new status: %', 
+    NEW.project_id, completed_milestones, total_milestones, new_status;
+  
+  -- Update the project status
+  UPDATE public.projects
+  SET status = new_status
+  WHERE id = NEW.project_id;
   
   RETURN NEW;
 END;
@@ -185,7 +195,7 @@ $$ LANGUAGE plpgsql;
 -- Create milestone status change trigger
 DROP TRIGGER IF EXISTS update_project_status_trigger ON public.milestones;
 CREATE TRIGGER update_project_status_trigger
-AFTER UPDATE OF status ON public.milestones
+AFTER UPDATE OF is_completed ON public.milestones
 FOR EACH ROW
 EXECUTE FUNCTION public.update_project_status_on_milestone_change();
 
@@ -236,3 +246,4 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
