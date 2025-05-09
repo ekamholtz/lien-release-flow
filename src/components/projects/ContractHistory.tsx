@@ -31,8 +31,8 @@ export function ContractHistory({ project }: ContractHistoryProps) {
     }
   });
 
-  // Calculate the original contract value
-  const originalValue = project.original_value || project.value || 0;
+  // Calculate the original contract value - use the original_value if it exists, otherwise use value
+  const originalValue = project.original_value ?? project.value;
 
   // Calculate the current contract value based on original + change orders
   const currentValue = originalValue + (changeOrders?.reduce((sum, order) => sum + Number(order.amount), 0) || 0);

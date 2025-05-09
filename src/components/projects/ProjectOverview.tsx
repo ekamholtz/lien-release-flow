@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from '@tanstack/react-query';
@@ -170,9 +171,6 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
         </Card>
       </div>
 
-      {/* Contract History */}
-      <ContractHistory project={project} />
-
       {/* Milestone Summary */}
       <Card>
         <CardHeader className="pb-2">
@@ -183,6 +181,9 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
           <p className="text-xs text-gray-500">Completed Milestones</p>
         </CardContent>
       </Card>
+      
+      {/* Contract History - moved below Milestones */}
+      <ContractHistory project={project} />
     </div>
   );
 }
