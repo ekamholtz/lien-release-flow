@@ -144,13 +144,13 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
     // Implement view details logic here
   };
   
-  // Navigation handlers for the new buttons
+  // Navigation handlers for the buttons - UPDATED to use correct routes
   const handleCreateInvoice = () => {
-    navigate('/create-invoice', { state: { projectId: project.id } });
+    navigate('/invoices/create', { state: { projectId: project.id } });
   };
   
   const handleCreateBill = () => {
-    navigate('/create-bill', { state: { projectId: project.id } });
+    navigate('/bills/create', { state: { projectId: project.id } });
   };
 
   return (

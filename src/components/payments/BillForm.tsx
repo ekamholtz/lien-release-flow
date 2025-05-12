@@ -26,7 +26,11 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function BillForm() {
+interface BillFormProps {
+  preselectedProjectId?: string | null;
+}
+
+export function BillForm({ preselectedProjectId }: BillFormProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -37,7 +41,7 @@ export function BillForm() {
     defaultValues: {
       billNumber: `BILL-${Math.floor(1000 + Math.random() * 9000)}`,
       vendorId: "",
-      project: "",
+      project: preselectedProjectId || "",
       amount: "",
       description: "",
       requiresLien: false,
@@ -155,7 +159,7 @@ export function BillForm() {
           <Button 
             type="button" 
             variant="outline" 
-            onClick={() => navigate('/accounts-payable')}
+            onClick={() => navigate('/bills')}
           >
             Cancel
           </Button>

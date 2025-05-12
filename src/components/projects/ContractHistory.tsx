@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,8 +32,8 @@ export function ContractHistory({ project }: ContractHistoryProps) {
   });
 
   // Calculate the original contract value
-  // Use the original_value if it exists in the project type, otherwise use value
-  const originalValue = project.original_value !== undefined ? project.original_value : project.value;
+  // Check if original_value exists, if not use value
+  const originalValue = project.original_value ?? project.value;
 
   // Calculate the current contract value based on original + change orders
   const currentValue = originalValue + (changeOrders?.reduce((sum, order) => sum + Number(order.amount), 0) || 0);
