@@ -78,13 +78,15 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
         
         // Filter by date range if specified
         if (dateRange?.from) {
-          invoicesQuery = invoicesQuery.gte('created_at', dateRange.from.toISOString());
-          billsQuery = billsQuery.gte('created_at', dateRange.from.toISOString());
+          const fromDate = dateRange.from.toISOString();
+          invoicesQuery = invoicesQuery.gte('created_at', fromDate);
+          billsQuery = billsQuery.gte('created_at', fromDate);
         }
         
         if (dateRange?.to) {
-          invoicesQuery = invoicesQuery.lte('created_at', dateRange.to.toISOString());
-          billsQuery = billsQuery.lte('created_at', dateRange.to.toISOString());
+          const toDate = dateRange.to.toISOString();
+          invoicesQuery = invoicesQuery.lte('created_at', toDate);
+          billsQuery = billsQuery.lte('created_at', toDate);
         }
         
         // Execute the queries and handle the results safely

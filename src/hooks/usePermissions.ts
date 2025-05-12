@@ -109,14 +109,14 @@ export function usePermissions(companyId?: string) {
         .select('project_manager_id')
         .eq('id', projectId)
         .eq('company_id', companyId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error checking project manager:', error);
         return false;
       }
 
-      return data.project_manager_id === session.user.id;
+      return data && data.project_manager_id === session.user.id;
     } catch (error) {
       console.error('Error checking project manager status:', error);
       return false;

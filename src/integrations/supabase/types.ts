@@ -114,6 +114,7 @@ export type Database = {
           id: string
           lien_release_status: string | null
           project_id: string | null
+          project_manager_id: string | null
           qbo_bill_id: string | null
           requires_lien_release: boolean | null
           status: string
@@ -130,6 +131,7 @@ export type Database = {
           id?: string
           lien_release_status?: string | null
           project_id?: string | null
+          project_manager_id?: string | null
           qbo_bill_id?: string | null
           requires_lien_release?: boolean | null
           status?: string
@@ -146,6 +148,7 @@ export type Database = {
           id?: string
           lien_release_status?: string | null
           project_id?: string | null
+          project_manager_id?: string | null
           qbo_bill_id?: string | null
           requires_lien_release?: boolean | null
           status?: string
@@ -402,6 +405,7 @@ export type Database = {
           invoice_number: string
           payment_method: string
           project_id: string | null
+          project_manager_id: string | null
           qbo_invoice_id: string | null
           source_milestone_id: string | null
           status: string
@@ -419,6 +423,7 @@ export type Database = {
           invoice_number: string
           payment_method?: string
           project_id?: string | null
+          project_manager_id?: string | null
           qbo_invoice_id?: string | null
           source_milestone_id?: string | null
           status?: string
@@ -436,6 +441,7 @@ export type Database = {
           invoice_number?: string
           payment_method?: string
           project_id?: string | null
+          project_manager_id?: string | null
           qbo_invoice_id?: string | null
           source_milestone_id?: string | null
           status?: string
@@ -780,6 +786,7 @@ export type Database = {
           location: string | null
           name: string
           original_value: number | null
+          project_manager_id: string | null
           project_type_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["project_status"] | null
@@ -800,6 +807,7 @@ export type Database = {
           location?: string | null
           name: string
           original_value?: number | null
+          project_manager_id?: string | null
           project_type_id?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["project_status"] | null
@@ -820,6 +828,7 @@ export type Database = {
           location?: string | null
           name?: string
           original_value?: number | null
+          project_manager_id?: string | null
           project_type_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["project_status"] | null
@@ -1128,6 +1137,10 @@ export type Database = {
         Args: { p_invitation_id: string; p_user_id: string }
         Returns: boolean
       }
+      can_access_project: {
+        Args: { project_id: string; user_id: string }
+        Returns: boolean
+      }
       create_change_order: {
         Args: {
           p_project_id: string
@@ -1239,6 +1252,10 @@ export type Database = {
       }
       is_platform_admin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_project_manager: {
+        Args: { project_id: string; user_id: string }
         Returns: boolean
       }
       update_company: {

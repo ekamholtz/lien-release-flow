@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -82,14 +81,12 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
       if (values.project) {
         const { data: projectData, error: projectError } = await supabase
           .from('projects')
-          .select('project_manager_id, company_id')
+          .select('project_manager_id')
           .eq('id', values.project)
           .maybeSingle();
 
-        if (!projectError && projectData) {
-          if (projectData.project_manager_id) {
-            projectManagerId = projectData.project_manager_id;
-          }
+        if (!projectError && projectData && projectData.project_manager_id) {
+          projectManagerId = projectData.project_manager_id;
         }
       }
 

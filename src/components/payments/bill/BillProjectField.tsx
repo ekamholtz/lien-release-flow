@@ -33,12 +33,13 @@ export function BillProjectField({ control }: BillProjectFieldProps) {
                   .eq('id', value)
                   .single()
                   .then(({ data, error }) => {
-                    if (!error && data && data.project_manager_id) {
+                    if (!error && data) {
                       // Update the project_manager_id in the form
-                      control._formValues.project_manager_id = data.project_manager_id;
+                      control._formValues.project_manager_id = data.project_manager_id || user?.id;
                     } else {
-                      // If no project manager, use current user
+                      // If no project manager or error, use current user
                       control._formValues.project_manager_id = user?.id;
+                      console.log('Using current user as project manager, error or no data:', error);
                     }
                   });
               } else {
