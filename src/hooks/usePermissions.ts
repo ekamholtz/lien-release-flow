@@ -91,6 +91,38 @@ export function usePermissions(companyId?: string) {
     }
   }, [session, companyId, role, permissionCache]);
 
+  // Check if the user is a project manager for a specific project
+  const isProjectManager = useCallback(async (projectId: string): Promise<boolean> => {
+    // If no user or company, deny permission
+    if (!session?.user?.id || !companyId) {
+      return false;
+    }
+
+    // Company owners can manage all projects
+    if (role === 'company_owner') {
+      return true;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('project_manager_id')
+        .eq('id', projectId)
+        .eq('company_id', companyId)
+        .single();
+
+      if (error) {
+        console.error('Error checking project manager:', error);
+        return false;
+      }
+
+      return data.project_manager_id === session.user.id;
+    } catch (error) {
+      console.error('Error checking project manager status:', error);
+      return false;
+    }
+  }, [session, companyId, role]);
+
   // Clear cache when company or user changes
   useEffect(() => {
     setPermissionCache({});
@@ -143,8 +175,9 @@ export function usePermissions(companyId?: string) {
     loading,
     role,
     checkPermission,
+    isProjectManager,
     isCompanyOwner: role === 'company_owner',
-    isProjectManager: role === 'project_manager',
+    isProjectManagerRole: role === 'project_manager',
     isOfficeManager: role === 'office_manager',
     can
   };

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -72,6 +71,7 @@ export function useProjectSubmission() {
             start_date: formData.startDate.toISOString().split('T')[0],
             end_date: formData.endDate ? formData.endDate.toISOString().split('T')[0] : null,
             project_type_id: formData.projectTypeId,
+            project_manager_id: formData.projectManagerId || userId,
             company_id: companyId,
             status: 'active', // Update status to active
           })
@@ -105,6 +105,7 @@ export function useProjectSubmission() {
             start_date: formData.startDate.toISOString().split('T')[0],
             end_date: formData.endDate ? formData.endDate.toISOString().split('T')[0] : null,
             project_type_id: formData.projectTypeId,
+            project_manager_id: formData.projectManagerId || userId,
             company_id: companyId,
             status: 'active' // Set status to active for new projects
           })

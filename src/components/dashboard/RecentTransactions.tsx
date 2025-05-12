@@ -12,7 +12,7 @@ interface RecentTransactionsProps {
   managerId?: string | null;
 }
 
-// Simplified transaction types to avoid excessive type instantiation
+// Simplified transaction interface to avoid excessive type instantiation
 interface Transaction {
   id: string;
   amount: number;
@@ -21,7 +21,6 @@ interface Transaction {
   client_name: string;
   transactionType: 'invoice' | 'bill';
   project_id?: string | null;
-  project_manager_id?: string | null;
   // Invoice specific fields
   invoice_number?: string;
   // Bill specific fields
@@ -33,7 +32,8 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
   
   const { 
     data: transactions, 
-    isLoading 
+    isLoading,
+    error
   } = useQuery({
     queryKey: ['recent-transactions', projectId, currentCompany?.id, dateRange, managerId],
     queryFn: async () => {
@@ -50,13 +50,13 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
         // Build the invoices query with explicit company_id filter
         let invoicesQuery = supabase
           .from('invoices')
-          .select('id, invoice_number, amount, status, client_name, created_at, project_id, project_manager_id')
+          .select('id, invoice_number, amount, status, client_name, created_at, project_id')
           .eq('company_id', currentCompany.id);
         
         // Build the bills query with explicit company_id filter
         let billsQuery = supabase
           .from('bills')
-          .select('id, bill_number, amount, status, vendor_name, created_at, project_id, project_manager_id')
+          .select('id, bill_number, amount, status, vendor_name, created_at, project_id')
           .eq('company_id', currentCompany.id);
         
         // Apply additional filters to both queries
@@ -87,11 +87,11 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
           billsQuery = billsQuery.lte('created_at', dateRange.to.toISOString());
         }
         
-        // Execute the queries and handle the results properly
-        const [invoicesResult, billsResult] = await Promise.all([
-          invoicesQuery.limit(10),
-          billsQuery.limit(10)
-        ]);
+        // Execute the queries and handle the results safely
+        const invoicesPromise = invoicesQuery.limit(10);
+        const billsPromise = billsQuery.limit(10);
+        
+        const [invoicesResult, billsResult] = await Promise.all([invoicesPromise, billsPromise]);
         
         // Check for errors
         if (invoicesResult.error) {
@@ -108,29 +108,27 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
         console.log("Bills fetched:", billsResult.data?.length || 0);
         
         // Map invoice data to Transaction type
-        const invoices = (invoicesResult.data || []).map(invoice => ({
+        const invoices: Transaction[] = (invoicesResult.data || []).map(invoice => ({
           id: invoice.id,
           amount: invoice.amount,
           status: invoice.status,
           created_at: invoice.created_at,
           client_name: invoice.client_name,
           project_id: invoice.project_id,
-          project_manager_id: invoice.project_manager_id,
           invoice_number: invoice.invoice_number,
-          transactionType: 'invoice' as const
+          transactionType: 'invoice'
         }));
         
         // Map bill data to Transaction type
-        const bills = (billsResult.data || []).map(bill => ({
+        const bills: Transaction[] = (billsResult.data || []).map(bill => ({
           id: bill.id,
           amount: bill.amount,
           status: bill.status,
           created_at: bill.created_at,
-          client_name: bill.vendor_name, // Use vendor_name instead of as client_name in query
+          client_name: bill.vendor_name, // Use vendor_name as client_name
           project_id: bill.project_id,
-          project_manager_id: bill.project_manager_id,
           bill_number: bill.bill_number,
-          transactionType: 'bill' as const
+          transactionType: 'bill'
         }));
         
         // Combine and sort by date
@@ -153,6 +151,19 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
         <h2 className="text-lg font-medium mb-4">Recent Transactions</h2>
         <div className="text-center py-8 text-gray-500">
           Please select a company to view transactions
+        </div>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    console.error("Error in transactions query:", error);
+    return (
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h2 className="text-lg font-medium mb-4">Recent Transactions</h2>
+        <div className="text-center py-8 text-red-500">
+          Error loading transactions. Please try again.
         </div>
       </div>
     );

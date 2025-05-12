@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { BillStatus } from "@/lib/supabase";
 import { useCompany } from '@/contexts/CompanyContext';
+import { useAuth } from '@/hooks/useAuth';
 
 const formSchema = z.object({
   billNumber: z.string().min(1, { message: "Bill number is required" }),
@@ -35,6 +36,7 @@ export function BillForm({ preselectedProjectId }: BillFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
+  const { user } = useAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -77,6 +79,20 @@ export function BillForm({ preselectedProjectId }: BillFormProps) {
         throw new Error(`Error fetching vendor: ${vendorError.message}`);
       }
 
+      // Get the project manager ID (either from the project or the current user)
+      let projectManagerId = user?.id;
+      if (values.project) {
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('project_manager_id')
+          .eq('id', values.project)
+          .maybeSingle();
+
+        if (!projectError && projectData && projectData.project_manager_id) {
+          projectManagerId = projectData.project_manager_id;
+        }
+      }
+
       // Try to get project company_id if a project is selected
       let companyId = currentCompany.id;
       if (values.project) {
@@ -107,7 +123,8 @@ export function BillForm({ preselectedProjectId }: BillFormProps) {
           due_date: formattedDueDate,
           status: 'pending' as BillStatus,
           company_id: companyId,
-          requires_lien_release: values.requiresLien
+          requires_lien_release: values.requiresLien,
+          project_manager_id: projectManagerId
         })
         .select();
       

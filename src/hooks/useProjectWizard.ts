@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +12,7 @@ import { WizardStep } from '@/components/projects/wizard/WizardProgress';
 export interface ProjectFormData {
   name: string;
   clientId: string;
+  projectManagerId?: string;
   location?: string;
   contactName?: string;
   contactEmail?: string;
@@ -32,6 +34,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
   const [formData, setFormData] = useState<ProjectFormData>({
     name: '',
     clientId: '',
+    projectManagerId: user?.id,
     value: 0,
     startDate: new Date(),
     documents: [],
@@ -103,6 +106,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
             contactEmail: project.contact_email || '',
             contactPhone: project.contact_phone || '',
             description: project.description || '',
+            projectManagerId: project.project_manager_id || user?.id,
             value: project.value || 0,
             startDate: project.start_date ? new Date(project.start_date) : new Date(),
             endDate: project.end_date ? new Date(project.end_date) : null,
@@ -128,10 +132,14 @@ export function useProjectWizard(initialProjectId?: string | null) {
             name: project.name,
             clientId: project.client_id,
             value: project.value,
-            projectTypeId: project.project_type_id
+            projectTypeId: project.project_type_id,
+            projectManagerId: project.project_manager_id
           });
             
           console.log('Project loaded successfully:', project.name);
+          
+          // Set data loaded flag to true to prevent duplicate loads
+          setDataLoaded(true);
         } else {
           console.error('Project not found or not accessible');
           toast.error('Project not found or not accessible');
@@ -147,7 +155,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
     if (initialProjectId && !dataLoaded) {
       loadProjectData();
     }
-  }, [initialProjectId, currentCompany?.id, dataLoaded]);
+  }, [initialProjectId, currentCompany?.id, dataLoaded, user?.id]);
 
   const handleNextStep = () => {
     if (currentStep === 'basic-info') {
