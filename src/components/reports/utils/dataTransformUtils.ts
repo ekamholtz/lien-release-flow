@@ -1,5 +1,6 @@
 
 import { getStartDateFromTimeRange, createDateSegments, findSegmentIndex } from './timeRangeUtils';
+import { getMockExpensesData } from './mockDataUtils';
 
 /**
  * Transforms invoice and bill data into cash flow chart format

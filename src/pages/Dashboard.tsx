@@ -8,10 +8,18 @@ import { PendingApprovals } from '@/components/dashboard/PendingApprovals';
 import { FinanceFilters } from '@/components/finance/FinanceFilters';
 
 const Dashboard = () => {
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    projectId: null as string | null,
+    dateRange: null as { from: Date | null, to: Date | null } | null,
+    projectManagerId: null as string | null
+  });
   
-  const handleFilterChange = (projectId: string | null) => {
-    setSelectedProjectId(projectId);
+  const handleFilterChange = (newFilters: {
+    projectId: string | null,
+    dateRange: { from: Date | null, to: Date | null } | null,
+    projectManagerId: string | null
+  }) => {
+    setFilters(newFilters);
   };
 
   return (
@@ -29,12 +37,12 @@ const Dashboard = () => {
           
           <FinanceFilters 
             onFilterChange={handleFilterChange} 
-            selectedProjectId={selectedProjectId} 
+            selectedFilters={filters} 
           />
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <RecentTransactions projectId={selectedProjectId} />
-            <PendingApprovals projectId={selectedProjectId} />
+            <RecentTransactions projectId={filters.projectId} dateRange={filters.dateRange} managerId={filters.projectManagerId} />
+            <PendingApprovals projectId={filters.projectId} dateRange={filters.dateRange} managerId={filters.projectManagerId} />
           </div>
         </div>
       </div>
