@@ -112,8 +112,10 @@ export type Database = {
           created_at: string
           due_date: string
           id: string
+          lien_release_status: string | null
           project_id: string | null
           qbo_bill_id: string | null
+          requires_lien_release: boolean | null
           status: string
           vendor_email: string
           vendor_id: string | null
@@ -126,8 +128,10 @@ export type Database = {
           created_at?: string
           due_date: string
           id?: string
+          lien_release_status?: string | null
           project_id?: string | null
           qbo_bill_id?: string | null
+          requires_lien_release?: boolean | null
           status?: string
           vendor_email: string
           vendor_id?: string | null
@@ -140,8 +144,10 @@ export type Database = {
           created_at?: string
           due_date?: string
           id?: string
+          lien_release_status?: string | null
           project_id?: string | null
           qbo_bill_id?: string | null
+          requires_lien_release?: boolean | null
           status?: string
           vendor_email?: string
           vendor_id?: string | null

@@ -17,7 +17,14 @@ export function useQboActions() {
     setConnecting(true);
     
     try {
-      const responseData = await initiateQboAuth(accessToken, companyId);
+      // Explicitly define the response type to avoid deep type instantiation
+      interface QboAuthResponse {
+        intuit_oauth_url?: string;
+        debug?: any;
+        error?: string;
+      }
+      
+      const responseData: QboAuthResponse = await initiateQboAuth(accessToken, companyId);
       
       if (responseData.debug) {
         console.log("QBO debug info:", responseData.debug);

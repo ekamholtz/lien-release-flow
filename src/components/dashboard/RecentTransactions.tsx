@@ -12,31 +12,21 @@ interface RecentTransactionsProps {
   managerId?: string | null;
 }
 
-// Define basic transaction types to avoid excessive type instantiation
-interface BaseTransaction {
+// Simplified transaction types to avoid excessive type instantiation
+interface Transaction {
   id: string;
   amount: number;
   status: string;
   created_at: string;
+  client_name: string;
+  transactionType: 'invoice' | 'bill';
   project_id?: string | null;
   project_manager_id?: string | null;
+  // Invoice specific fields
+  invoice_number?: string;
+  // Bill specific fields
+  bill_number?: string;
 }
-
-interface Invoice extends BaseTransaction {
-  invoice_number: string;
-  client_name: string;
-  type: string;
-  transactionType: 'invoice';
-}
-
-interface Bill extends BaseTransaction {
-  bill_number: string;
-  client_name: string; // This was vendor_name in the original data
-  type: string;
-  transactionType: 'bill';
-}
-
-type Transaction = Invoice | Bill;
 
 export function RecentTransactions({ projectId, dateRange, managerId }: RecentTransactionsProps) {
   const { currentCompany } = useCompany();
@@ -49,68 +39,103 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
     queryFn: async () => {
       // If no current company, return empty array
       if (!currentCompany?.id) {
+        console.log("No current company selected");
         return [];
       }
       
-      // Build the invoices query
-      let invoicesQuery = supabase
-        .from('invoices')
-        .select('id, invoice_number, amount, status, client_name, created_at, type:invoice_type, project_id, project_manager_id')
-        .eq('company_id', currentCompany.id);
+      console.log("Fetching transactions for company:", currentCompany.id);
+      console.log("Filters:", { projectId, dateRange, managerId });
       
-      // Build the bills query
-      let billsQuery = supabase
-        .from('bills')
-        .select('id, bill_number, amount, status, vendor_name as client_name, created_at, type:bill_type, project_id, project_manager_id')
-        .eq('company_id', currentCompany.id);
-      
-      // Apply additional filters to both queries
-      
-      // Filter by project if specified
-      if (projectId === 'unassigned') {
-        invoicesQuery = invoicesQuery.is('project_id', null);
-        billsQuery = billsQuery.is('project_id', null);
-      } else if (projectId) {
-        invoicesQuery = invoicesQuery.eq('project_id', projectId);
-        billsQuery = billsQuery.eq('project_id', projectId);
+      try {
+        // Build the invoices query
+        let invoicesQuery = supabase
+          .from('invoices')
+          .select('id, invoice_number, amount, status, client_name, created_at, type:invoice_type, project_id, project_manager_id')
+          .eq('company_id', currentCompany.id);
+        
+        // Build the bills query
+        let billsQuery = supabase
+          .from('bills')
+          .select('id, bill_number, amount, status, vendor_name as client_name, created_at, type:bill_type, project_id, project_manager_id')
+          .eq('company_id', currentCompany.id);
+        
+        // Apply additional filters to both queries
+        
+        // Filter by project if specified
+        if (projectId === 'unassigned') {
+          invoicesQuery = invoicesQuery.is('project_id', null);
+          billsQuery = billsQuery.is('project_id', null);
+        } else if (projectId) {
+          invoicesQuery = invoicesQuery.eq('project_id', projectId);
+          billsQuery = billsQuery.eq('project_id', projectId);
+        }
+        
+        // Filter by project manager if specified
+        if (managerId) {
+          invoicesQuery = invoicesQuery.eq('project_manager_id', managerId);
+          billsQuery = billsQuery.eq('project_manager_id', managerId);
+        }
+        
+        // Filter by date range if specified
+        if (dateRange?.from) {
+          invoicesQuery = invoicesQuery.gte('created_at', dateRange.from.toISOString());
+          billsQuery = billsQuery.gte('created_at', dateRange.from.toISOString());
+        }
+        
+        if (dateRange?.to) {
+          invoicesQuery = invoicesQuery.lte('created_at', dateRange.to.toISOString());
+          billsQuery = billsQuery.lte('created_at', dateRange.to.toISOString());
+        }
+        
+        // Execute the queries and merge the results
+        const [invoicesResult, billsResult] = await Promise.all([
+          invoicesQuery.limit(10),
+          billsQuery.limit(10)
+        ]);
+        
+        // Check for errors
+        if (invoicesResult.error) throw invoicesResult.error;
+        if (billsResult.error) throw billsResult.error;
+        
+        console.log("Invoices fetched:", invoicesResult.data?.length || 0);
+        console.log("Bills fetched:", billsResult.data?.length || 0);
+        
+        // Map invoice data to Transaction type
+        const invoices = (invoicesResult.data || []).map(invoice => ({
+          id: invoice.id,
+          amount: invoice.amount,
+          status: invoice.status,
+          created_at: invoice.created_at,
+          client_name: invoice.client_name,
+          project_id: invoice.project_id,
+          project_manager_id: invoice.project_manager_id,
+          invoice_number: invoice.invoice_number,
+          transactionType: 'invoice' as const
+        }));
+        
+        // Map bill data to Transaction type
+        const bills = (billsResult.data || []).map(bill => ({
+          id: bill.id,
+          amount: bill.amount,
+          status: bill.status,
+          created_at: bill.created_at,
+          client_name: bill.client_name,
+          project_id: bill.project_id,
+          project_manager_id: bill.project_manager_id,
+          bill_number: bill.bill_number,
+          transactionType: 'bill' as const
+        }));
+        
+        // Combine and sort by date
+        const combined = [...invoices, ...bills].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ).slice(0, 5); // Get the 5 most recent transactions
+        
+        return combined;
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+        throw error;
       }
-      
-      // Filter by project manager if specified
-      if (managerId) {
-        invoicesQuery = invoicesQuery.eq('project_manager_id', managerId);
-        billsQuery = billsQuery.eq('project_manager_id', managerId);
-      }
-      
-      // Filter by date range if specified
-      if (dateRange?.from) {
-        invoicesQuery = invoicesQuery.gte('created_at', dateRange.from.toISOString());
-        billsQuery = billsQuery.gte('created_at', dateRange.from.toISOString());
-      }
-      
-      if (dateRange?.to) {
-        invoicesQuery = invoicesQuery.lte('created_at', dateRange.to.toISOString());
-        billsQuery = billsQuery.lte('created_at', dateRange.to.toISOString());
-      }
-      
-      // Execute the queries and merge the results
-      const [invoicesResult, billsResult] = await Promise.all([
-        invoicesQuery.limit(10),
-        billsQuery.limit(10)
-      ]);
-      
-      // Check for errors
-      if (invoicesResult.error) throw invoicesResult.error;
-      if (billsResult.error) throw billsResult.error;
-      
-      // Combine the results and sort by date
-      const combined = [
-        ...(invoicesResult.data || []).map(i => ({ ...i, transactionType: 'invoice' }) as Invoice),
-        ...(billsResult.data || []).map(b => ({ ...b, transactionType: 'bill' }) as Bill)
-      ].sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ).slice(0, 5); // Get the 5 most recent transactions
-      
-      return combined;
     },
     enabled: !!currentCompany?.id
   });
@@ -144,8 +169,8 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
                 <div className="flex items-center space-x-2">
                   <p className="font-medium text-sm">
                     {transaction.transactionType === 'invoice' 
-                      ? `Invoice #${(transaction as Invoice).invoice_number}` 
-                      : `Bill #${(transaction as Bill).bill_number}`}
+                      ? `Invoice #${transaction.invoice_number}` 
+                      : `Bill #${transaction.bill_number}`}
                   </p>
                   <Badge 
                     variant={transaction.status === 'paid' ? 'default' : 'secondary'}
