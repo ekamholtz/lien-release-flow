@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectOverview } from './ProjectOverview';
@@ -27,8 +28,8 @@ export function ProjectDashboardTabs({ project, defaultTab = 'overview' }: Proje
       </TabsList>
       
       <div className="bg-white shadow rounded-lg w-full">
-        {/* Set a fixed height container with overflow for scrolling */}
-        <div className="h-[700px] w-full overflow-y-auto">
+        {/* Remove fixed height and scrolling to allow content to expand naturally */}
+        <div className="w-full min-h-[500px]">
           <TabsContent value="overview" className="p-6 min-w-full">
             <ProjectOverview project={project} />
           </TabsContent>
