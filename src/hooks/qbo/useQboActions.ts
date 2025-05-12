@@ -4,6 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { initiateQboAuth } from "@/utils/qbo/qboApi";
 
+// Define explicit interface for the QBO auth response
+interface QboAuthResponse {
+  intuit_oauth_url?: string;
+  debug?: any;
+  error?: string;
+}
+
 export function useQboActions() {
   const [connecting, setConnecting] = useState<boolean>(false);
   const [isDisconnecting, setIsDisconnecting] = useState<boolean>(false);
@@ -17,13 +24,6 @@ export function useQboActions() {
     setConnecting(true);
     
     try {
-      // Explicitly define the response type to avoid deep type instantiation
-      interface QboAuthResponse {
-        intuit_oauth_url?: string;
-        debug?: any;
-        error?: string;
-      }
-      
       const responseData: QboAuthResponse = await initiateQboAuth(accessToken, companyId);
       
       if (responseData.debug) {

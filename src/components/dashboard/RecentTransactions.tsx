@@ -50,14 +50,12 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
         // Build the invoices query
         let invoicesQuery = supabase
           .from('invoices')
-          .select('id, invoice_number, amount, status, client_name, created_at, type:invoice_type, project_id, project_manager_id')
-          .eq('company_id', currentCompany.id);
+          .select('id, invoice_number, amount, status, client_name, created_at, project_id, project_manager_id');
         
         // Build the bills query
         let billsQuery = supabase
           .from('bills')
-          .select('id, bill_number, amount, status, vendor_name as client_name, created_at, type:bill_type, project_id, project_manager_id')
-          .eq('company_id', currentCompany.id);
+          .select('id, bill_number, amount, status, vendor_name as client_name, created_at, project_id, project_manager_id');
         
         // Apply additional filters to both queries
         

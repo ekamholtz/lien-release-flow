@@ -129,8 +129,8 @@ export function BillForm({ preselectedProjectId }: BillFormProps) {
       form.reset();
       setFiles([]);
       
-      // Navigate to accounts payable page
-      navigate('/accounts-payable');
+      // Navigate to bills page with the correct route
+      navigate('/bills');
     } catch (err) {
       console.error('Error in bill submission:', err);
       toast.error("An unexpected error occurred");
