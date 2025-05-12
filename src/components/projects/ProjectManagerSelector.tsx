@@ -31,23 +31,26 @@ export function ProjectManagerSelector({ value, onChange, disabled = false }: Pr
       setLoading(true);
       
       try {
-        // Use the company_members view which should have all the required fields
+        // Include company_admin role to match company administrators
         const { data, error } = await supabase
           .from('company_members')
           .select('id, user_id, first_name, last_name, invited_email')
           .eq('company_id', currentCompany.id)
           .eq('status', 'active')
-          .in('role', ['company_owner', 'project_manager']);
+          .in('role', ['company_owner', 'project_manager', 'company_admin']);
           
         if (error) {
           console.error('Error fetching project managers:', error);
           throw error;
         }
         
-        if (!data) {
+        if (!data || data.length === 0) {
+          console.log('No project managers found for company:', currentCompany.id);
           setProjectManagers([]);
           return;
         }
+        
+        console.log('Project managers data:', data);
         
         // Format the data - make sure we're handling the types correctly
         const managers: ProjectManager[] = data.map(member => ({

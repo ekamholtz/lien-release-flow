@@ -1,5 +1,4 @@
 
-import { useEffect } from 'react';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/hooks/useAuth';
 import { Control } from 'react-hook-form';
@@ -33,18 +32,22 @@ export function InvoiceProjectField({ control }: InvoiceProjectFieldProps) {
                   .eq('id', value)
                   .single()
                   .then(({ data, error }) => {
-                    if (!error && data) {
+                    if (!error && data && data.project_manager_id) {
                       // Update the project_manager_id in the form
-                      control._formValues.project_manager_id = data.project_manager_id || user?.id;
+                      control._formValues.project_manager_id = data.project_manager_id;
+                      // If using React Hook Form's setValue would be better
+                      if (control.setValue) {
+                        control.setValue('project_manager_id', data.project_manager_id);
+                      }
                     } else {
                       // If no project manager or error, use current user
                       control._formValues.project_manager_id = user?.id;
+                      if (control.setValue) {
+                        control.setValue('project_manager_id', user?.id);
+                      }
                       console.log('Using current user as project manager, error or no data:', error);
                     }
                   });
-              } else {
-                // If no project is selected, use current user as project manager
-                control._formValues.project_manager_id = user?.id;
               }
             }} />
           </FormControl>

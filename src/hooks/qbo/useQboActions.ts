@@ -24,17 +24,35 @@ export function useQboActions() {
     setConnecting(true);
     
     try {
-      const responseData: QboAuthResponse = await initiateQboAuth(accessToken, companyId);
+      const response = await fetch(
+        "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
+            "Content-Type": "application/json"
+          }
+        }
+      );
       
-      if (responseData.debug) {
-        console.log("QBO debug info:", responseData.debug);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Connection failed: ${errorText || response.statusText}`);
       }
+      
+      // Parse the response as text first to avoid deep recursion
+      const responseText = await response.text();
+      const responseData: QboAuthResponse = JSON.parse(responseText);
       
       if (!responseData.intuit_oauth_url) {
         throw new Error("No OAuth URL received from server");
       }
       
-      console.log("Redirecting to Intuit OAuth URL");
+      // Store the company_id in session storage for retrieval after OAuth redirection
+      sessionStorage.setItem('qbo_company_id', companyId);
+      
+      // Redirect to OAuth URL
       window.location.href = responseData.intuit_oauth_url;
 
     } catch (error: any) {

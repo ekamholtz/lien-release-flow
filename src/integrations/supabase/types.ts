@@ -295,9 +295,11 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          first_name: string | null
           id: string
           invited_at: string
           invited_email: string
+          last_name: string | null
           role: Database["public"]["Enums"]["role_code"]
           status: string
           updated_at: string
@@ -308,9 +310,11 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by?: string | null
+          first_name?: string | null
           id?: string
           invited_at?: string
           invited_email: string
+          last_name?: string | null
           role: Database["public"]["Enums"]["role_code"]
           status?: string
           updated_at?: string
@@ -321,9 +325,11 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          first_name?: string | null
           id?: string
           invited_at?: string
           invited_email?: string
+          last_name?: string | null
           role?: Database["public"]["Enums"]["role_code"]
           status?: string
           updated_at?: string
@@ -1176,9 +1182,11 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          first_name: string | null
           id: string
           invited_at: string
           invited_email: string
+          last_name: string | null
           role: Database["public"]["Enums"]["role_code"]
           status: string
           updated_at: string
@@ -1241,9 +1249,11 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          first_name: string | null
           id: string
           invited_at: string
           invited_email: string
+          last_name: string | null
           role: Database["public"]["Enums"]["role_code"]
           status: string
           updated_at: string
@@ -1275,9 +1285,11 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          first_name: string | null
           id: string
           invited_at: string
           invited_email: string
+          last_name: string | null
           role: Database["public"]["Enums"]["role_code"]
           status: string
           updated_at: string
