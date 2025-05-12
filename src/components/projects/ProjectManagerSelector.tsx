@@ -31,6 +31,7 @@ export function ProjectManagerSelector({ value, onChange, disabled = false }: Pr
       setLoading(true);
       
       try {
+        // Use the company_members view which should have all the required fields
         const { data, error } = await supabase
           .from('company_members')
           .select('id, user_id, first_name, last_name, invited_email')
@@ -39,11 +40,17 @@ export function ProjectManagerSelector({ value, onChange, disabled = false }: Pr
           .in('role', ['company_owner', 'project_manager']);
           
         if (error) {
+          console.error('Error fetching project managers:', error);
           throw error;
         }
         
-        // Format the data
-        const managers = data.map(member => ({
+        if (!data) {
+          setProjectManagers([]);
+          return;
+        }
+        
+        // Format the data - make sure we're handling the types correctly
+        const managers: ProjectManager[] = data.map(member => ({
           id: member.user_id,
           first_name: member.first_name || '',
           last_name: member.last_name || '',
@@ -53,6 +60,7 @@ export function ProjectManagerSelector({ value, onChange, disabled = false }: Pr
         setProjectManagers(managers);
       } catch (error) {
         console.error('Error fetching project managers:', error);
+        setProjectManagers([]);
       } finally {
         setLoading(false);
       }
