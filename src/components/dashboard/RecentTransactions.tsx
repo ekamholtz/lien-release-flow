@@ -47,15 +47,17 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
       console.log("Filters:", { projectId, dateRange, managerId });
       
       try {
-        // Build the invoices query
+        // Build the invoices query with explicit company_id filter
         let invoicesQuery = supabase
           .from('invoices')
-          .select('id, invoice_number, amount, status, client_name, created_at, project_id, project_manager_id');
+          .select('id, invoice_number, amount, status, client_name, created_at, project_id, project_manager_id')
+          .eq('company_id', currentCompany.id);
         
-        // Build the bills query
+        // Build the bills query with explicit company_id filter
         let billsQuery = supabase
           .from('bills')
-          .select('id, bill_number, amount, status, vendor_name as client_name, created_at, project_id, project_manager_id');
+          .select('id, bill_number, amount, status, vendor_name, created_at, project_id, project_manager_id')
+          .eq('company_id', currentCompany.id);
         
         // Apply additional filters to both queries
         
@@ -85,15 +87,22 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
           billsQuery = billsQuery.lte('created_at', dateRange.to.toISOString());
         }
         
-        // Execute the queries and merge the results
+        // Execute the queries and handle the results properly
         const [invoicesResult, billsResult] = await Promise.all([
           invoicesQuery.limit(10),
           billsQuery.limit(10)
         ]);
         
         // Check for errors
-        if (invoicesResult.error) throw invoicesResult.error;
-        if (billsResult.error) throw billsResult.error;
+        if (invoicesResult.error) {
+          console.error("Error fetching invoices:", invoicesResult.error);
+          throw invoicesResult.error;
+        }
+        
+        if (billsResult.error) {
+          console.error("Error fetching bills:", billsResult.error);
+          throw billsResult.error;
+        }
         
         console.log("Invoices fetched:", invoicesResult.data?.length || 0);
         console.log("Bills fetched:", billsResult.data?.length || 0);
@@ -117,7 +126,7 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
           amount: bill.amount,
           status: bill.status,
           created_at: bill.created_at,
-          client_name: bill.client_name,
+          client_name: bill.vendor_name, // Use vendor_name instead of as client_name in query
           project_id: bill.project_id,
           project_manager_id: bill.project_manager_id,
           bill_number: bill.bill_number,
