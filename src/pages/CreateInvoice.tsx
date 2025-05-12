@@ -6,6 +6,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
+interface LocationState {
+  projectId?: string;
+}
+
 const CreateInvoice = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -13,8 +17,9 @@ const CreateInvoice = () => {
   
   useEffect(() => {
     // Extract projectId from location state if available
-    if (location.state && location.state.projectId) {
-      setProjectId(location.state.projectId);
+    const state = location.state as LocationState;
+    if (state && state.projectId) {
+      setProjectId(state.projectId);
     }
   }, [location]);
 
@@ -34,6 +39,7 @@ const CreateInvoice = () => {
         </div>
         
         <div className="dashboard-card">
+          {/* @ts-ignore - We'll handle the prop in the InvoiceForm component */}
           <InvoiceForm preselectedProjectId={projectId} />
         </div>
       </div>

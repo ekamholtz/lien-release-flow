@@ -19,17 +19,15 @@ import {
 import { useCompanyMembers } from '@/hooks/useCompanyMembers';
 import { format } from "date-fns";
 
+export interface FinanceFiltersState {
+  projectId: string | null;
+  dateRange: { from: Date | null, to: Date | null } | null;
+  projectManagerId: string | null;
+}
+
 interface FinanceFiltersProps {
-  onFilterChange: (filters: {
-    projectId: string | null,
-    dateRange: { from: Date | null, to: Date | null } | null,
-    projectManagerId: string | null
-  }) => void;
-  selectedFilters: {
-    projectId: string | null,
-    dateRange: { from: Date | null, to: Date | null } | null,
-    projectManagerId: string | null
-  };
+  onFilterChange: (filters: FinanceFiltersState) => void;
+  selectedFilters: FinanceFiltersState;
 }
 
 export function FinanceFilters({ onFilterChange, selectedFilters }: FinanceFiltersProps) {
@@ -134,7 +132,7 @@ export function FinanceFilters({ onFilterChange, selectedFilters }: FinanceFilte
         </SelectContent>
       </Select>
 
-      {/* Project Manager Filter - Updated width and container styles */}
+      {/* Project Manager Filter */}
       <Select 
         value={selectedFilters.projectManagerId || 'all'} 
         onValueChange={handleProjectManagerChange}

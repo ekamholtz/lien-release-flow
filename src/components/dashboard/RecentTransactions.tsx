@@ -12,6 +12,32 @@ interface RecentTransactionsProps {
   managerId?: string | null;
 }
 
+// Define basic transaction types to avoid excessive type instantiation
+interface BaseTransaction {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  project_id?: string | null;
+  project_manager_id?: string | null;
+}
+
+interface Invoice extends BaseTransaction {
+  invoice_number: string;
+  client_name: string;
+  type: string;
+  transactionType: 'invoice';
+}
+
+interface Bill extends BaseTransaction {
+  bill_number: string;
+  client_name: string; // This was vendor_name in the original data
+  type: string;
+  transactionType: 'bill';
+}
+
+type Transaction = Invoice | Bill;
+
 export function RecentTransactions({ projectId, dateRange, managerId }: RecentTransactionsProps) {
   const { currentCompany } = useCompany();
   
@@ -78,8 +104,8 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
       
       // Combine the results and sort by date
       const combined = [
-        ...(invoicesResult.data || []).map(i => ({ ...i, transactionType: 'invoice' })),
-        ...(billsResult.data || []).map(b => ({ ...b, transactionType: 'bill' }))
+        ...(invoicesResult.data || []).map(i => ({ ...i, transactionType: 'invoice' }) as Invoice),
+        ...(billsResult.data || []).map(b => ({ ...b, transactionType: 'bill' }) as Bill)
       ].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ).slice(0, 5); // Get the 5 most recent transactions
@@ -118,8 +144,8 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
                 <div className="flex items-center space-x-2">
                   <p className="font-medium text-sm">
                     {transaction.transactionType === 'invoice' 
-                      ? `Invoice #${transaction.invoice_number}` 
-                      : `Bill #${transaction.bill_number}`}
+                      ? `Invoice #${(transaction as Invoice).invoice_number}` 
+                      : `Bill #${(transaction as Bill).bill_number}`}
                   </p>
                   <Badge 
                     variant={transaction.status === 'paid' ? 'default' : 'secondary'}

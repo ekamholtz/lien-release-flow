@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { initiateQboAuth } from "@/utils/qbo/qboApi";
 
 export function useQboActions() {
-  const [connecting, setConnecting] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [connecting, setConnecting] = useState<boolean>(false);
+  const [isDisconnecting, setIsDisconnecting] = useState<boolean>(false);
 
   const handleConnectQbo = async (companyId: string, accessToken: string) => {
     if (!companyId) {

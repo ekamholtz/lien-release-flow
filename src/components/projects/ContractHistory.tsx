@@ -1,15 +1,24 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from 'date-fns';
 import { PlusCircle, MinusCircle } from 'lucide-react';
-import type { DbProject, DbChangeOrder } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 
+// Extend DbProject type to include original_value
+interface ProjectWithOriginalValue {
+  id: string;
+  name: string;
+  value: number;
+  original_value?: number;
+  created_at: string;
+  description?: string;
+  [key: string]: any; // Allow other properties from DbProject
+}
+
 interface ContractHistoryProps {
-  project: DbProject;
+  project: ProjectWithOriginalValue;
 }
 
 export function ContractHistory({ project }: ContractHistoryProps) {
@@ -27,7 +36,7 @@ export function ContractHistory({ project }: ContractHistoryProps) {
         return [];
       }
       
-      return data as DbChangeOrder[];
+      return data;
     }
   });
 

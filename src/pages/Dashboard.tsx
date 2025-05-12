@@ -5,20 +5,16 @@ import { DashboardSummary } from '@/components/dashboard/DashboardSummary';
 import { ActionButtons } from '@/components/dashboard/ActionButtons';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { PendingApprovals } from '@/components/dashboard/PendingApprovals';
-import { FinanceFilters } from '@/components/finance/FinanceFilters';
+import { FinanceFilters, FinanceFiltersState } from '@/components/finance/FinanceFilters';
 
 const Dashboard = () => {
-  const [filters, setFilters] = useState({
-    projectId: null as string | null,
-    dateRange: null as { from: Date | null, to: Date | null } | null,
-    projectManagerId: null as string | null
+  const [filters, setFilters] = useState<FinanceFiltersState>({
+    projectId: null,
+    dateRange: null,
+    projectManagerId: null
   });
   
-  const handleFilterChange = (newFilters: {
-    projectId: string | null,
-    dateRange: { from: Date | null, to: Date | null } | null,
-    projectManagerId: string | null
-  }) => {
+  const handleFilterChange = (newFilters: FinanceFiltersState) => {
     setFilters(newFilters);
   };
 

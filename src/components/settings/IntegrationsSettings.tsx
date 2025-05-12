@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, X } from "lucide-react";
@@ -77,8 +76,10 @@ export function IntegrationsSettings() {
             <span className="text-green-600 font-medium">Connected</span>
           ) : qboStatus === "needs_reauth" ? (
             <span className="text-amber-600 font-medium">Needs Reauthorization</span>
-          ) : (
+          ) : qboStatus === "not_connected" ? (
             <span className="text-red-600 font-medium">Not Connected</span>
+          ) : (
+            <span className="text-red-600 font-medium">Error</span>
           )}
         </span>
         

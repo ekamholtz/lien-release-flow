@@ -4,19 +4,19 @@ import { useQboConnectionStatus, QboStatus } from "@/hooks/qbo/useQboConnectionS
 import { useQboActions } from "@/hooks/qbo/useQboActions";
 import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export type QboConnectionStatus = QboStatus;
 
 export function useQboConnection() {
   const { session, refreshSession } = useSessionRefresh();
   const { currentCompany } = useCompany();
+  const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   const {
     status: qboStatus,
-    error,
-    setError,
-    debugInfo,
-    setDebugInfo,
+    connection,
     checkQboConnection
   } = useQboConnectionStatus(currentCompany?.id);
   
@@ -53,7 +53,7 @@ export function useQboConnection() {
     if (!currentCompany?.id) return;
     
     const success = await handleDisconnectQbo(currentCompany.id);
-    if (success) {
+    if (success && currentCompany?.id) {
       checkQboConnection(currentCompany.id);
     }
   };
@@ -64,9 +64,11 @@ export function useQboConnection() {
     error,
     setError,
     debugInfo,
+    setDebugInfo,
     isDisconnecting,
     handleConnectQbo: connectQbo,
     handleDisconnectQbo: disconnectQbo,
-    checkQboConnection: () => currentCompany?.id ? checkQboConnection(currentCompany.id) : null
+    checkQboConnection: (companyId?: string) => 
+      currentCompany?.id ? checkQboConnection(companyId || currentCompany.id) : null
   };
 }

@@ -1,14 +1,13 @@
 
-// The error is related to an excessively deep type instantiation
-// Let's fix this by simplifying the type structure or adding type assertions where needed
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-type ConnectionStatus = 
+export type QboStatus = 
   | 'loading'
   | 'connected'
   | 'not_connected'
+  | 'needs_reauth'
   | 'error';
 
 interface QboConnection {
@@ -20,49 +19,69 @@ interface QboConnection {
   updated_at: string;
 }
 
-export const useQboConnectionStatus = () => {
+export const useQboConnectionStatus = (companyId?: string) => {
   const { user } = useAuth();
-  const [status, setStatus] = useState<ConnectionStatus>('loading');
+  const [status, setStatus] = useState<QboStatus>('loading');
   const [connection, setConnection] = useState<QboConnection | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
-  useEffect(() => {
-    if (!user) {
+  const checkQboConnection = async (cId?: string) => {
+    if (!user || !cId) {
       setStatus('not_connected');
       return;
     }
 
-    const fetchConnection = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('qbo_connections')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+    try {
+      // Query qbo_connections table for this user/company
+      const { data, error: queryError } = await supabase
+        .from('qbo_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-        if (error) {
-          if (error.code === 'PGRST116') {
-            setStatus('not_connected');
-          } else {
-            console.error('Error checking QBO connection:', error);
-            setStatus('error');
-            setError(error.message);
-          }
-          return;
+      if (queryError) {
+        if (queryError.code === 'PGRST116') {
+          setStatus('not_connected');
+        } else {
+          console.error('Error checking QBO connection:', queryError);
+          setStatus('error');
+          setError(queryError.message);
         }
-
-        // Use type assertion to avoid excessive type instantiation
-        setConnection(data as QboConnection);
-        setStatus('connected');
-      } catch (err: any) {
-        console.error('Failed to fetch QBO connection status:', err);
-        setStatus('error');
-        setError(err?.message || 'Unknown error');
+        return;
       }
-    };
 
-    fetchConnection();
-  }, [user]);
+      setConnection(data as QboConnection);
+      
+      // Check if token is expired or about to expire
+      const expiresAt = new Date(data.expires_at);
+      const now = new Date();
+      const timeDiff = expiresAt.getTime() - now.getTime();
+      
+      // If token expires in less than 10 minutes, treat it as needs reauth
+      if (timeDiff < 600000) {
+        setStatus('needs_reauth');
+      } else {
+        setStatus('connected');
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch QBO connection status:', err);
+      setStatus('error');
+      setError(err?.message || 'Unknown error');
+    }
+  };
 
-  return { status, connection, error };
+  useEffect(() => {
+    checkQboConnection(companyId);
+  }, [user, companyId]);
+
+  return { 
+    status, 
+    connection, 
+    error, 
+    setError,
+    debugInfo,
+    setDebugInfo,
+    checkQboConnection
+  };
 };

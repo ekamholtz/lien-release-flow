@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { PayBill } from '@/components/payments/PayBill';
 import { BillsTable } from '@/components/payments/BillsTable';
 import { BillDetailsModal } from '@/components/payments/BillDetailsModal';
-import { FinanceFilters } from '@/components/finance/FinanceFilters';
+import { FinanceFilters, FinanceFiltersState } from '@/components/finance/FinanceFilters';
 import { useCompany } from '@/contexts/CompanyContext';
 
 // Define an extended bill type that includes the project name from the join
@@ -26,7 +25,11 @@ const AccountsPayable = () => {
   const [selectedBill, setSelectedBill] = useState<ExtendedBill | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FinanceFiltersState>({
+    projectId: null,
+    dateRange: null,
+    projectManagerId: null
+  });
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
 
@@ -48,10 +51,23 @@ const AccountsPayable = () => {
         .eq('company_id', currentCompany.id);
         
       // Apply project filter if selected
-      if (selectedProjectId === 'unassigned') {
+      if (filters.projectId === 'unassigned') {
         query = query.is('project_id', null);
-      } else if (selectedProjectId) {
-        query = query.eq('project_id', selectedProjectId);
+      } else if (filters.projectId) {
+        query = query.eq('project_id', filters.projectId);
+      }
+      
+      // Apply project manager filter if specified
+      if (filters.projectManagerId) {
+        query = query.eq('project_manager_id', filters.projectManagerId);
+      }
+      
+      // Apply date range filter if specified
+      if (filters.dateRange?.from) {
+        query = query.gte('created_at', filters.dateRange.from.toISOString());
+      }
+      if (filters.dateRange?.to) {
+        query = query.lte('created_at', filters.dateRange.to.toISOString());
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -76,7 +92,7 @@ const AccountsPayable = () => {
 
   useEffect(() => {
     fetchBills();
-  }, [selectedProjectId, currentCompany?.id]);
+  }, [filters, currentCompany?.id]);
 
   const handleUpdateStatus = async (billId: string, newStatus: BillStatus) => {
     if (!currentCompany?.id) {
@@ -145,6 +161,10 @@ const AccountsPayable = () => {
     setIsDetailsModalOpen(true);
   };
 
+  const handleFilterChange = (newFilters: FinanceFiltersState) => {
+    setFilters(newFilters);
+  };
+
   return (
     <AppLayout>
       <div className="w-full p-6">
@@ -162,8 +182,8 @@ const AccountsPayable = () => {
         </div>
         
         <FinanceFilters 
-          onFilterChange={setSelectedProjectId}
-          selectedProjectId={selectedProjectId}
+          onFilterChange={handleFilterChange}
+          selectedFilters={filters}
         />
         
         <div className="dashboard-card mb-6">
