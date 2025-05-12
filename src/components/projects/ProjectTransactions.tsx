@@ -7,6 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 import type { DbProject, DbInvoice, DbBill, InvoiceStatus, BillStatus } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useCompany } from '@/contexts/CompanyContext';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { PlusCircle } from 'lucide-react';
 
 interface ProjectTransactionsProps {
   project: DbProject;
@@ -28,6 +31,7 @@ type ExtendedBill = DbBill & {
 
 export function ProjectTransactions({ project }: ProjectTransactionsProps) {
   const { currentCompany } = useCompany();
+  const navigate = useNavigate();
   
   const { data: invoices = [], refetch: refetchInvoices } = useQuery({
     queryKey: ['project-invoices', project.id, currentCompany?.id],
@@ -139,6 +143,15 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
     console.log('View bill details', bill);
     // Implement view details logic here
   };
+  
+  // Navigation handlers for the new buttons
+  const handleCreateInvoice = () => {
+    navigate('/create-invoice', { state: { projectId: project.id } });
+  };
+  
+  const handleCreateBill = () => {
+    navigate('/create-bill', { state: { projectId: project.id } });
+  };
 
   return (
     <div className="w-full">
@@ -151,6 +164,15 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
         </TabsList>
         
         <TabsContent value="invoices" className="mt-4">
+          <div className="flex justify-between items-center mb-4">
+            <div></div> {/* Empty div for flex spacing */}
+            <Button 
+              onClick={handleCreateInvoice}
+              className="bg-construction-600 hover:bg-construction-700"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> New Invoice
+            </Button>
+          </div>
           <InvoicesTable 
             invoices={invoices} 
             onUpdateStatus={handleUpdateInvoiceStatus} 
@@ -160,6 +182,15 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
         </TabsContent>
         
         <TabsContent value="bills" className="mt-4">
+          <div className="flex justify-between items-center mb-4">
+            <div></div> {/* Empty div for flex spacing */}
+            <Button 
+              onClick={handleCreateBill}
+              className="bg-construction-600 hover:bg-construction-700"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> New Bill
+            </Button>
+          </div>
           <BillsTable 
             bills={bills}
             onUpdateStatus={handleUpdateBillStatus}
