@@ -2,180 +2,92 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import { Badge } from "@/components/ui/badge";
 import { useCompany } from '@/contexts/CompanyContext';
 
 interface RecentTransactionsProps {
   projectId?: string | null;
+  dateRange?: { from: Date | null, to: Date | null } | null;
+  managerId?: string | null;
 }
 
-export function RecentTransactions({ projectId }: RecentTransactionsProps) {
+export function RecentTransactions({ projectId, dateRange, managerId }: RecentTransactionsProps) {
   const { currentCompany } = useCompany();
-
-  const { data: transactions, isLoading } = useQuery({
-    queryKey: ['recent-transactions', projectId, currentCompany?.id],
+  
+  const { 
+    data: transactions, 
+    isLoading 
+  } = useQuery({
+    queryKey: ['recent-transactions', projectId, currentCompany?.id, dateRange, managerId],
     queryFn: async () => {
       // If no current company, return empty array
       if (!currentCompany?.id) {
         return [];
       }
       
-      let query;
+      // Build the invoices query
+      let invoicesQuery = supabase
+        .from('invoices')
+        .select('id, invoice_number, amount, status, client_name, created_at, type:invoice_type, project_id, project_manager_id')
+        .eq('company_id', currentCompany.id);
       
+      // Build the bills query
+      let billsQuery = supabase
+        .from('bills')
+        .select('id, bill_number, amount, status, vendor_name as client_name, created_at, type:bill_type, project_id, project_manager_id')
+        .eq('company_id', currentCompany.id);
+      
+      // Apply additional filters to both queries
+      
+      // Filter by project if specified
       if (projectId === 'unassigned') {
-        // Fetch from unassigned view with company filter
-        query = supabase
-          .from('legacy_unassigned_transactions')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
-      } else {
-        // We'll create a union of invoices and bills
-        const { data: invoices, error: invoiceError } = await supabase
-          .from('invoices')
-          .select('id, invoice_number, client_name, amount, status, created_at')
-          .eq('company_id', currentCompany.id)
-          .order('created_at', { ascending: false })
-          .limit(10)
-          .then(result => {
-            if (result.data) {
-              return {
-                data: result.data.map(invoice => ({
-                  id: invoice.id,
-                  type: 'invoice',
-                  ref_number: invoice.invoice_number,
-                  entity_name: invoice.client_name,
-                  amount: invoice.amount,
-                  status: invoice.status,
-                  created_at: invoice.created_at
-                })),
-                error: result.error
-              };
-            }
-            return result;
-          });
-          
-        if (invoiceError) throw invoiceError;
-        
-        const { data: bills, error: billsError } = await supabase
-          .from('bills')
-          .select('id, bill_number, vendor_name, amount, status, created_at')
-          .eq('company_id', currentCompany.id)
-          .order('created_at', { ascending: false })
-          .limit(10)
-          .then(result => {
-            if (result.data) {
-              return {
-                data: result.data.map(bill => ({
-                  id: bill.id,
-                  type: 'bill',
-                  ref_number: bill.bill_number,
-                  entity_name: bill.vendor_name,
-                  amount: bill.amount,
-                  status: bill.status,
-                  created_at: bill.created_at
-                })),
-                error: result.error
-              };
-            }
-            return result;
-          });
-          
-        if (billsError) throw billsError;
-        
-        // Combine and sort
-        const combined = [...(invoices || []), ...(bills || [])];
-        combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        
-        // Filter by project if needed
-        if (projectId) {
-          const { data: filtered, error: filterError } = await supabase
-            .from('invoices')
-            .select('id, invoice_number, client_name, amount, status, created_at')
-            .eq('company_id', currentCompany.id)
-            .eq('project_id', projectId)
-            .order('created_at', { ascending: false })
-            .limit(5)
-            .then(result => {
-              if (result.data) {
-                return {
-                  data: result.data.map(invoice => ({
-                    id: invoice.id,
-                    type: 'invoice',
-                    ref_number: invoice.invoice_number,
-                    entity_name: invoice.client_name,
-                    amount: invoice.amount,
-                    status: invoice.status,
-                    created_at: invoice.created_at
-                  })),
-                  error: result.error
-                };
-              }
-              return result;
-            });
-            
-          if (filterError) throw filterError;
-          
-          const { data: billsFiltered, error: billsFilterError } = await supabase
-            .from('bills')
-            .select('id, bill_number, vendor_name, amount, status, created_at')
-            .eq('company_id', currentCompany.id)
-            .eq('project_id', projectId)
-            .order('created_at', { ascending: false })
-            .limit(5)
-            .then(result => {
-              if (result.data) {
-                return {
-                  data: result.data.map(bill => ({
-                    id: bill.id,
-                    type: 'bill',
-                    ref_number: bill.bill_number,
-                    entity_name: bill.vendor_name,
-                    amount: bill.amount,
-                    status: bill.status,
-                    created_at: bill.created_at
-                  })),
-                  error: result.error
-                };
-              }
-              return result;
-            });
-            
-          if (billsFilterError) throw billsFilterError;
-          
-          // Combine and sort filtered results
-          const combinedFiltered = [...(filtered || []), ...(billsFiltered || [])];
-          combinedFiltered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          
-          return combinedFiltered.slice(0, 10);
-        }
-        
-        return combined.slice(0, 10);
+        invoicesQuery = invoicesQuery.is('project_id', null);
+        billsQuery = billsQuery.is('project_id', null);
+      } else if (projectId) {
+        invoicesQuery = invoicesQuery.eq('project_id', projectId);
+        billsQuery = billsQuery.eq('project_id', projectId);
       }
       
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      // Filter by project manager if specified
+      if (managerId) {
+        invoicesQuery = invoicesQuery.eq('project_manager_id', managerId);
+        billsQuery = billsQuery.eq('project_manager_id', managerId);
+      }
+      
+      // Filter by date range if specified
+      if (dateRange?.from) {
+        invoicesQuery = invoicesQuery.gte('created_at', dateRange.from.toISOString());
+        billsQuery = billsQuery.gte('created_at', dateRange.from.toISOString());
+      }
+      
+      if (dateRange?.to) {
+        invoicesQuery = invoicesQuery.lte('created_at', dateRange.to.toISOString());
+        billsQuery = billsQuery.lte('created_at', dateRange.to.toISOString());
+      }
+      
+      // Execute the queries and merge the results
+      const [invoicesResult, billsResult] = await Promise.all([
+        invoicesQuery.limit(10),
+        billsQuery.limit(10)
+      ]);
+      
+      // Check for errors
+      if (invoicesResult.error) throw invoicesResult.error;
+      if (billsResult.error) throw billsResult.error;
+      
+      // Combine the results and sort by date
+      const combined = [
+        ...(invoicesResult.data || []).map(i => ({ ...i, transactionType: 'invoice' })),
+        ...(billsResult.data || []).map(b => ({ ...b, transactionType: 'bill' }))
+      ].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ).slice(0, 5); // Get the 5 most recent transactions
+      
+      return combined;
     },
     enabled: !!currentCompany?.id
   });
-
-  const getStatusClass = (status: string) => {
-    switch(status?.toLowerCase()) {
-      case 'paid':
-        return 'bg-green-100 text-green-800';
-      case 'overdue':
-        return 'bg-red-100 text-red-800';
-      case 'draft':
-        return 'bg-gray-100 text-gray-800';
-      case 'sent':
-        return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   if (!currentCompany?.id) {
     return (
@@ -195,29 +107,42 @@ export function RecentTransactions({ projectId }: RecentTransactionsProps) {
       {isLoading ? (
         <div className="animate-pulse space-y-3">
           {Array(5).fill(0).map((_, i) => (
-            <div key={i} className="h-12 bg-gray-100 rounded"></div>
+            <div key={i} className="h-16 bg-gray-100 rounded"></div>
           ))}
         </div>
       ) : transactions && transactions.length > 0 ? (
         <div className="space-y-3">
-          {transactions.map((transaction: any) => (
-            <div key={transaction.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">{transaction.ref_number || transaction.reference_number}</span>
-                <span className="text-xs text-gray-500">{transaction.entity_name}</span>
+          {transactions.map(transaction => (
+            <div key={transaction.id} className="flex justify-between items-center p-3 border border-gray-100 rounded-lg">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <p className="font-medium text-sm">
+                    {transaction.transactionType === 'invoice' 
+                      ? `Invoice #${transaction.invoice_number}` 
+                      : `Bill #${transaction.bill_number}`}
+                  </p>
+                  <Badge 
+                    variant={transaction.status === 'paid' ? 'default' : 'secondary'}
+                    className="text-xs"
+                  >
+                    {transaction.status}
+                  </Badge>
+                </div>
+                <div className="flex items-center mt-1">
+                  <p className="text-xs text-gray-500">{transaction.client_name}</p>
+                  <p className="text-xs text-gray-400 mx-2">•</p>
+                  <p className="text-xs text-gray-500">{formatDate(new Date(transaction.created_at))}</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <span className="font-medium text-sm">{formatCurrency(transaction.amount)}</span>
-                <span className={`text-xs px-2 py-1 rounded ${getStatusClass(transaction.status)}`}>
-                  {transaction.status}
-                </span>
-              </div>
+              <span className={`font-medium ${transaction.transactionType === 'invoice' ? 'text-green-600' : 'text-red-600'}`}>
+                {transaction.transactionType === 'invoice' ? '+' : '-'}{formatCurrency(transaction.amount)}
+              </span>
             </div>
           ))}
         </div>
       ) : (
         <div className="text-center py-8 text-gray-500">
-          No recent transactions found
+          No recent transactions
         </div>
       )}
     </div>

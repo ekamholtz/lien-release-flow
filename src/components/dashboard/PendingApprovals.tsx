@@ -10,9 +10,11 @@ import { toast } from 'sonner';
 
 interface PendingApprovalsProps {
   projectId?: string | null;
+  dateRange?: { from: Date | null, to: Date | null } | null;
+  managerId?: string | null;
 }
 
-export function PendingApprovals({ projectId }: PendingApprovalsProps) {
+export function PendingApprovals({ projectId, dateRange, managerId }: PendingApprovalsProps) {
   const { currentCompany } = useCompany();
   
   const { 
@@ -20,7 +22,7 @@ export function PendingApprovals({ projectId }: PendingApprovalsProps) {
     isLoading, 
     refetch 
   } = useQuery({
-    queryKey: ['pending-approvals', projectId, currentCompany?.id],
+    queryKey: ['pending-approvals', projectId, currentCompany?.id, dateRange, managerId],
     queryFn: async () => {
       // If no current company, return empty array
       if (!currentCompany?.id) {
@@ -38,6 +40,19 @@ export function PendingApprovals({ projectId }: PendingApprovalsProps) {
         query = query.is('project_id', null);
       } else if (projectId) {
         query = query.eq('project_id', projectId);
+      }
+
+      // Filter by project manager if specified
+      if (managerId) {
+        query = query.eq('project_manager_id', managerId);
+      }
+
+      // Filter by date range if specified
+      if (dateRange?.from) {
+        query = query.gte('created_at', dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        query = query.lte('created_at', dateRange.to.toISOString());
       }
       
       const { data, error } = await query

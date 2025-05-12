@@ -134,18 +134,18 @@ export function FinanceFilters({ onFilterChange, selectedFilters }: FinanceFilte
         </SelectContent>
       </Select>
 
-      {/* Project Manager Filter */}
+      {/* Project Manager Filter - Updated width and container styles */}
       <Select 
         value={selectedFilters.projectManagerId || 'all'} 
         onValueChange={handleProjectManagerChange}
       >
-        <SelectTrigger className="w-[200px] h-9">
+        <SelectTrigger className="w-[220px] h-9">
           <div className="flex items-center">
             <User className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Select Project Manager" />
+            <SelectValue placeholder="Select Project Manager" className="truncate" />
           </div>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="w-[220px] max-h-[300px]">
           <SelectItem value="all">All Project Managers</SelectItem>
           {projectManagers.map((manager) => (
             <SelectItem key={manager.id} value={manager.id}>
