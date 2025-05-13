@@ -33,17 +33,18 @@ export function BillProjectField({ control }: BillProjectFieldProps) {
                   .single()
                   .then(({ data, error }) => {
                     if (!error && data && data.project_manager_id) {
-                      // Update the project_manager_id in the form
-                      control._formValues.project_manager_id = data.project_manager_id;
-                      // If using React Hook Form's setValue would be better
-                      if (control.setValue) {
-                        control.setValue('project_manager_id', data.project_manager_id);
+                      // Use field.form from react-hook-form to access setValue
+                      if (field.form) {
+                        field.form.setValue('project_manager_id', data.project_manager_id);
+                      } else {
+                        console.log('Form not available, cannot set project_manager_id');
                       }
                     } else {
                       // If no project manager or error, use current user
-                      control._formValues.project_manager_id = user?.id;
-                      if (control.setValue) {
-                        control.setValue('project_manager_id', user?.id);
+                      if (field.form) {
+                        field.form.setValue('project_manager_id', user?.id);
+                      } else {
+                        console.log('Form not available, cannot set project_manager_id to user');
                       }
                       console.log('Using current user as project manager, error or no data:', error);
                     }

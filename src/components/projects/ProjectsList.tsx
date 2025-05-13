@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { DbProject } from '@/lib/supabase';
 import { useCompany } from '@/contexts/CompanyContext';
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ProjectsList() {
   const navigate = useNavigate();
@@ -150,13 +151,13 @@ export function ProjectsList() {
                   </div>
                   <Progress 
                     value={completionPercentage} 
-                    className="h-2 w-full" 
+                    className="h-2 w-full shadow-sm" 
                     indicatorClassName={
                       completionPercentage === 100 
                         ? "bg-green-500" 
                         : completionPercentage > 0 
                           ? "bg-blue-500" 
-                          : "bg-gray-300"
+                          : ""
                     }
                   />
                 </div>

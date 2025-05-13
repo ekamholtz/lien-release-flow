@@ -81,11 +81,13 @@ export function MilestoneForm({
         <Progress 
           value={totalPercentage} 
           className={cn(
-            "h-2",
-            !isPercentageValid && totalPercentage > 100 ? "bg-red-200" : ""
+            "h-2 shadow-sm",
+            !isPercentageValid && totalPercentage > 100 ? "bg-red-100 border-red-200" : ""
           )}
           indicatorClassName={cn(
-            !isPercentageValid && totalPercentage > 100 ? "bg-red-500" : ""
+            totalPercentage === 100 ? "bg-green-500" : "",
+            !isPercentageValid && totalPercentage > 100 ? "bg-red-500" : "",
+            totalPercentage > 0 && totalPercentage < 100 ? "bg-blue-500" : ""
           )}
         />
         
