@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { CompanySelector } from './company/CompanySelector';
+import { CNSTRCTLogo } from '@/components/ui/cnstrct-logo';
 
 interface AppHeaderProps {
   toggleSidebar: () => void;
@@ -29,7 +30,8 @@ export function AppHeader({ toggleSidebar }: AppHeaderProps) {
       </Button>
       
       <div className="flex-1 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          <CNSTRCTLogo size="sm" className="hidden md:flex" />
           <CompanySelector />
         </div>
         
@@ -37,7 +39,7 @@ export function AppHeader({ toggleSidebar }: AppHeaderProps) {
           <Link to="/notifications" className="relative">
             <Button variant="ghost" size="icon">
               <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-cnstrct-orange" />
             </Button>
           </Link>
           

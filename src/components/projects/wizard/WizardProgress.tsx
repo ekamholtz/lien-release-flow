@@ -46,7 +46,7 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
                 key={`step-${step.id}-${index}`}
                 className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center cursor-pointer",
-                  isStepActive(step.id) ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+                  isStepActive(step.id) ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
                 )}
                 onClick={() => setStep && setStep(step.id)}
               >
@@ -60,7 +60,7 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
                 <div key={`connector-${step.id}-${index}`} className="w-12 h-1 bg-gray-200">
                   <div className={cn(
                     "h-1",
-                    isStepActive(steps[index + 1].id) ? "bg-blue-500" : "bg-gray-200"
+                    isStepActive(steps[index + 1].id) ? "bg-cnstrct-orange" : "bg-gray-200"
                   )} style={{ width: '100%' }}></div>
                 </div>
               );
@@ -80,7 +80,7 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
         {/* Step 1 */}
         <div className={cn(
           "w-10 h-10 rounded-full flex items-center justify-center",
-          isStepActive('basic-info') ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+          isStepActive('basic-info') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
         )}>
           1
         </div>
@@ -92,14 +92,14 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
             <div className="w-12 h-1 bg-gray-200">
               <div className={cn(
                 "h-1",
-                isStepActive('summary') ? "bg-blue-500" : "bg-gray-200"
+                isStepActive('summary') ? "bg-cnstrct-orange" : "bg-gray-200"
               )} style={{ width: '100%' }}></div>
             </div>
             
             {/* Step 4 (Summary) */}
             <div className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center",
-              isStepActive('summary') ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+              isStepActive('summary') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
             )}>
               2
             </div>
@@ -111,14 +111,14 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
             <div className="w-12 h-1 bg-gray-200">
               <div className={cn(
                 "h-1",
-                isStepActive('documents') ? "bg-blue-500" : "bg-gray-200"
+                isStepActive('documents') ? "bg-cnstrct-orange" : "bg-gray-200"
               )} style={{ width: '100%' }}></div>
             </div>
             
             {/* Step 2 */}
             <div className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center",
-              isStepActive('documents') ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+              isStepActive('documents') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
             )}>
               2
             </div>
@@ -127,14 +127,14 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
             <div className="w-12 h-1 bg-gray-200">
               <div className={cn(
                 "h-1",
-                isStepActive('milestones') ? "bg-blue-500" : "bg-gray-200"
+                isStepActive('milestones') ? "bg-cnstrct-orange" : "bg-gray-200"
               )} style={{ width: '100%' }}></div>
             </div>
             
             {/* Step 3 */}
             <div className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center",
-              isStepActive('milestones') ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+              isStepActive('milestones') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
             )}>
               3
             </div>
@@ -143,14 +143,14 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
             <div className="w-12 h-1 bg-gray-200">
               <div className={cn(
                 "h-1",
-                isStepActive('summary') ? "bg-blue-500" : "bg-gray-200"
+                isStepActive('summary') ? "bg-cnstrct-orange" : "bg-gray-200"
               )} style={{ width: '100%' }}></div>
             </div>
             
             {/* Step 4 */}
             <div className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center",
-              isStepActive('summary') ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+              isStepActive('summary') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
             )}>
               4
             </div>

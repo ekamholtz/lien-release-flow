@@ -19,12 +19,12 @@ export function HeroSection() {
   };
   
   return (
-    <section className="bg-gradient-to-br from-construction-50 to-gray-100 py-20 relative overflow-hidden">
+    <section className="bg-gradient-to-br from-cnstrct-navy/5 to-gray-100 py-20 relative overflow-hidden">
       <RetroGrid className="opacity-30" angle={55} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div className="animate-fade-in">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-bold text-cnstrct-navy leading-tight">
               Streamline Your Construction Payments
             </h1>
             <p className="mt-4 text-xl text-gray-600">
@@ -33,7 +33,7 @@ export function HeroSection() {
             <div className="mt-8 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
               <Button 
                 size="lg"
-                className="bg-construction-600 hover:bg-construction-700" 
+                className="bg-cnstrct-orange hover:bg-cnstrct-orange/90" 
                 onClick={handleGetStarted}
               >
                 Start Free Trial
@@ -42,7 +42,7 @@ export function HeroSection() {
               <Button 
                 size="lg"
                 variant="outline" 
-                className="text-construction-600 border-construction-200"
+                className="text-cnstrct-navy border-gray-200"
                 onClick={() => navigate('/dashboard')}
               >
                 View Demo
