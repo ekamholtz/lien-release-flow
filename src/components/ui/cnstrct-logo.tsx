@@ -8,15 +8,15 @@ interface CNSTRCTLogoProps {
 
 export function CNSTRCTLogo({ size = 'md', className = '' }: CNSTRCTLogoProps) {
   const sizeClasses = {
-    sm: 'h-8 w-8',
-    md: 'h-10 w-10',
-    lg: 'h-12 w-12',
+    sm: 'h-8 w-auto',
+    md: 'h-10 w-auto',
+    lg: 'h-12 w-auto',
   };
   
   return (
     <div className={`flex items-center ${className}`}>
       <img 
-        src="/lovable-uploads/dc128673-c947-46ca-92e1-0db15f2a4c14.png" 
+        src="/lovable-uploads/4e1daa8f-8034-410f-8dfd-b18b35e060e9.png" 
         alt="CNSTRCT Logo" 
         className={sizeClasses[size]}
       />
