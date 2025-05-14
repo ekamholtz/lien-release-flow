@@ -1,7 +1,7 @@
 
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/hooks/useAuth';
-import { Control } from 'react-hook-form';
+import { Control, useFormContext } from 'react-hook-form';
 import { ProjectSelector } from '../ProjectSelector';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -11,6 +11,7 @@ interface InvoiceProjectFieldProps {
 
 export function InvoiceProjectField({ control }: InvoiceProjectFieldProps) {
   const { user } = useAuth();
+  const formContext = useFormContext();
   
   return (
     <FormField
@@ -33,16 +34,16 @@ export function InvoiceProjectField({ control }: InvoiceProjectFieldProps) {
                   .single()
                   .then(({ data, error }) => {
                     if (!error && data && data.project_manager_id) {
-                      // Use field.form from react-hook-form to access setValue
-                      if (field.form) {
-                        field.form.setValue('project_manager_id', data.project_manager_id);
+                      // Use formContext to access setValue
+                      if (formContext) {
+                        formContext.setValue('project_manager_id', data.project_manager_id);
                       } else {
                         console.log('Form not available, cannot set project_manager_id');
                       }
                     } else {
                       // If no project manager or error, use current user
-                      if (field.form) {
-                        field.form.setValue('project_manager_id', user?.id);
+                      if (formContext) {
+                        formContext.setValue('project_manager_id', user?.id);
                       } else {
                         console.log('Form not available, cannot set project_manager_id to user');
                       }

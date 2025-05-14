@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { initiateQboAuth } from "@/utils/qbo/qboApi";
 
 // Define explicit interface for the QBO auth response
 interface QboAuthResponse {
@@ -41,9 +40,16 @@ export function useQboActions() {
         throw new Error(`Connection failed: ${errorText || response.statusText}`);
       }
       
-      // Parse the response as text first to avoid deep recursion
+      // Parse the response safely
       const responseText = await response.text();
-      const responseData: QboAuthResponse = JSON.parse(responseText);
+      let responseData: QboAuthResponse;
+      
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Failed to parse QBO response:", parseError);
+        throw new Error("Failed to parse QBO response");
+      }
       
       if (!responseData.intuit_oauth_url) {
         throw new Error("No OAuth URL received from server");
