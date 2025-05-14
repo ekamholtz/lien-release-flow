@@ -18,6 +18,10 @@ export function HeroSection() {
     }
   };
   
+  const handleViewDemo = () => {
+    navigate('/contact?demo=true');
+  };
+  
   return (
     <section className="bg-gradient-to-br from-cnstrct-navy/5 to-gray-100 py-20 relative overflow-hidden">
       <RetroGrid className="opacity-30" angle={55} />
@@ -43,7 +47,7 @@ export function HeroSection() {
                 size="lg"
                 variant="outline" 
                 className="text-cnstrct-navy border-gray-200"
-                onClick={() => navigate('/dashboard')}
+                onClick={handleViewDemo}
               >
                 View Demo
               </Button>

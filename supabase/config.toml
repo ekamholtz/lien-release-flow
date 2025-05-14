@@ -11,6 +11,9 @@ port = 54322
 shadow_port = 54320
 major_version = 15
 
+[realtime]
+enabled = true
+
 [studio]
 enabled = true
 port = 54323
@@ -20,15 +23,18 @@ api_url = "http://localhost"
 enabled = true
 port = 54324
 
-[auth]
-enabled = true
-port = 54325
-
-[realtime]
-enabled = true
-
 [storage]
 enabled = true
 
-[edge_functions]
+[auth]
 enabled = true
+site_url = "http://localhost:3000"
+
+[analytics]
+enabled = false
+
+[functions.send-invitation-email]
+verify_jwt = false
+
+[functions.send-contact-email]
+verify_jwt = false
