@@ -67,7 +67,7 @@ export function usePermissions(companyId?: string) {
     try {
       // Use a direct SQL query with type assertion to bypass TypeScript error
       const { data, error } = await supabase.rpc(
-        'check_user_permission_for_company' as any, 
+        'user_has_permission_for_company' as any, 
         {
           p_company_id: companyId,
           p_permission_code: permissionCode,
