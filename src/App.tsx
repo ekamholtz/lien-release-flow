@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Toaster } from "@/components/ui/toaster";
 import Index from './pages/Index';
 import Auth from './pages/Auth';
+import Contact from './pages/Contact';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import NewProject from './pages/NewProject';
@@ -60,6 +61,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/contact" element={<Contact />} />
         
         {/* Onboarding routes */}
         <Route 

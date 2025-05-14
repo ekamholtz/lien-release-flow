@@ -24,11 +24,10 @@ const comparisonFeatures = [
   { name: "Integrated Payment Processing", paymentFlow: true, others: false },
   { name: "Electronic Lien Releases", paymentFlow: true, others: false },
   { name: "QuickBooks Online Integration", paymentFlow: true, others: true },
-  { name: "Customizable Approval Workflows", paymentFlow: true, others: false },
-  { name: "Automated Payment Reminders", paymentFlow: true, others: true },
+  { name: "Approval Workflows", paymentFlow: true, others: false },
   { name: "Mobile Responsive Interface", paymentFlow: true, others: true },
-  { name: "AI-Powered Payment Suggestions", paymentFlow: true, others: false },
-  { name: "No Payment Processing Fees", paymentFlow: true, others: false },
+  { name: "Accelerated ACH Processing", paymentFlow: true, others: false },
+  { name: "Pay Vendors via Text or Email", paymentFlow: true, others: false },
 ];
 
 export function FeaturesSection() {
@@ -46,17 +45,17 @@ export function FeaturesSection() {
           <FeatureCard 
             icon={CircleDollarSign}
             title="Integrated Payments"
-            description="Connect with Checkbook.io for payouts and Finix for pay-ins, creating a seamless payment experience."
+            description="Connect with our integrated payment providers for the fastest and most cost effective way to send and collect electronic payments"
           />
           <FeatureCard 
             icon={FileSignature}
             title="Electronic Lien Releases"
-            description="Generate and collect electronic signatures for lien releases before releasing payments."
+            description="Generate and collect electronic signatures for lien releases before releasing payments - All automatically through our project workflows"
           />
           <FeatureCard 
             icon={FileText}
-            title="Invoice Management"
-            description="Create, send, and track invoices with built-in payment links for faster collections."
+            title="Cash Management"
+            description="Organize Invoices, Bills, and Payments by project, PM, or job type. - Make your financial data work for project based businesses to gain insights into their business"
           />
         </div>
 

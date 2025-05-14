@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -14,6 +14,7 @@ import { InvoiceActions } from './InvoiceActions';
 import { DbInvoice, InvoiceStatus } from '@/lib/supabase';
 import { QboSyncStatus } from './QboSyncStatus';
 import { ExternalLink, Eye, SendHorizontal } from 'lucide-react';
+import { PaymentDetailDialog } from './PaymentDetailDialog';
 
 // Update the type definition to make fields optional where needed
 interface InvoicesTableProps {
@@ -42,6 +43,17 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
   onRetrySync,
   isRetrySyncing
 }) => {
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  
+  const handleViewDetails = (invoice: any) => {
+    setSelectedInvoice(invoice);
+    setIsDetailOpen(true);
+    // Still call the original handler if provided
+    if (onViewDetails) {
+      onViewDetails(invoice);
+    }
+  };
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -98,7 +110,7 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
                   <Button
                     variant="outline" 
                     size="icon"
-                    onClick={() => onViewDetails(invoice)}
+                    onClick={() => handleViewDetails(invoice)}
                     title="View Details"
                   >
                     <Eye className="h-4 w-4" />
@@ -118,7 +130,7 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
                   <InvoiceActions 
                     invoice={invoice}
                     onPayInvoice={onPayInvoice} 
-                    onViewDetails={onViewDetails}
+                    onViewDetails={handleViewDetails}
                     onUpdateStatus={onUpdateStatus}
                   />
                 </div>
@@ -135,6 +147,14 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
           )}
         </TableBody>
       </Table>
+      
+      {/* Add the detail dialog */}
+      <PaymentDetailDialog
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        payment={selectedInvoice}
+        type="invoice"
+      />
     </div>
   );
 };

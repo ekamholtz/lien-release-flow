@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Eye, Check, X, CreditCard } from "lucide-react";
 import { DbBill, BillStatus } from '@/lib/supabase';
+import { PaymentDetailDialog } from './PaymentDetailDialog';
 
 interface BillActionsProps {
   bill: DbBill;
@@ -13,6 +14,15 @@ interface BillActionsProps {
 }
 
 export function BillActions({ bill, onUpdateStatus, onPayBill, onViewDetails }: BillActionsProps) {
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  
+  const handleViewDetails = (bill: DbBill) => {
+    setIsDetailOpen(true);
+    // Still call the original handler if provided
+    if (onViewDetails) {
+      onViewDetails(bill);
+    }
+  };
   return (
     <div className="flex items-center justify-end gap-2">
       <TooltipProvider>
@@ -22,7 +32,7 @@ export function BillActions({ bill, onUpdateStatus, onPayBill, onViewDetails }: 
               variant="ghost" 
               size="icon" 
               className="h-8 w-8 text-gray-500"
-              onClick={() => onViewDetails(bill)}
+              onClick={() => handleViewDetails(bill)}
             >
               <Eye className="h-4 w-4" />
             </Button>
@@ -92,6 +102,14 @@ export function BillActions({ bill, onUpdateStatus, onPayBill, onViewDetails }: 
           </Tooltip>
         </TooltipProvider>
       )}
+      
+      {/* Add the detail dialog */}
+      <PaymentDetailDialog
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        payment={bill}
+        type="bill"
+      />
     </div>
   );
 }

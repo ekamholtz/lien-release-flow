@@ -1,8 +1,25 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { CNSTRCTLogo } from '@/components/ui/cnstrct-logo';
 
 export function Footer() {
+  // Helper function to handle navigation for section links
+  const handleSectionClick = (e: React.MouseEvent<HTMLAnchorElement>, section: string) => {
+    e.preventDefault();
+    // If we're not on the homepage, navigate to homepage first
+    if (window.location.pathname !== '/') {
+      // Use window.location.href to navigate to the homepage with the section anchor
+      window.location.href = `/${section ? '#' + section : ''}`;
+    } else {
+      // If already on homepage, just scroll to the section
+      const element = document.getElementById(section);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
   return (
     <footer className="bg-cnstrct-navy text-gray-300 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,30 +36,30 @@ export function Footer() {
           <div>
             <h3 className="text-white text-lg font-medium mb-4">Product</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="#features" className="hover:text-cnstrct-orange">Features</a></li>
-              <li><a href="#" className="hover:text-cnstrct-orange">Pricing</a></li>
-              <li><a href="#" className="hover:text-cnstrct-orange">Integrations</a></li>
-              <li><a href="#" className="hover:text-cnstrct-orange">Case Studies</a></li>
+              <li><a href="/#features" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, 'features')}>Features</a></li>
+              <li><a href="/#how-it-works" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, 'how-it-works')}>How It Works</a></li>
+              <li><a href="/#roles" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, 'roles')}>For Your Role</a></li>
+              <li><a href="/" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, '')}>Home</a></li>
             </ul>
           </div>
           
           <div>
             <h3 className="text-white text-lg font-medium mb-4">Resources</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-cnstrct-orange">Documentation</a></li>
-              <li><a href="#" className="hover:text-cnstrct-orange">Blog</a></li>
-              <li><a href="#" className="hover:text-cnstrct-orange">Webinars</a></li>
-              <li><a href="#" className="hover:text-cnstrct-orange">Support</a></li>
+              <li><a href="/" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, '')}>Documentation</a></li>
+              <li><a href="/" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, '')}>Blog</a></li>
+              <li><a href="/" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, '')}>Webinars</a></li>
+              <li><a href="/" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, '')}>Support</a></li>
             </ul>
           </div>
           
           <div>
             <h3 className="text-white text-lg font-medium mb-4">Company</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-cnstrct-orange">About Us</a></li>
-              <li><a href="#" className="hover:text-cnstrct-orange">Careers</a></li>
-              <li><a href="#" className="hover:text-cnstrct-orange">Contact</a></li>
-              <li><a href="#" className="hover:text-cnstrct-orange">Legal</a></li>
+              <li><a href="/" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, '')}>About Us</a></li>
+              <li><a href="/" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, '')}>Careers</a></li>
+              <li><Link to="/contact" className="hover:text-cnstrct-orange">Contact</Link></li>
+              <li><a href="/" className="hover:text-cnstrct-orange" onClick={(e) => handleSectionClick(e, '')}>Legal</a></li>
             </ul>
           </div>
         </div>

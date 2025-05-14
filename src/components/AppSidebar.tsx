@@ -9,7 +9,6 @@ import {
   Settings, 
   Users, 
   BarChart3, 
-  Mail,
   LogOut,
   Files,
   LayoutDashboard
@@ -32,7 +31,6 @@ export function AppSidebar() {
     { to: '/documents', icon: <Files className="h-5 w-5" />, text: 'Documents' },
     { to: '/team', icon: <Users className="h-5 w-5" />, text: 'Team' },
     { to: '/reports', icon: <BarChart3 className="h-5 w-5" />, text: 'Reports' },
-    { to: '/integrations', icon: <Mail className="h-5 w-5" />, text: 'Integrations' },
     { to: '/settings', icon: <Settings className="h-5 w-5" />, text: 'Settings' },
   ];
 
