@@ -44,9 +44,11 @@ serve(async (req) => {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
 
+    console.log(`Sending invitation email to ${email} for company ${companyName}`);
+    
     // Send the email
     const { data, error } = await resend.emails.send({
-      from: 'CNSTRCT <notifications@cnstrct.com>',
+      from: 'CNSTRCT <notifications@cnstrctnetwork.com>',
       to: email,
       subject: `You've been invited to join ${companyName} on CNSTRCT`,
       html: `

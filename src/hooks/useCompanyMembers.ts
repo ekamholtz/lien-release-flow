@@ -84,11 +84,32 @@ export function useCompanyMembers(companyId?: string) {
   // Delete a member from the company
   const deleteMember = useMutation({
     mutationFn: async (memberId: string) => {
-      const { error } = await supabase.rpc('delete_company_member', {
-        p_id: memberId
-      });
+      console.log('useCompanyMembers: deleteMember called with ID:', memberId);
+      
+      // Make sure we have a valid ID
+      if (!memberId) {
+        console.error('Invalid member ID provided');
+        throw new Error('Invalid member ID');
+      }
+      
+      try {
+        // Call the Supabase RPC function
+        const { data, error } = await supabase.rpc('delete_company_member', {
+          p_id: memberId
+        });
         
-      if (error) throw error;
+        console.log('Supabase RPC response:', { data, error });
+        
+        if (error) {
+          console.error('Supabase RPC error:', error);
+          throw error;
+        }
+        
+        return data;
+      } catch (err) {
+        console.error('Exception in deleteMember:', err);
+        throw err;
+      }
     },
     onSuccess: () => {
       toast.success('Member removed from company');
@@ -96,7 +117,43 @@ export function useCompanyMembers(companyId?: string) {
     },
     onError: (error) => {
       console.error('Error removing member:', error);
-      toast.error('Failed to remove member');
+      toast.error('Failed to remove member: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  });
+
+  // Resend invitation to a pending member
+  const resendInvitation = useMutation({
+    mutationFn: async (member: CompanyMember) => {
+      console.log('Resending invitation to:', member);
+      
+      // Call the edge function to resend the invitation email
+      const { data, error } = await supabase.functions.invoke('send-invitation-email', {
+        body: {
+          firstName: member.first_name,
+          lastName: member.last_name,
+          email: member.invited_email,
+          companyName: member.company_name,
+          invitationId: member.id,
+          invitedBy: member.invited_by || 'Administrator',
+          role: member.role
+        }
+      });
+      
+      console.log('Edge function response:', { data, error });
+      
+      if (error) {
+        console.error('Error from edge function:', error);
+        throw error;
+      }
+      
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Invitation resent successfully');
+    },
+    onError: (error) => {
+      console.error('Error resending invitation:', error);
+      toast.error('Failed to resend invitation: ' + (error instanceof Error ? error.message : String(error)));
     }
   });
 
@@ -107,6 +164,7 @@ export function useCompanyMembers(companyId?: string) {
     inviteMember,
     updateMember,
     deleteMember,
+    resendInvitation,
     refetch
   };
 }

@@ -21,13 +21,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { CompanyMember } from '@/lib/types/company';
+import { ResendInvitationButton } from './ResendInvitationButton';
 
 interface TeamMemberRowProps {
   member: CompanyMember;
   onStatusChange: (id: string, status: 'active' | 'pending' | 'disabled') => Promise<{ success: boolean, error?: string }>;
+  onDelete?: (id: string) => Promise<{ success: boolean, error?: string }>;
+  onResendInvitation?: (member: CompanyMember) => Promise<{ success: boolean, error?: string }>;
 }
 
-export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
+export function TeamMemberRow({ member, onStatusChange, onDelete, onResendInvitation }: TeamMemberRowProps) {
   const { toast } = useToast();
 
   const getInitials = (firstName?: string, lastName?: string) => {
@@ -57,6 +60,84 @@ export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
       toast({
         title: "Failed to update status",
         description: result.error || "An error occurred while updating status.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle member deletion (actually deactivation)
+  const handleDelete = async () => {
+    console.log('Delete button clicked for member:', member);
+    
+    if (!onDelete) {
+      console.error('onDelete handler is not defined');
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to remove ${member.first_name || ''} ${member.last_name || ''} from the company? They will lose all access to company data.`)) {
+      console.log('User cancelled the deletion');
+      return;
+    }
+    
+    console.log('Attempting to delete member with ID:', member.id);
+    try {
+      const result = await onDelete(member.id);
+      console.log('Delete result:', result);
+      
+      if (result.success) {
+        toast({
+          title: "Member removed",
+          description: `${member.first_name || ''} ${member.last_name || ''} has been removed from the company.`,
+        });
+      } else {
+        console.error('Delete failed with error:', result.error);
+        toast({
+          title: "Failed to remove member",
+          description: result.error || "An error occurred while removing the member.",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error('Exception during delete operation:', err);
+      toast({
+        title: "Failed to remove member",
+        description: err instanceof Error ? err.message : "An unexpected error occurred.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle resending invitation
+  const handleResendInvitation = async () => {
+    console.log('Resend invitation clicked for member:', member);
+    
+    if (!onResendInvitation) {
+      console.error('onResendInvitation handler is not defined');
+      return;
+    }
+    
+    try {
+      const result = await onResendInvitation(member);
+      console.log('Resend invitation result:', result);
+      
+      if (result.success) {
+        toast({
+          title: "Invitation resent",
+          description: `Invitation has been resent to ${member.invited_email}.`,
+        });
+      } else {
+        console.error('Resend invitation failed with error:', result.error);
+        toast({
+          title: "Failed to resend invitation",
+          description: result.error || "An error occurred while resending the invitation.",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error('Exception during resend invitation operation:', err);
+      toast({
+        title: "Failed to resend invitation",
+        description: err instanceof Error ? err.message : "An unexpected error occurred.",
         variant: "destructive"
       });
     }
@@ -106,6 +187,9 @@ export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
               <Mail className="mr-2 h-4 w-4" />
               <span>Email</span>
             </DropdownMenuItem>
+            {member.status === 'pending' && (
+              <ResendInvitationButton member={member} />
+            )}
             {member.status !== 'pending' && (
               <DropdownMenuItem onClick={handleStatusToggle}>
                 {member.status === 'active' ? (
@@ -126,9 +210,9 @@ export function TeamMemberRow({ member, onStatusChange }: TeamMemberRowProps) {
               <Edit className="mr-2 h-4 w-4" />
               <span>Edit</span>
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-red-600">
+            <DropdownMenuItem className="text-red-600" onClick={handleDelete}>
               <Trash2 className="mr-2 h-4 w-4" />
-              <span>Delete</span>
+              <span>Remove Member</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

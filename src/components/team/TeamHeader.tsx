@@ -41,14 +41,12 @@ export function TeamHeader({ onMemberAdded }: TeamHeaderProps) {
         )}
       </div>
       
-      {canManageUsers && (
-        <Button onClick={() => setIsInviteDialogOpen(true)} className="bg-cnstrct-orange hover:bg-cnstrct-orange/90">
-          <Plus className="mr-2 h-4 w-4" />
-          Invite Member
-        </Button>
-      )}
+      <Button onClick={() => setIsInviteDialogOpen(true)} className="bg-cnstrct-orange hover:bg-cnstrct-orange/90">
+        <Plus className="mr-2 h-4 w-4" />
+        Invite Member
+      </Button>
       
-      {currentCompany && canManageUsers && (
+      {currentCompany && (
         <InviteMemberDialog 
           isOpen={isInviteDialogOpen}
           onClose={() => setIsInviteDialogOpen(false)}

@@ -24,6 +24,9 @@ export interface CompanyMember {
   created_at: string;
   updated_at: string;
   created_by?: string | null;
+  // Additional properties from RPC function results
+  company_name?: string;
+  invited_by?: string;
 }
 
 export interface Role {

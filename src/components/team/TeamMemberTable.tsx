@@ -13,10 +13,12 @@ import type { CompanyMember } from '@/lib/types/company';
 interface TeamMemberTableProps {
   teamMembers: CompanyMember[];
   onStatusChange: (id: string, status: string) => Promise<{ success: boolean, error?: string }>;
+  onDelete?: (id: string) => Promise<{ success: boolean, error?: string }>;
+  onResendInvitation?: (member: CompanyMember) => Promise<{ success: boolean, error?: string }>;
   canManageUsers: boolean;
 }
 
-export function TeamMemberTable({ teamMembers, onStatusChange, canManageUsers }: TeamMemberTableProps) {
+export function TeamMemberTable({ teamMembers, onStatusChange, onDelete, onResendInvitation, canManageUsers }: TeamMemberTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -42,7 +44,9 @@ export function TeamMemberTable({ teamMembers, onStatusChange, canManageUsers }:
             <TeamMemberRow 
               key={member.id} 
               member={member} 
-              onStatusChange={onStatusChange} 
+              onStatusChange={onStatusChange}
+              onDelete={canManageUsers ? onDelete : undefined}
+              onResendInvitation={canManageUsers ? onResendInvitation : undefined}
             />
           ))
         )}
