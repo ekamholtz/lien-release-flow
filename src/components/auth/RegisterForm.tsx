@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -13,183 +12,105 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { registerSchema, invitationRegisterSchema } from '@/components/auth/validation';
-import { invitationService, InvitationDetails } from '@/services/invitationService';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { InfoIcon } from 'lucide-react';
-
-type RegisterFormValues = z.infer<typeof registerSchema>;
-type InvitationRegisterFormValues = z.infer<typeof invitationRegisterSchema>;
+} from '@/components/ui/form';
+import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { registerSchema } from '@/components/auth/validation';
+import { toast } from 'sonner';
 
 interface RegisterFormProps {
-  onRegisterSuccess: () => void;
+  onSuccess?: () => void;
+  defaultEmail?: string;
 }
 
-export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
+export function RegisterForm({ onSuccess, defaultEmail }: RegisterFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [invitation, setInvitation] = useState<InvitationDetails | null>(null);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const invitationId = searchParams.get('invitation');
-  const invitationEmail = searchParams.get('email');
-  
-  const formSchema = invitation ? invitationRegisterSchema : registerSchema;
-  
-  const form = useForm<RegisterFormValues | InvitationRegisterFormValues>({
-    resolver: zodResolver(formSchema),
+
+  const form = useForm<z.infer<typeof registerSchema>>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
-      fullName: "",
-      email: invitationEmail || "",
-      password: "",
+      email: defaultEmail || '',
+      password: '',
+      confirmPassword: '',
+      firstName: '',
+      lastName: '',
     },
   });
 
-  useEffect(() => {
-    // Check for invitation details if we have an invitation ID
-    const checkInvitation = async () => {
-      if (invitationId && invitationEmail) {
-        try {
-          const invitations = await invitationService.checkPendingInvitations(invitationEmail);
-          const matchedInvitation = invitations.find(inv => inv.id === invitationId);
-          
-          if (matchedInvitation) {
-            setInvitation(matchedInvitation);
-            // Pre-fill the email
-            form.setValue('email', invitationEmail);
-          }
-        } catch (err) {
-          console.error("Error checking invitation:", err);
-        }
-      }
-    };
-    
-    checkInvitation();
-  }, [invitationId, invitationEmail]);
+  async function onSubmit(values: z.infer<typeof registerSchema>) {
+    if (values.password !== values.confirmPassword) {
+      form.setError('confirmPassword', {
+        type: 'manual',
+        message: 'Passwords do not match',
+      });
+      return;
+    }
 
-  async function onSubmit(values: RegisterFormValues | InvitationRegisterFormValues) {
     setIsLoading(true);
-    
     try {
-      // Parse the full name into first and last name
-      const nameParts = values.fullName.trim().split(' ');
-      const firstName = nameParts[0];
-      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-      
-      // Base user data
-      const userData = {
-        full_name: values.fullName,
-        first_name: firstName,
-        last_name: lastName
-      };
-      
-      // Register the user with Supabase auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
-          data: userData,
+          data: {
+            first_name: values.firstName,
+            last_name: values.lastName,
+          },
         },
       });
 
-      if (authError) {
-        throw authError;
+      if (error) {
+        throw error;
       }
 
-      // Check if email confirmation is required
-      if (authData?.user) {
-        if (invitation && authData.session) {
-          // Accept the invitation automatically
-          try {
-            await invitationService.acceptInvitation(invitation.id, authData.user.id);
-            toast({
-              title: "Account created successfully",
-              description: `You have joined ${invitation.company_name}. Welcome!`,
-            });
-            
-            // Redirect to dashboard
-            navigate('/dashboard');
-          } catch (err) {
-            console.error("Error accepting invitation:", err);
-            toast({
-              title: "Account created, but couldn't join company",
-              description: "Please contact the company administrator.",
-              variant: "destructive",
-            });
-            
-            // Still notify parent of successful registration
-            onRegisterSuccess();
-          }
-        } else if (authData.session) {
-          // Self-registration - User is immediately signed in (email confirmation disabled)
-          toast({
-            title: "Account created successfully",
-            description: "Welcome to PaymentFlow! Please complete your profile.",
-          });
-          
-          // Redirect to personal info setup page first
-          navigate('/onboarding/personal-info');
-        } else {
-          // Email confirmation is required
-          toast({
-            title: "Account created successfully",
-            description: "Please check your email to confirm your account.",
-          });
-          
-          // Notify parent component of successful registration
-          onRegisterSuccess();
-        }
-      }
+      toast.success('Registration successful! Please check your email to verify your account.');
+      if (onSuccess) onSuccess();
     } catch (error: any) {
       console.error('Registration error:', error);
-      toast({
-        title: "Registration failed",
-        description: error.message || "There was an error creating your account",
-        variant: "destructive",
-      });
+      toast.error(error.message || 'Failed to register');
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <div className="bg-white rounded-lg border p-6 shadow-sm">
-      <h3 className="text-xl font-semibold mb-4">Create your account</h3>
-      
-      {invitation && (
-        <Alert className="mb-6">
-          <InfoIcon className="h-4 w-4" />
-          <AlertTitle>You've been invited!</AlertTitle>
-          <AlertDescription>
-            You've been invited to join {invitation.company_name} as {invitation.role.replace('_', ' ')}.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {!invitation && (
-        <p className="text-sm text-gray-500 mb-6">Enter your details to get started</p>
-      )}
-      
+    <div className="space-y-6 py-4">
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your details to create a new account
+        </p>
+      </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="fullName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="firstName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>First Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="lastName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <FormField
             control={form.control}
             name="email"
@@ -197,17 +118,12 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="email@example.com" 
-                    {...field} 
-                    disabled={!!invitation}
-                  />
+                  <Input placeholder="name@example.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
           <FormField
             control={form.control}
             name="password"
@@ -215,22 +131,28 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="Create a strong password" {...field} />
+                  <Input type="password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
-          <Button type="submit" className="w-full bg-construction-600 hover:bg-construction-700" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating account...
-              </>
-            ) : (
-              "Create Account"
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirm Password</FormLabel>
+                <FormControl>
+                  <Input type="password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
+          />
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Register
           </Button>
         </form>
       </Form>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +22,7 @@ import Settings from './pages/Settings';
 import Team from './pages/Team';
 import Subscription from './pages/Subscription';
 import LienRelease from './pages/LienRelease';
+import ResetPassword from './pages/ResetPassword';
 // Removed Integrations import
 import NotFound from './pages/NotFound';
 import OnboardingPage from './pages/OnboardingPage';
@@ -61,6 +61,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/contact" element={<Contact />} />
         
         {/* Onboarding routes */}

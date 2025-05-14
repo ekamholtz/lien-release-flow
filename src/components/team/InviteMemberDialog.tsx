@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCompanyMembers } from '@/hooks/useCompanyMembers';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const inviteMemberSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required' }),
@@ -42,7 +44,7 @@ interface InviteMemberDialogProps {
 }
 
 export function InviteMemberDialog({ isOpen, onClose, onMemberAdded, companyId }: InviteMemberDialogProps) {
-  const { toast } = useToast();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { inviteMember } = useCompanyMembers(companyId);
   
@@ -60,7 +62,8 @@ export function InviteMemberDialog({ isOpen, onClose, onMemberAdded, companyId }
     try {
       setIsSubmitting(true);
       
-      await inviteMember.mutateAsync({
+      // Invite the team member using the existing mutation
+      const result = await inviteMember.mutateAsync({
         companyId,
         firstName: values.firstName,
         lastName: values.lastName,
@@ -68,16 +71,46 @@ export function InviteMemberDialog({ isOpen, onClose, onMemberAdded, companyId }
         role: values.role
       });
       
+      // Get company name
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', companyId)
+        .single();
+      
+      // Send invitation email
+      if (result) {
+        try {
+          const { data, error } = await supabase.functions.invoke('send-invitation-email', {
+            body: {
+              firstName: values.firstName,
+              lastName: values.lastName,
+              email: values.email,
+              companyName: companyData?.name || 'Your company',
+              invitationId: result.id,
+              invitedBy: user?.email || 'Administrator',
+              role: values.role
+            }
+          });
+          
+          if (error) {
+            console.error('Error sending invitation email:', error);
+            // We continue even if email fails, since the database record was created
+          }
+        } catch (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+          // We don't throw here, as we still want to show the success message
+          // since the database record was created
+        }
+      }
+      
+      toast.success('Invitation sent successfully');
       form.reset();
       onMemberAdded();
       onClose();
     } catch (error) {
       console.error('Error inviting team member:', error);
-      toast({
-        title: 'Invitation failed',
-        description: 'There was a problem inviting the team member. Please try again.',
-        variant: 'destructive'
-      });
+      toast.error('There was a problem inviting the team member. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
