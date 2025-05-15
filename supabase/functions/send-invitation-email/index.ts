@@ -15,6 +15,7 @@ interface InvitationEmailRequest {
   invitationId: string;
   invitedBy: string;
   role: string;
+  resetPasswordLink?: string; // Optional parameter for reset password link
 }
 
 serve(async (req) => {
@@ -32,11 +33,11 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey);
 
     // Get the request body
-    const { firstName, lastName, email, companyName, invitationId, invitedBy, role } = await req.json() as InvitationEmailRequest;
+    const { firstName, lastName, email, companyName, invitationId, invitedBy, role, resetPasswordLink } = await req.json() as InvitationEmailRequest;
     
     // Create the invitation URL
     const appUrl = Deno.env.get('APP_URL') || 'https://app.cnstrct.com';
-    const invitationUrl = `${appUrl}/auth?invitation=${invitationId}&email=${encodeURIComponent(email)}`;
+    const invitationUrl = resetPasswordLink || `${appUrl}/auth?invitation=${invitationId}&email=${encodeURIComponent(email)}`;
 
     // Format the role for display
     const formattedRole = role
@@ -59,7 +60,9 @@ serve(async (req) => {
           <p>CNSTRCT is a modern accounting platform designed for general contractors, subcontractors, and service professionals to streamline your financial operations.</p>
           
           <div style="margin: 30px 0; text-align: center;">
-            <a href="${invitationUrl}" style="background-color: #FF5A1F; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Accept Invitation</a>
+            <a href="${invitationUrl}" style="background-color: #FF5A1F; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+              ${resetPasswordLink ? 'Set Password & Accept' : 'Accept Invitation'}
+            </a>
           </div>
           
           <p>Or copy and paste this URL into your browser:</p>
