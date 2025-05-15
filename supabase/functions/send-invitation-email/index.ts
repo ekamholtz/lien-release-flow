@@ -49,7 +49,7 @@ serve(async (req) => {
     
     // Send the email
     const { data, error } = await resend.emails.send({
-      from: 'CNSTRCT <notifications@cnstrctnetwork.com>',
+      from: 'CNSTRCT <notifications@updates.cnstrctnetwork.com>',
       to: email,
       subject: `You've been invited to join ${companyName} on CNSTRCT`,
       html: `

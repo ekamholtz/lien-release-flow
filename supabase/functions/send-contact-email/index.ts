@@ -77,7 +77,7 @@ serve(async (req) => {
 
     // Send the email to the owner
     const { data, error } = await resend.emails.send({
-      from: 'CNSTRCT Notifications <notifications@cnstrct.com>',
+      from: 'CNSTRCT Notifications <notifications@updates.cnstrctnetwork.com>',
       to: ownerEmail,
       subject: subject,
       html: `
@@ -121,7 +121,7 @@ serve(async (req) => {
       : `<p>Thank you for contacting CNSTRCT support. We've received your message and will get back to you as soon as possible.</p>`;
     
     const { data: autoReplyData, error: autoReplyError } = await resend.emails.send({
-      from: 'CNSTRCT Support <support@cnstrct.com>',
+      from: 'CNSTRCT Support <support@updates.cnstrctnetwork.com>',
       to: requestData.email,
       subject: autoReplySubject,
       html: `
