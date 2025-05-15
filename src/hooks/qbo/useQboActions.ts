@@ -45,6 +45,7 @@ export function useQboActions() {
       let responseData: QboAuthResponse = { intuit_oauth_url: "" };
       
       try {
+        // Fix: Parse JSON without type casting to avoid excessive instantiation
         responseData = JSON.parse(responseText);
       } catch (parseError) {
         console.error("Failed to parse QBO response:", parseError);
