@@ -15,6 +15,13 @@ import { BillStatus } from "@/lib/supabase";
 import { useCompany } from '@/contexts/CompanyContext';
 import { useAuth } from '@/hooks/useAuth';
 
+const lineItemSchema = z.object({
+  categoryId: z.string().min(1, { message: "Category is required" }),
+  description: z.string().optional(),
+  amount: z.string().min(1, { message: "Amount is required" }),
+  billable: z.boolean().default(false),
+});
+
 const formSchema = z.object({
   billNumber: z.string().min(1, { message: "Bill number is required" }),
   vendorId: z.string().min(1, { message: "Vendor is required" }),
@@ -23,6 +30,7 @@ const formSchema = z.object({
   dueDate: z.date({ required_error: "Due date is required" }),
   description: z.string().optional(),
   requiresLien: z.boolean().default(false),
+  lineItems: z.array(lineItemSchema).min(1, { message: "At least one line item is required" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -47,6 +55,9 @@ export function BillForm({ preselectedProjectId }: BillFormProps) {
       amount: "",
       description: "",
       requiresLien: false,
+      lineItems: [
+        { categoryId: "", description: "", amount: "", billable: false }
+      ]
     },
   });
 
@@ -124,7 +135,8 @@ export function BillForm({ preselectedProjectId }: BillFormProps) {
           status: 'pending' as BillStatus,
           company_id: companyId,
           requires_lien_release: values.requiresLien,
-          project_manager_id: projectManagerId
+          project_manager_id: projectManagerId,
+          has_line_items: true // Mark that this bill has line items
         })
         .select();
       
@@ -132,6 +144,31 @@ export function BillForm({ preselectedProjectId }: BillFormProps) {
         console.error('Error saving bill:', error);
         toast.error(`Failed to create bill: ${error.message}`);
         return;
+      }
+      
+      // Save line items if bill was created successfully
+      if (data && data[0] && data[0].id) {
+        const billId = data[0].id;
+        
+        // Prepare line items for insertion
+        const lineItemsToInsert = values.lineItems.map(item => ({
+          bill_id: billId,
+          category_id: item.categoryId,
+          description: item.description || null,
+          amount: parseFloat(item.amount),
+          billable: item.billable
+        }));
+        
+        // Insert line items
+        const { error: lineItemsError } = await supabase
+          .from('bill_line_items')
+          .insert(lineItemsToInsert);
+        
+        if (lineItemsError) {
+          console.error('Error saving line items:', lineItemsError);
+          toast.error(`Bill created but failed to save line items: ${lineItemsError.message}`);
+          // We continue anyway since the bill was created
+        }
       }
       
       // Handle file uploads if there are any

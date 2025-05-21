@@ -104,6 +104,54 @@ export type Database = {
           },
         ]
       }
+      bill_line_items: {
+        Row: {
+          amount: number
+          bill_id: string | null
+          billable: boolean | null
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          bill_id?: string | null
+          billable?: boolean | null
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          bill_id?: string | null
+          billable?: boolean | null
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_line_items_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_line_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bills: {
         Row: {
           amount: number
@@ -111,6 +159,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           due_date: string
+          has_line_items: boolean | null
           id: string
           lien_release_status: string | null
           project_id: string | null
@@ -128,6 +177,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           due_date: string
+          has_line_items?: boolean | null
           id?: string
           lien_release_status?: string | null
           project_id?: string | null
@@ -145,6 +195,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           due_date?: string
+          has_line_items?: boolean | null
           id?: string
           lien_release_status?: string | null
           project_id?: string | null
@@ -394,6 +445,41 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_categories: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

@@ -6,6 +6,7 @@ import { BillProjectField } from "./BillProjectField";
 import { BillDueDateField } from "./BillDueDateField";
 import { BillDescriptionField } from "./BillDescriptionField";
 import { BillLienRequirementField } from "./BillLienRequirementField";
+import { BillLineItems } from "./BillLineItems";
 
 interface BillFormFieldsProps {
   control: Control<any>;
@@ -26,6 +27,8 @@ export function BillFormFields({ control }: BillFormFieldsProps) {
       <BillDescriptionField control={control} />
       
       <BillLienRequirementField control={control} />
+      
+      <BillLineItems control={control} />
     </>
   );
 }
