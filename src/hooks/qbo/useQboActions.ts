@@ -68,6 +68,7 @@ export function useQboActions() {
     }
   };
 
+  // Fixed the return type to resolve the infinite type instantiation error
   const handleDisconnectQbo = async (companyId: string): Promise<boolean> => {
     if (!companyId) return false;
     

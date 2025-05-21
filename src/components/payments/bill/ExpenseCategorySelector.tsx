@@ -35,26 +35,30 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
   const selectedItem = categories.find((item) => item.value === value);
 
   useEffect(() => {
-    if (currentCompany) {
-      fetchCategories();
-    } else {
-      // Initialize with empty array if no company is selected
-      setCategories([]);
-    }
+    // Always fetch categories when the component mounts or company changes
+    fetchCategories();
   }, [currentCompany]);
 
   const fetchCategories = async () => {
-    if (!currentCompany?.id) {
-      setCategories([]);
-      return;
-    }
-    
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Always fetch default categories
+      const defaultQuery = supabase
         .from('expense_categories')
         .select('*')
-        .or(`is_default.eq.true,company_id.eq.${currentCompany?.id || 'null'}`);
+        .eq('is_default', true);
+        
+      // If we have a company, also fetch company-specific categories
+      let query = defaultQuery;
+      
+      if (currentCompany?.id) {
+        query = supabase
+          .from('expense_categories')
+          .select('*')
+          .or(`is_default.eq.true,company_id.eq.${currentCompany.id}`);
+      }
+      
+      const { data, error } = await query;
 
       if (error) {
         throw error;
@@ -67,6 +71,15 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
         label: category.name,
         isDefault: category.is_default
       }));
+
+      // Sort categories to show default categories first
+      formattedCategories.sort((a, b) => {
+        // Default categories first
+        if (a.isDefault && !b.isDefault) return -1;
+        if (!a.isDefault && b.isDefault) return 1;
+        // Then alphabetically by name
+        return a.label.localeCompare(b.label);
+      });
 
       setCategories(formattedCategories);
     } catch (error) {
@@ -148,29 +161,31 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
                 'No category found. Create a new one.'}
             </CommandEmpty>
             {/* Ensure categories is always defined and iterable */}
-            <CommandGroup>
-              {Array.isArray(categories) && categories.length > 0 ? categories.map((category) => (
-                <CommandItem
-                  key={category.value}
-                  value={category.label}
-                  onSelect={() => {
-                    onChange(category.value);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === category.value ? "opacity-100" : "opacity-0"
+            {categories.length > 0 && (
+              <CommandGroup>
+                {categories.map((category) => (
+                  <CommandItem
+                    key={category.value}
+                    value={category.label}
+                    onSelect={() => {
+                      onChange(category.value);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === category.value ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {category.label}
+                    {category.isDefault && (
+                      <span className="ml-auto text-xs text-muted-foreground">(Default)</span>
                     )}
-                  />
-                  {category.label}
-                  {category.isDefault && (
-                    <span className="ml-auto text-xs text-muted-foreground">(Default)</span>
-                  )}
-                </CommandItem>
-              )) : null}
-            </CommandGroup>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
             <CommandSeparator />
             <CommandGroup>
               <CommandItem
