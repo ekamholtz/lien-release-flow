@@ -37,10 +37,18 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
   useEffect(() => {
     if (currentCompany) {
       fetchCategories();
+    } else {
+      // Initialize with empty array if no company is selected
+      setCategories([]);
     }
   }, [currentCompany]);
 
   const fetchCategories = async () => {
+    if (!currentCompany?.id) {
+      setCategories([]);
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -141,7 +149,7 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
             </CommandEmpty>
             {/* Ensure categories is always defined and iterable */}
             <CommandGroup>
-              {Array.isArray(categories) && categories.map((category) => (
+              {Array.isArray(categories) && categories.length > 0 ? categories.map((category) => (
                 <CommandItem
                   key={category.value}
                   value={category.label}
@@ -161,7 +169,7 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
                     <span className="ml-auto text-xs text-muted-foreground">(Default)</span>
                   )}
                 </CommandItem>
-              ))}
+              )) : null}
             </CommandGroup>
             <CommandSeparator />
             <CommandGroup>

@@ -68,8 +68,8 @@ export function useQboActions() {
     }
   };
 
-  const handleDisconnectQbo = async (companyId: string) => {
-    if (!companyId) return;
+  const handleDisconnectQbo = async (companyId: string): Promise<boolean> => {
+    if (!companyId) return false;
     
     setIsDisconnecting(true);
     try {
