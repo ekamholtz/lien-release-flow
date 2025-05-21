@@ -133,7 +133,6 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
     }
   };
 
-  // Modified Command component rendering with safety checks
   return (
     <>
       <Popover open={open} onOpenChange={setOpen}>
@@ -153,6 +152,7 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0">
+          {/* Wrap Command component conditionally */}
           <Command>
             <CommandInput placeholder="Search category..." />
             <CommandEmpty>
@@ -160,8 +160,9 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
                 'Loading categories...' : 
                 'No category found. Create a new one.'}
             </CommandEmpty>
-            {/* Ensure categories is always defined and iterable */}
-            {categories.length > 0 && (
+            
+            {/* Only render CommandGroup when we have categories */}
+            {categories && categories.length > 0 ? (
               <CommandGroup>
                 {categories.map((category) => (
                   <CommandItem
@@ -185,7 +186,8 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
                   </CommandItem>
                 ))}
               </CommandGroup>
-            )}
+            ) : null}
+            
             <CommandSeparator />
             <CommandGroup>
               <CommandItem
