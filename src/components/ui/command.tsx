@@ -14,8 +14,6 @@ const Command = React.forwardRef<
     ref={ref}
     className={cn(
       "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
-      // Ensure all command items properly handle pointer events
-      "pointer-events-auto",
       className
     )}
     {...props}
@@ -47,8 +45,6 @@ const CommandInput = React.forwardRef<
       ref={ref}
       className={cn(
         "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
-        // Ensure input captures pointer events
-        "pointer-events-auto",
         className
       )}
       {...props}
@@ -64,12 +60,7 @@ const CommandList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.List
     ref={ref}
-    className={cn(
-      "max-h-[300px] overflow-y-auto overflow-x-hidden",
-      // Ensure list captures pointer events
-      "pointer-events-auto",
-      className
-    )}
+    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
     {...props}
   />
 ))
@@ -82,7 +73,7 @@ const CommandEmpty = React.forwardRef<
 >((props, ref) => (
   <CommandPrimitive.Empty
     ref={ref}
-    className="py-6 text-center text-sm pointer-events-auto"
+    className="py-6 text-center text-sm"
     {...props}
   />
 ))
@@ -97,8 +88,6 @@ const CommandGroup = React.forwardRef<
     ref={ref}
     className={cn(
       "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
-      // Ensure group captures pointer events
-      "pointer-events-auto",
       className
     )}
     {...props}
@@ -127,8 +116,6 @@ const CommandItem = React.forwardRef<
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      // Explicitly set cursor pointer and ensure item captures pointer events
-      "cursor-pointer pointer-events-auto",
       className
     )}
     {...props}

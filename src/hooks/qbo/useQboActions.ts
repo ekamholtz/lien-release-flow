@@ -42,7 +42,7 @@ export function useQboActions() {
       
       // Parse the response safely with proper error handling
       const responseText = await response.text();
-      let responseData: QboAuthResponse;
+      let responseData: QboAuthResponse = { intuit_oauth_url: '' };
       
       try {
         responseData = JSON.parse(responseText);

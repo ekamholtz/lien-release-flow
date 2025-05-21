@@ -7,7 +7,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/contexts/CompanyContext';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
@@ -52,7 +52,9 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
         throw error;
       }
 
-      const formattedCategories = data.map((category) => ({
+      // Initialize with empty array if data is null or undefined
+      const categoriesData = data || [];
+      const formattedCategories = categoriesData.map((category) => ({
         value: category.id,
         label: category.name,
         isDefault: category.is_default
@@ -62,6 +64,7 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
     } catch (error) {
       console.error('Error fetching expense categories:', error);
       toast.error('Failed to load expense categories');
+      setCategories([]); // Ensure categories is always an array
     } finally {
       setIsLoading(false);
     }
@@ -97,7 +100,7 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
           isDefault: false
         };
         
-        setCategories([...categories, newCategory]);
+        setCategories(prev => [...prev, newCategory]);
         onChange(data[0].id);
         toast.success('Category created successfully');
         setNewCategoryName('');
@@ -109,6 +112,7 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
     }
   };
 
+  // Modified Command component rendering with safety checks
   return (
     <>
       <Popover open={open} onOpenChange={setOpen}>
@@ -135,8 +139,9 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
                 'Loading categories...' : 
                 'No category found. Create a new one.'}
             </CommandEmpty>
+            {/* Ensure categories is always defined and iterable */}
             <CommandGroup>
-              {categories.map((category) => (
+              {Array.isArray(categories) && categories.map((category) => (
                 <CommandItem
                   key={category.value}
                   value={category.label}
