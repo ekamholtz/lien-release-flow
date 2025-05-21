@@ -45,7 +45,7 @@ export function useQboActions() {
       let responseData: QboAuthResponse;
       
       try {
-        responseData = JSON.parse(responseText) as QboAuthResponse;
+        responseData = JSON.parse(responseText);
       } catch (parseError) {
         console.error("Failed to parse QBO response:", parseError);
         throw new Error("Failed to parse QBO response");

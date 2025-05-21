@@ -63,9 +63,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           isOpen={isProjectDialogOpen}
           onClose={() => setIsProjectDialogOpen(false)}
         />
-        
-        {/* Toast container */}
-        <Toaster position="top-right" />
       </div>
     </SidebarProvider>
   );

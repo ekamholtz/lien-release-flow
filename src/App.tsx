@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "sonner";
 import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Contact from './pages/Contact';
@@ -251,7 +251,7 @@ const App = () => {
         />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <Toaster />
+      <Toaster position="top-right" />
     </>
   );
 };
