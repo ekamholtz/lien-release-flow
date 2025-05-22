@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
 import { FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -21,19 +20,28 @@ export function BillLineItems({ control }: BillLineItemsProps) {
   // Watch all line item amounts to calculate total
   const lineItems = watch("lineItems") || [];
   
-  // Calculate total amount whenever line items change
+  // Specifically watch for changes to any amount field within line items
+  // This creates an array of all the amount values that will trigger the effect when any single amount changes
+  const lineItemAmounts = lineItems.map((item: any) => item?.amount);
+  
+  // Calculate total amount whenever any line item amount changes
   useEffect(() => {
     if (lineItems && lineItems.length > 0) {
+      // Calculate total from all line items (both billable and non-billable)
       const total = lineItems.reduce((sum: number, item: any) => {
         const amount = parseFloat(item.amount) || 0;
         return sum + amount;
       }, 0);
       
+      // Update the form's amount field with the calculated total
       setValue("amount", total.toFixed(2));
+      
+      // Log for debugging
+      console.log("Line items total calculated:", total.toFixed(2), "from", lineItems.length, "items");
     } else {
       setValue("amount", "0");
     }
-  }, [lineItems, setValue]);
+  }, [lineItems, lineItemAmounts, setValue]);
 
   return (
     <FormField

@@ -24,19 +24,7 @@ export function BillLineItemRow({ control, index, remove, nestIndex }: BillLineI
     name: `${fieldNamePrefix}.amount`,
   });
 
-  // Format amount on change
-  useEffect(() => {
-    if (amount) {
-      // Only format if it's a value that can be parsed as a number
-      const numericValue = amount.replace(/[^0-9.]/g, '');
-      if (!isNaN(parseFloat(numericValue))) {
-        // Don't trigger changes if it's the same value to avoid loops
-        if (numericValue !== amount) {
-          // This would be handled by Controller's onChange
-        }
-      }
-    }
-  }, [amount]);
+  // Format amount on change - but don't need to update here as we'll handle it directly in the input's onChange
 
   return (
     <div className="grid grid-cols-12 gap-3 items-start mb-2 p-2 border rounded-md">
@@ -90,7 +78,21 @@ export function BillLineItemRow({ control, index, remove, nestIndex }: BillLineI
                   onChange={(e) => {
                     // Allow only numbers and decimal point
                     const value = e.target.value.replace(/[^0-9.]/g, '');
+                    
+                    // Immediately update form state with the cleaned value
+                    // This ensures the parent component recalculates totals on each keystroke
                     field.onChange(value);
+                  }}
+                  // Add onBlur handler for formatting when user finishes editing
+                  onBlur={(e) => {
+                    // Ensure proper formatting when user finishes
+                    const value = e.target.value.replace(/[^0-9.]/g, '');
+                    // Format to a proper number if possible
+                    const formattedValue = value && !isNaN(parseFloat(value)) 
+                      ? parseFloat(value).toString() 
+                      : '';
+                    field.onChange(formattedValue);
+                    field.onBlur(); // Trigger form onBlur event
                   }}
                 />
               </FormControl>
