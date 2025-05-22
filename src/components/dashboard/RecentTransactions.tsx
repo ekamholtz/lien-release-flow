@@ -54,10 +54,12 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
           .eq('company_id', currentCompany.id);
         
         // Build the bills query with explicit company_id filter
+        // Only include 'pending_payment' and 'paid' bills in recent transactions
         let billsQuery = supabase
           .from('bills')
           .select('id, bill_number, amount, status, vendor_name, created_at, project_id')
-          .eq('company_id', currentCompany.id);
+          .eq('company_id', currentCompany.id)
+          .in('status', ['pending_payment', 'paid']); // Only include these statuses
         
         // Apply additional filters to both queries
         

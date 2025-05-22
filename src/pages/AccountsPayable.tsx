@@ -120,8 +120,8 @@ const AccountsPayable = () => {
       ));
       
       toast({
-        title: `Bill ${newStatus}`,
-        description: `The bill has been ${newStatus}`,
+        title: `Bill ${newStatus === 'pending_payment' ? 'Approved' : newStatus}`,
+        description: `The bill has been ${newStatus === 'pending_payment' ? 'approved' : newStatus}`,
       });
     } catch (error) {
       console.error(`Error updating bill status to ${newStatus}:`, error);
@@ -143,10 +143,10 @@ const AccountsPayable = () => {
       return;
     }
     
-    if (bill.status !== 'approved') {
+    if (bill.status !== 'pending_payment') {  // Updated status check
       toast({
         title: "Cannot Process Payment",
-        description: "Only approved bills can be paid",
+        description: "Only bills pending payment can be paid",
         variant: "destructive"
       });
       return;

@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client with environment variables
@@ -86,7 +85,7 @@ export type DbInvoice = {
   company_id: string;
 };
 
-export type BillStatus = "pending" | "approved" | "paid" | "rejected";
+export type BillStatus = "pending_approval" | "pending_payment" | "paid" | "rejected";
 
 export type DbBill = {
   id: string;

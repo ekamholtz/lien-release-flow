@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvoicesTable } from '@/components/payments/InvoicesTable';
@@ -116,7 +117,10 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
       if (error) throw error;
       
       await refetchBills();
-      toast.success(`Bill status updated to ${newStatus}`);
+      
+      // Update toast message based on the new status
+      const statusMessage = newStatus === 'pending_payment' ? 'approved' : newStatus;
+      toast.success(`Bill ${statusMessage}`);
     } catch (error) {
       console.error('Error updating bill status:', error);
       toast.error('Failed to update bill status');

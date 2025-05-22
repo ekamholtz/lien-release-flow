@@ -32,7 +32,7 @@ export function PendingApprovals({ projectId, dateRange, managerId }: PendingApp
       let query = supabase
         .from('bills')
         .select('*')
-        .eq('status', 'pending')
+        .eq('status', 'pending_approval')  // Updated status value
         .eq('company_id', currentCompany.id);
         
       // Filter by project if specified
@@ -74,7 +74,7 @@ export function PendingApprovals({ projectId, dateRange, managerId }: PendingApp
     try {
       await supabase
         .from('bills')
-        .update({ status: 'approved' })
+        .update({ status: 'pending_payment' })  // Updated status value
         .eq('id', id)
         .eq('company_id', currentCompany.id);
         
@@ -95,7 +95,7 @@ export function PendingApprovals({ projectId, dateRange, managerId }: PendingApp
     try {
       await supabase
         .from('bills')
-        .update({ status: 'rejected' })
+        .update({ status: 'rejected' })  // No change needed here
         .eq('id', id)
         .eq('company_id', currentCompany.id);
         

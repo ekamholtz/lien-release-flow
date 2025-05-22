@@ -34,7 +34,7 @@ export function PayBill({ bill, isOpen, onClose, onPaymentComplete }: PayBillPro
         reference: bill.id
       });
       
-      // Update bill status in Supabase
+      // Update bill status in Supabase to paid
       const { error } = await supabase
         .from('bills')
         .update({

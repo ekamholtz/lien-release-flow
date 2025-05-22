@@ -43,7 +43,7 @@ export function BillActions({ bill, onUpdateStatus, onPayBill, onViewDetails }: 
         </Tooltip>
       </TooltipProvider>
       
-      {bill.status === 'pending' && (
+      {bill.status === 'pending_approval' && (
         <>
           <TooltipProvider>
             <Tooltip>
@@ -52,7 +52,7 @@ export function BillActions({ bill, onUpdateStatus, onPayBill, onViewDetails }: 
                   variant="ghost" 
                   size="icon" 
                   className="h-8 w-8 text-green-600"
-                  onClick={() => onUpdateStatus(bill.id, 'approved')}
+                  onClick={() => onUpdateStatus(bill.id, 'pending_payment')}
                 >
                   <Check className="h-4 w-4" />
                 </Button>
@@ -83,7 +83,7 @@ export function BillActions({ bill, onUpdateStatus, onPayBill, onViewDetails }: 
         </>
       )}
       
-      {bill.status === 'approved' && (
+      {bill.status === 'pending_payment' && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

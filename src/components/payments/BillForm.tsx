@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -121,7 +120,7 @@ export function BillForm({ preselectedProjectId }: BillFormProps) {
         }
       }
       
-      // Save bill to Supabase
+      // Save bill to Supabase with the new status
       const { data, error } = await supabase
         .from('bills')
         .insert({
@@ -132,7 +131,7 @@ export function BillForm({ preselectedProjectId }: BillFormProps) {
           project_id: values.project || null,
           amount: amountNumber,
           due_date: formattedDueDate,
-          status: 'pending' as BillStatus,
+          status: 'pending_approval' as BillStatus,  // Updated status value
           company_id: companyId,
           requires_lien_release: values.requiresLien,
           project_manager_id: projectManagerId,
