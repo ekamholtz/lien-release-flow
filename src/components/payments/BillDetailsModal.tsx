@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
-import { DbBill } from '@/lib/supabase';
+import { DbBill, BillStatus } from '@/lib/supabase';
 import { BillStatusBadge } from './BillStatusBadge';
 import { formatCurrency } from "@/lib/utils";
 
@@ -18,8 +18,8 @@ interface BillDetailsModalProps {
 // Helper function to determine badge variant based on status
 function getStatusVariant(status: string): "default" | "destructive" | "outline" | "secondary" {
   switch (status) {
-    case 'pending': return 'outline';
-    case 'approved': return 'default';
+    case 'pending_approval': return 'outline';
+    case 'pending_payment': return 'default';
     case 'paid': return 'default';
     case 'rejected': return 'destructive';
     default: return 'outline';
@@ -103,12 +103,12 @@ export function BillDetailsModal({ bill, isOpen, onClose }: BillDetailsModalProp
                   </div>
                 </div>
                 
-                {bill.status !== 'pending' && (
+                {bill.status !== 'pending_approval' && (
                   <div className="flex items-start">
                     <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500 mr-2"></div>
                     <div>
                       <p className="text-sm font-medium">
-                        {bill.status === 'approved' ? 'Approved for Payment' : 
+                        {bill.status === 'pending_payment' ? 'Approved for Payment' : 
                          bill.status === 'rejected' ? 'Rejected' : 'Processed'}
                       </p>
                       <p className="text-xs text-gray-500">After {format(new Date(bill.created_at), 'MMM d, yyyy')}</p>
