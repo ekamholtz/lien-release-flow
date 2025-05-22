@@ -1,14 +1,11 @@
-
 import { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandSeparator } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/contexts/CompanyContext';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface ExpenseCategoryOption {
@@ -24,22 +21,20 @@ interface ExpenseCategorySelectorProps {
 }
 
 export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCategorySelectorProps) {
-  const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<ExpenseCategoryOption[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { currentCompany } = useCompany();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  
-  // Find selected item
-  const selectedItem = categories.find((item) => item.value === value);
 
+  // Load categories when component mounts or company changes
   useEffect(() => {
-    // Always fetch categories when the component mounts or company changes
     fetchCategories();
   }, [currentCompany]);
 
   const fetchCategories = async () => {
+    if (!currentCompany?.id) return;
+    
     setIsLoading(true);
     try {
       // Always fetch default categories
@@ -85,7 +80,6 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
     } catch (error) {
       console.error('Error fetching expense categories:', error);
       toast.error('Failed to load expense categories');
-      setCategories([]); // Ensure categories is always an array
     } finally {
       setIsLoading(false);
     }
@@ -134,75 +128,47 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
   };
 
   return (
-    <>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className={cn(
-              "w-full justify-between",
-              !value && "text-muted-foreground",
-              error && "border-red-500"
-            )}
-          >
-            {selectedItem ? selectedItem.label : "Select category..."}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-full p-0">
-          {/* Wrap Command component conditionally */}
-          <Command>
-            <CommandInput placeholder="Search category..." />
-            <CommandEmpty>
-              {isLoading ? 
-                'Loading categories...' : 
-                'No category found. Create a new one.'}
-            </CommandEmpty>
-            
-            {/* Only render CommandGroup when we have categories */}
-            {categories && categories.length > 0 ? (
-              <CommandGroup>
-                {categories.map((category) => (
-                  <CommandItem
-                    key={category.value}
-                    value={category.label}
-                    onSelect={() => {
-                      onChange(category.value);
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === category.value ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {category.label}
-                    {category.isDefault && (
-                      <span className="ml-auto text-xs text-muted-foreground">(Default)</span>
-                    )}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            ) : null}
-            
-            <CommandSeparator />
-            <CommandGroup>
-              <CommandItem
-                onSelect={() => {
-                  setOpen(false);
-                  setDialogOpen(true);
-                }}
+    <div className="relative">
+      {isLoading ? (
+        <div className="flex items-center border rounded-md p-2 h-10">
+          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          <span className="text-sm text-muted-foreground">Loading...</span>
+        </div>
+      ) : (
+        <Select
+          value={value || ""}
+          onValueChange={onChange}
+          disabled={isLoading || categories.length === 0}
+        >
+          <SelectTrigger className={error ? "border-red-500" : ""}>
+            <SelectValue placeholder="Select category..." />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((category) => (
+              <SelectItem 
+                key={category.value} 
+                value={category.value}
+              >
+                {category.label}
+                {category.isDefault && (
+                  <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
+                )}
+              </SelectItem>
+            ))}
+            <div className="p-1">
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full flex items-center justify-start px-2 py-1.5 text-sm"
+                onClick={() => setDialogOpen(true)}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Create new category
-              </CommandItem>
-            </CommandGroup>
-          </Command>
-        </PopoverContent>
-      </Popover>
+              </Button>
+            </div>
+          </SelectContent>
+        </Select>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -233,6 +199,6 @@ export function ExpenseCategorySelector({ value, onChange, error }: ExpenseCateg
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
