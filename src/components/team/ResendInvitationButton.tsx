@@ -30,6 +30,7 @@ export function ResendInvitationButton({ member }: ResendInvitationButtonProps) 
       });
       
       // Call the edge function directly
+      const userResult = await supabase.auth.getUser();
       try {
         const { data, error } = await supabase.functions.invoke('send-invitation-email', {
           body: {
@@ -38,7 +39,7 @@ export function ResendInvitationButton({ member }: ResendInvitationButtonProps) 
             email: member.invited_email,
             companyName: member.company_name || 'Your Company',
             invitationId: member.id,
-            invitedBy: member.invited_by || 'Administrator',
+            invitedBy: userResult.data.user?.id || 'Administrator',
             role: member.role
           }
         });
