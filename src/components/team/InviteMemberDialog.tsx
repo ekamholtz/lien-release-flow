@@ -79,6 +79,7 @@ export function InviteMemberDialog({ isOpen, onClose, onMemberAdded, companyId }
         .single();
       
       // Send invitation email
+      const userResult = await supabase.auth.getUser();
       if (result) {
         try {
           const { data, error } = await supabase.functions.invoke('send-invitation-email', {
@@ -88,7 +89,7 @@ export function InviteMemberDialog({ isOpen, onClose, onMemberAdded, companyId }
               email: values.email,
               companyName: companyData?.name || 'Your company',
               invitationId: result.id,
-              invitedBy: user?.email || 'Administrator',
+              invitedBy: userResult.data.user?.id || 'Administrator',
               role: values.role
             }
           });
