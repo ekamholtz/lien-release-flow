@@ -2,7 +2,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
 import { ExpenseCategorySelector } from '../bill/ExpenseCategorySelector';
 
@@ -28,22 +27,17 @@ export function InvoiceLineItemRow({ lineItem, onUpdate, onRemove }: InvoiceLine
   const handleFieldChange = (field: keyof InvoiceLineItem, value: any) => {
     const updatedItem = { ...lineItem, [field]: value };
     
-    // Auto-calculate price when cost or markup changes for cost_plus_markup method
+    // Auto-calculate price when cost or markup changes, but allow manual override
     if (field === 'cost' || field === 'markup_percentage') {
-      if (updatedItem.pricing_method === 'cost_plus_markup') {
+      if (updatedItem.cost > 0 && updatedItem.markup_percentage >= 0) {
         updatedItem.price = Number(updatedItem.cost) * (1 + Number(updatedItem.markup_percentage) / 100);
+        updatedItem.pricing_method = 'cost_plus_markup';
       }
     }
     
-    onUpdate(updatedItem);
-  };
-
-  const handlePricingMethodChange = (method: string) => {
-    const updatedItem = { ...lineItem, pricing_method: method as any };
-    
-    // Recalculate price based on new method
-    if (method === 'cost_plus_markup') {
-      updatedItem.price = Number(updatedItem.cost) * (1 + Number(updatedItem.markup_percentage) / 100);
+    // When price is manually changed, switch to manual pricing method
+    if (field === 'price') {
+      updatedItem.pricing_method = 'manual';
     }
     
     onUpdate(updatedItem);
@@ -58,7 +52,7 @@ export function InvoiceLineItemRow({ lineItem, onUpdate, onRemove }: InvoiceLine
         />
       </div>
       
-      <div className="col-span-3">
+      <div className="col-span-4">
         <Input
           placeholder="Description"
           value={lineItem.description}
@@ -66,23 +60,21 @@ export function InvoiceLineItemRow({ lineItem, onUpdate, onRemove }: InvoiceLine
         />
       </div>
       
-      <div className="col-span-1">
+      <div className="col-span-2">
         <Input
           type="number"
           placeholder="Cost"
           value={lineItem.cost || ''}
           onChange={(e) => handleFieldChange('cost', parseFloat(e.target.value) || 0)}
-          disabled={lineItem.pricing_method === 'milestone'}
         />
       </div>
       
-      <div className="col-span-1">
+      <div className="col-span-2">
         <Input
           type="number"
           placeholder="Markup %"
           value={lineItem.markup_percentage || ''}
           onChange={(e) => handleFieldChange('markup_percentage', parseFloat(e.target.value) || 0)}
-          disabled={lineItem.pricing_method !== 'cost_plus_markup'}
         />
       </div>
       
@@ -92,21 +84,7 @@ export function InvoiceLineItemRow({ lineItem, onUpdate, onRemove }: InvoiceLine
           placeholder="Price"
           value={lineItem.price || ''}
           onChange={(e) => handleFieldChange('price', parseFloat(e.target.value) || 0)}
-          disabled={lineItem.pricing_method === 'cost_plus_markup'}
         />
-      </div>
-      
-      <div className="col-span-2">
-        <Select value={lineItem.pricing_method} onValueChange={handlePricingMethodChange}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="manual">Manual</SelectItem>
-            <SelectItem value="cost_plus_markup">Cost + Markup</SelectItem>
-            <SelectItem value="milestone">Milestone</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
       
       <div className="col-span-1">
