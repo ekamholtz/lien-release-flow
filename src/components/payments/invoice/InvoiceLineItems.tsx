@@ -100,6 +100,16 @@ export function InvoiceLineItems({ lineItems, onLineItemsChange, projectId }: In
         </div>
       ) : (
         <div className="space-y-2">
+          {/* Column Headers */}
+          <div className="grid grid-cols-12 gap-2 items-center p-3 border-b bg-gray-50 font-medium text-sm text-gray-700">
+            <div className="col-span-2">Category</div>
+            <div className="col-span-4">Description</div>
+            <div className="col-span-2">Cost</div>
+            <div className="col-span-2">Markup %</div>
+            <div className="col-span-1">Price</div>
+            <div className="col-span-1">Actions</div>
+          </div>
+          
           {lineItems.map((item, index) => (
             <InvoiceLineItemRow
               key={item.id}
