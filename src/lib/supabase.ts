@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client with environment variables
@@ -83,6 +84,7 @@ export type DbInvoice = {
   payment_provider?: string;
   payment_link?: string;
   company_id: string;
+  has_line_items?: boolean;
 };
 
 export type BillStatus = "pending_approval" | "pending_payment" | "paid" | "rejected";
@@ -103,6 +105,7 @@ export type DbBill = {
   payment_reference?: string;
   requires_lien_release?: boolean;
   company_id: string;
+  has_line_items?: boolean;
 };
 
 export type DbMilestone = {
