@@ -30,7 +30,8 @@ export function InvoiceLineItemRow({ lineItem, onUpdate, onRemove }: InvoiceLine
     // Auto-calculate price when cost or markup changes, but allow manual override
     if (field === 'cost' || field === 'markup_percentage') {
       if (updatedItem.cost > 0 && updatedItem.markup_percentage >= 0) {
-        updatedItem.price = Number(updatedItem.cost) * (1 + Number(updatedItem.markup_percentage) / 100);
+        const calculatedPrice = Number(updatedItem.cost) * (1 + Number(updatedItem.markup_percentage) / 100);
+        updatedItem.price = Math.round(calculatedPrice * 100) / 100; // Round to 2 decimal places
         updatedItem.pricing_method = 'cost_plus_markup';
       }
     }
@@ -41,6 +42,15 @@ export function InvoiceLineItemRow({ lineItem, onUpdate, onRemove }: InvoiceLine
     }
     
     onUpdate(updatedItem);
+  };
+
+  // Calculate the display price - show calculated value if cost and markup exist
+  const displayPrice = () => {
+    if (lineItem.cost > 0 && lineItem.markup_percentage >= 0 && lineItem.pricing_method === 'cost_plus_markup') {
+      const calculated = Number(lineItem.cost) * (1 + Number(lineItem.markup_percentage) / 100);
+      return Math.round(calculated * 100) / 100;
+    }
+    return lineItem.price || '';
   };
 
   return (
@@ -82,7 +92,7 @@ export function InvoiceLineItemRow({ lineItem, onUpdate, onRemove }: InvoiceLine
         <Input
           type="number"
           placeholder="Price"
-          value={lineItem.price || ''}
+          value={displayPrice()}
           onChange={(e) => handleFieldChange('price', parseFloat(e.target.value) || 0)}
         />
       </div>
