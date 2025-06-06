@@ -113,6 +113,8 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          invoice_line_item_id: string | null
+          invoiced: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -123,6 +125,8 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          invoice_line_item_id?: string | null
+          invoiced?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -133,6 +137,8 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          invoice_line_item_id?: string | null
+          invoiced?: boolean | null
           updated_at?: string | null
         }
         Relationships: [
@@ -148,6 +154,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_line_items_invoice_line_item_id_fkey"
+            columns: ["invoice_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_line_items"
             referencedColumns: ["id"]
           },
         ]
@@ -484,6 +497,80 @@ export type Database = {
           },
         ]
       }
+      invoice_line_items: {
+        Row: {
+          category_id: string | null
+          cost: number | null
+          created_at: string
+          description: string | null
+          id: string
+          invoice_id: string | null
+          markup_percentage: number | null
+          price: number
+          pricing_method: string
+          source_bill_line_item_id: string | null
+          source_milestone_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id?: string | null
+          markup_percentage?: number | null
+          price: number
+          pricing_method?: string
+          source_bill_line_item_id?: string | null
+          source_milestone_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id?: string | null
+          markup_percentage?: number | null
+          price?: number
+          pricing_method?: string
+          source_bill_line_item_id?: string | null
+          source_milestone_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_source_bill_line_item_id_fkey"
+            columns: ["source_bill_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "bill_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_source_milestone_id_fkey"
+            columns: ["source_milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount: number
@@ -493,6 +580,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           due_date: string
+          has_line_items: boolean | null
           id: string
           invoice_number: string
           payment_method: string
@@ -511,6 +599,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           due_date: string
+          has_line_items?: boolean | null
           id?: string
           invoice_number: string
           payment_method?: string
@@ -529,6 +618,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           due_date?: string
+          has_line_items?: boolean | null
           id?: string
           invoice_number?: string
           payment_method?: string
