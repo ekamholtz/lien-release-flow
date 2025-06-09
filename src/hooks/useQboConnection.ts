@@ -1,74 +1,70 @@
 
-import { useSessionRefresh } from "@/hooks/useSessionRefresh";
-import { useQboConnectionStatus, QboStatus } from "@/hooks/qbo/useQboConnectionStatus";
-import { useQboActions } from "@/hooks/qbo/useQboActions";
-import { useCompany } from "@/contexts/CompanyContext";
-import { toast } from "sonner";
-import { useState } from "react";
-
-export type QboConnectionStatus = QboStatus;
+import { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useQboConnection() {
-  const { session, refreshSession } = useSessionRefresh();
-  const { currentCompany } = useCompany();
-  const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  
-  const {
-    status: qboStatus,
-    connection,
-    checkQboConnection
-  } = useQboConnectionStatus(currentCompany?.id);
-  
-  const {
-    connecting,
-    isDisconnecting,
-    handleConnectQbo,
-    handleDisconnectQbo
-  } = useQboActions();
+  const [connecting, setConnecting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
-  const connectQbo = async () => {
-    if (!currentCompany?.id) {
-      toast.error("Please select a company to connect QuickBooks");
-      return;
-    }
-    
+  const handleConnectQbo = async () => {
     try {
-      await refreshSession();
+      setConnecting(true);
       
-      const sessionResult = await session?.access_token;
-      
-      if (!sessionResult) {
-        throw new Error("No active session found. Please sign in again.");
+      const { data, error } = await supabase.functions.invoke('qbo-authorize');
+
+      if (error) {
+        throw error;
       }
 
-      await handleConnectQbo(currentCompany.id, sessionResult);
-    } catch (error: any) {
-      setError(error.message || String(error));
-      throw error;
+      if (data?.authUrl) {
+        window.location.href = data.authUrl;
+      }
+    } catch (error) {
+      console.error('Error connecting to QBO:', error);
+      toast({
+        title: "Connection Failed",
+        description: "Failed to connect to QuickBooks Online. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setConnecting(false);
     }
   };
 
-  const disconnectQbo = async () => {
-    if (!currentCompany?.id) return;
-    
-    const success = await handleDisconnectQbo(currentCompany.id);
-    if (success && currentCompany?.id) {
-      checkQboConnection(currentCompany.id);
+  const handleDisconnectQbo = async () => {
+    try {
+      setIsDisconnecting(true);
+      
+      const { error } = await supabase
+        .from('qbo_connections')
+        .delete()
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Disconnected",
+        description: "QuickBooks Online connection has been removed.",
+      });
+    } catch (error) {
+      console.error('Error disconnecting QBO:', error);
+      toast({
+        title: "Disconnection Failed",
+        description: "Failed to disconnect from QuickBooks Online. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDisconnecting(false);
     }
   };
 
   return {
-    qboStatus,
     connecting,
-    error,
-    setError,
-    debugInfo,
-    setDebugInfo,
     isDisconnecting,
-    handleConnectQbo: connectQbo,
-    handleDisconnectQbo: disconnectQbo,
-    checkQboConnection: (companyId?: string) => 
-      currentCompany?.id ? checkQboConnection(companyId || currentCompany.id) : null
+    handleConnectQbo,
+    handleDisconnectQbo
   };
 }

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { DbBill } from '@/lib/supabase';
 import { formatCurrency } from "@/lib/utils";
+import { BillLineItemsDisplay } from './bill/BillLineItemsDisplay';
 
 interface BillDetailsModalProps {
   bill: DbBill & { projects?: { name: string } };
@@ -82,6 +83,13 @@ export function BillDetailsModal({ bill, isOpen, onClose }: BillDetailsModalProp
                 )}
               </div>
             </div>
+            
+            <Separator />
+            
+            <BillLineItemsDisplay 
+              billId={bill.id}
+              hasLineItems={bill.has_line_items}
+            />
             
             <Separator />
             
