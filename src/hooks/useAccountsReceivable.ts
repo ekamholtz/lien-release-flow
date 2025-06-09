@@ -136,13 +136,17 @@ export function useAccountsReceivable() {
       return;
     }
     
+    console.log('handlePayInvoice called with:', invoice);
     setSelectedInvoice(invoice);
     setIsPaymentDialogOpen(true);
+    setIsDetailsModalOpen(false); // Ensure details modal is closed
   };
   
   const handleViewDetails = (invoice: ExtendedInvoice) => {
+    console.log('handleViewDetails called with:', invoice);
     setSelectedInvoice(invoice);
     setIsDetailsModalOpen(true);
+    setIsPaymentDialogOpen(false); // Ensure payment dialog is closed
   };
 
   const handleFilterChange = (newFilters: FinanceFiltersState) => {
@@ -151,14 +155,18 @@ export function useAccountsReceivable() {
 
   const handlePaymentDialogClose = () => {
     setIsPaymentDialogOpen(false);
+    setSelectedInvoice(null);
   };
 
   const handleDetailsModalClose = () => {
+    console.log('handleDetailsModalClose called');
     setIsDetailsModalOpen(false);
+    setSelectedInvoice(null);
   };
 
   const handlePaymentComplete = () => {
     fetchInvoices();
+    setIsPaymentDialogOpen(false);
     setSelectedInvoice(null);
   };
 

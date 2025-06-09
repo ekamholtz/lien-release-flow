@@ -42,11 +42,6 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
   onRetrySync,
   isRetrySyncing
 }) => {
-  const handleViewDetails = (invoice: any) => {
-    // Only call the parent's onViewDetails handler - no duplicate modals
-    onViewDetails(invoice);
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -102,7 +97,7 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
                   <Button
                     variant="outline" 
                     size="icon"
-                    onClick={() => handleViewDetails(invoice)}
+                    onClick={() => onViewDetails(invoice)}
                     title="View Details"
                   >
                     <Eye className="h-4 w-4" />
@@ -122,7 +117,7 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
                   <InvoiceActions 
                     invoice={invoice}
                     onPayInvoice={onPayInvoice} 
-                    onViewDetails={handleViewDetails}
+                    onViewDetails={onViewDetails}
                     onUpdateStatus={onUpdateStatus}
                   />
                 </div>

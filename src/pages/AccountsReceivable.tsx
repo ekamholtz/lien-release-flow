@@ -25,6 +25,9 @@ const AccountsReceivable = () => {
     handlePaymentComplete
   } = useAccountsReceivable();
 
+  console.log('AccountsReceivable - selectedInvoice:', selectedInvoice);
+  console.log('AccountsReceivable - isDetailsModalOpen:', isDetailsModalOpen);
+
   return (
     <AppLayout>
       <div className="w-full p-6">
