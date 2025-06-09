@@ -17,6 +17,8 @@ interface InvoiceDetailsModalProps {
 }
 
 export function InvoiceDetailsModal({ invoice, isOpen, onClose }: InvoiceDetailsModalProps) {
+  console.log('InvoiceDetailsModal render - isOpen:', isOpen, 'invoice:', invoice);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[700px]">

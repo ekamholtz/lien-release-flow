@@ -1,101 +1,41 @@
 
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-// Define explicit interface for the QBO auth response
-interface QboAuthResponse {
-  intuit_oauth_url?: string;
-  debug?: any;
-  error?: string;
-}
+import { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useQboActions() {
-  const [connecting, setConnecting] = useState<boolean>(false);
-  const [isDisconnecting, setIsDisconnecting] = useState<boolean>(false);
+  const [isRetrySyncing, setIsRetrySyncing] = useState(false);
 
-  const handleConnectQbo = async (companyId: string, accessToken: string) => {
-    if (!companyId) {
-      toast.error("Please select a company to connect QuickBooks");
-      return;
-    }
-    
-    setConnecting(true);
-    
+  const handleRetrySync = async (invoiceId: string) => {
     try {
-      const response = await fetch(
-        "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
-            "Content-Type": "application/json"
-          }
-        }
-      );
+      setIsRetrySyncing(true);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Connection failed: ${errorText || response.statusText}`);
+      const { error } = await supabase.functions.invoke('qbo-sync-retry', {
+        body: { invoiceId }
+      });
+
+      if (error) {
+        throw error;
       }
-      
-      // Parse the response safely with proper error handling
-      const responseText = await response.text();
-      let responseData: QboAuthResponse = { intuit_oauth_url: '' };
-      
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error("Failed to parse QBO response:", parseError);
-        throw new Error("Failed to parse QBO response");
-      }
-      
-      if (!responseData.intuit_oauth_url) {
-        throw new Error("No OAuth URL received from server");
-      }
-      
-      // Store the company_id in session storage for retrieval after OAuth redirection
-      sessionStorage.setItem('qbo_company_id', companyId);
-      
-      // Redirect to OAuth URL
-      window.location.href = responseData.intuit_oauth_url;
 
-    } catch (error: any) {
-      console.error("QBO connection error:", error);
-      setConnecting(false);
-      throw error;
-    }
-  };
-
-  // Explicitly define the return type to fix the infinite type instantiation error
-  const handleDisconnectQbo = async (companyId: string): Promise<boolean> => {
-    if (!companyId) return false;
-    
-    setIsDisconnecting(true);
-    try {
-      const { error } = await supabase
-        .from('qbo_connections')
-        .delete()
-        .eq('company_id', companyId);
-
-      if (error) throw error;
-
-      toast.success('Successfully disconnected from QuickBooks');
-      return true;
-    } catch (err: any) {
-      console.error('Error disconnecting from QBO:', err);
-      toast.error('Failed to disconnect from QuickBooks');
-      return false;
+      toast({
+        title: "Sync Retry Initiated",
+        description: "The invoice sync has been queued for retry.",
+      });
+    } catch (error) {
+      console.error('Error retrying sync:', error);
+      toast({
+        title: "Retry Failed",
+        description: "Failed to retry sync. Please try again.",
+        variant: "destructive"
+      });
     } finally {
-      setIsDisconnecting(false);
+      setIsRetrySyncing(false);
     }
   };
 
   return {
-    connecting,
-    isDisconnecting,
-    handleConnectQbo,
-    handleDisconnectQbo
+    handleRetrySync,
+    isRetrySyncing
   };
 }
