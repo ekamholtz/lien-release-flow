@@ -27,6 +27,8 @@ import ResetPassword from './pages/ResetPassword';
 import NotFound from './pages/NotFound';
 import OnboardingPage from './pages/OnboardingPage';
 import { useCompany } from './contexts/CompanyContext';
+import Contract from './pages/Contract';
+import CreateContract from './pages/CreateContract';
 
 // Auth guard for protected routes
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -246,6 +248,22 @@ const App = () => {
           element={
             <ProtectedRoute>
               <LienRelease />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/contract" 
+          element={
+            <ProtectedRoute>
+              <Contract />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/contract/create" 
+          element={
+            <ProtectedRoute>
+              <CreateContract />
             </ProtectedRoute>
           } 
         />

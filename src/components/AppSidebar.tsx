@@ -32,6 +32,7 @@ export function AppSidebar() {
     { to: '/team', icon: <Users className="h-5 w-5" />, text: 'Team' },
     { to: '/reports', icon: <BarChart3 className="h-5 w-5" />, text: 'Reports' },
     { to: '/settings', icon: <Settings className="h-5 w-5" />, text: 'Settings' },
+    { to: '/contract', icon: <FileText className="h-5 w-5" />, text: 'Contracts' },
   ];
 
   return (
