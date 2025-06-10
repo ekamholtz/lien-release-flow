@@ -175,6 +175,9 @@ export type Database = {
           has_line_items: boolean | null
           id: string
           lien_release_status: string | null
+          payment_date: string | null
+          payment_provider: string | null
+          payment_reference: string | null
           project_id: string | null
           project_manager_id: string | null
           qbo_bill_id: string | null
@@ -193,6 +196,9 @@ export type Database = {
           has_line_items?: boolean | null
           id?: string
           lien_release_status?: string | null
+          payment_date?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
           project_id?: string | null
           project_manager_id?: string | null
           qbo_bill_id?: string | null
@@ -211,6 +217,9 @@ export type Database = {
           has_line_items?: boolean | null
           id?: string
           lien_release_status?: string | null
+          payment_date?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
           project_id?: string | null
           project_manager_id?: string | null
           qbo_bill_id?: string | null
@@ -583,7 +592,11 @@ export type Database = {
           has_line_items: boolean | null
           id: string
           invoice_number: string
+          payment_date: string | null
+          payment_link: string | null
           payment_method: string
+          payment_provider: string | null
+          payment_reference: string | null
           project_id: string | null
           project_manager_id: string | null
           qbo_invoice_id: string | null
@@ -602,7 +615,11 @@ export type Database = {
           has_line_items?: boolean | null
           id?: string
           invoice_number: string
+          payment_date?: string | null
+          payment_link?: string | null
           payment_method?: string
+          payment_provider?: string | null
+          payment_reference?: string | null
           project_id?: string | null
           project_manager_id?: string | null
           qbo_invoice_id?: string | null
@@ -621,7 +638,11 @@ export type Database = {
           has_line_items?: boolean | null
           id?: string
           invoice_number?: string
+          payment_date?: string | null
+          payment_link?: string | null
           payment_method?: string
+          payment_provider?: string | null
+          payment_reference?: string | null
           project_id?: string | null
           project_manager_id?: string | null
           qbo_invoice_id?: string | null
@@ -824,6 +845,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          notes: string | null
+          payment_date: string | null
+          payment_method: string
+          payment_provider: string | null
+          provider_transaction_id: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_method: string
+          payment_provider?: string | null
+          provider_transaction_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string
+          payment_provider?: string | null
+          provider_transaction_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       permissions: {
         Row: {

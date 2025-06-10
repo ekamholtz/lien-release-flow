@@ -34,7 +34,13 @@ export function useQboConnection() {
       
       console.log("Starting QBO connection process");
       
-      const response = await initiateQboAuth(user.access_token, currentCompany.id);
+      // Get user session for access token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("No valid session found");
+      }
+      
+      const response = await initiateQboAuth(session.access_token, currentCompany.id);
       
       if (response.intuit_oauth_url) {
         console.log("Redirecting to Intuit OAuth");

@@ -82,6 +82,7 @@ export type DbInvoice = {
   payment_id?: string;
   payment_date?: string;
   payment_provider?: string;
+  payment_reference?: string;
   payment_link?: string;
   company_id: string;
   has_line_items?: boolean;

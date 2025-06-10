@@ -7,6 +7,7 @@ import { InvoiceDueDateField } from "./InvoiceDueDateField";
 import { InvoiceDescriptionField } from "./InvoiceDescriptionField";
 import { InvoiceProjectManagerField } from "./InvoiceProjectManagerField";
 import { InvoiceLineItems } from "./InvoiceLineItems";
+import { PaymentMethodSelector } from "../PaymentMethodSelector";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -113,6 +114,9 @@ export function InvoiceFormFields({
           )}
         />
       )}
+
+      {/* Payment Method Selection */}
+      <PaymentMethodSelector control={control} type="invoice" />
       
       <InvoiceDescriptionField control={control} />
     </div>
