@@ -854,11 +854,16 @@ export type Database = {
           entity_id: string
           entity_type: string
           id: string
+          is_offline: boolean | null
           metadata: Json | null
           notes: string | null
           payment_date: string | null
+          payment_details: string | null
           payment_method: string
           payment_provider: string | null
+          payment_type: string | null
+          payor_company: string | null
+          payor_name: string | null
           provider_transaction_id: string | null
           status: string
           updated_at: string
@@ -871,11 +876,16 @@ export type Database = {
           entity_id: string
           entity_type: string
           id?: string
+          is_offline?: boolean | null
           metadata?: Json | null
           notes?: string | null
           payment_date?: string | null
+          payment_details?: string | null
           payment_method: string
           payment_provider?: string | null
+          payment_type?: string | null
+          payor_company?: string | null
+          payor_name?: string | null
           provider_transaction_id?: string | null
           status?: string
           updated_at?: string
@@ -888,11 +898,16 @@ export type Database = {
           entity_id?: string
           entity_type?: string
           id?: string
+          is_offline?: boolean | null
           metadata?: Json | null
           notes?: string | null
           payment_date?: string | null
+          payment_details?: string | null
           payment_method?: string
           payment_provider?: string | null
+          payment_type?: string | null
+          payor_company?: string | null
+          payor_name?: string | null
           provider_transaction_id?: string | null
           status?: string
           updated_at?: string

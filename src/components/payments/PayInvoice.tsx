@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -10,7 +9,7 @@ import { PaymentMethodSelector } from "./PaymentMethodSelector";
 import { PaymentProcessor } from "./PaymentProcessor";
 import { Form } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { PaymentMethod } from "@/lib/payments/types";
+import { PaymentMethod, OfflinePaymentData } from "@/lib/payments/types";
 
 interface PayInvoiceProps {
   invoice: DbInvoice;
@@ -39,8 +38,14 @@ export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayI
     setStep('process');
   };
 
-  const handlePaymentComplete = async (paymentId: string) => {
+  const isOfflinePayment = (method: PaymentMethod) => {
+    return ['check', 'cash', 'wire_transfer'].includes(method);
+  };
+
+  const handlePaymentComplete = async (paymentId: string, offlineData?: OfflinePaymentData) => {
     try {
+      const isOffline = isOfflinePayment(selectedPaymentMethod);
+      
       // Update invoice status in Supabase
       const { error } = await supabase
         .from('invoices')
@@ -48,7 +53,7 @@ export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayI
           status: 'paid',
           payment_id: paymentId,
           payment_date: new Date().toISOString(),
-          payment_provider: selectedPaymentMethod === 'check' ? 'manual' : 'rainforestpay',
+          payment_provider: isOffline ? 'offline' : 'rainforestpay',
           payment_method: selectedPaymentMethod
         })
         .eq('id', invoice.id);
@@ -57,20 +62,29 @@ export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayI
         throw error;
       }
 
-      // Create payment record
+      // Create payment record with offline data if applicable
+      const paymentData = {
+        entity_type: 'invoice' as const,
+        entity_id: invoice.id,
+        amount: invoice.amount,
+        payment_method: selectedPaymentMethod,
+        payment_provider: isOffline ? 'offline' as const : 'rainforestpay' as const,
+        provider_transaction_id: paymentId,
+        status: 'completed' as const,
+        payment_date: new Date().toISOString(),
+        company_id: invoice.company_id,
+        is_offline: isOffline,
+        ...(offlineData && {
+          payment_type: selectedPaymentMethod,
+          payor_name: offlineData.payorName,
+          payor_company: offlineData.payorCompany,
+          payment_details: offlineData.paymentDetails
+        })
+      };
+
       await supabase
         .from('payments')
-        .insert({
-          entity_type: 'invoice',
-          entity_id: invoice.id,
-          amount: invoice.amount,
-          payment_method: selectedPaymentMethod,
-          payment_provider: selectedPaymentMethod === 'check' ? 'manual' : 'rainforestpay',
-          provider_transaction_id: paymentId,
-          status: 'completed',
-          payment_date: new Date().toISOString(),
-          company_id: invoice.company_id
-        });
+        .insert(paymentData);
       
       setPaymentCompleted(true);
       setStep('complete');

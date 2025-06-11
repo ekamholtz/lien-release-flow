@@ -3,16 +3,25 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CreditCard, Building2, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { Form } from '@/components/ui/form';
+import { Loader2, CreditCard, Building2, FileText, CheckCircle, XCircle, Banknote, ArrowLeftRight } from 'lucide-react';
 import { PaymentMethod, PaymentStatus } from '@/lib/payments/types';
 import { formatCurrency } from '@/lib/utils';
+import { OfflinePaymentForm } from './OfflinePaymentForm';
+import { useForm } from 'react-hook-form';
+
+interface OfflinePaymentData {
+  payorName: string;
+  payorCompany?: string;
+  paymentDetails?: string;
+}
 
 interface PaymentProcessorProps {
   amount: number;
   paymentMethod: PaymentMethod;
   entityType: 'invoice' | 'bill';
   entityId: string;
-  onPaymentComplete?: (paymentId: string) => void;
+  onPaymentComplete?: (paymentId: string, offlineData?: OfflinePaymentData) => void;
   onPaymentError?: (error: string) => void;
 }
 
@@ -28,6 +37,14 @@ export function PaymentProcessor({
   const [status, setStatus] = useState<PaymentStatus>('pending');
   const [error, setError] = useState<string | null>(null);
 
+  const offlinePaymentForm = useForm<OfflinePaymentData>({
+    defaultValues: {
+      payorName: '',
+      payorCompany: '',
+      paymentDetails: ''
+    }
+  });
+
   const getPaymentMethodIcon = () => {
     switch (paymentMethod) {
       case 'credit_card':
@@ -36,6 +53,10 @@ export function PaymentProcessor({
         return <Building2 className="h-5 w-5" />;
       case 'check':
         return <FileText className="h-5 w-5" />;
+      case 'cash':
+        return <Banknote className="h-5 w-5" />;
+      case 'wire_transfer':
+        return <ArrowLeftRight className="h-5 w-5" />;
       default:
         return <CreditCard className="h-5 w-5" />;
     }
@@ -49,12 +70,20 @@ export function PaymentProcessor({
         return 'ACH Transfer';
       case 'check':
         return 'Check';
+      case 'cash':
+        return 'Cash';
+      case 'wire_transfer':
+        return 'Wire Transfer';
       default:
         return 'Payment';
     }
   };
 
-  const handlePayment = async () => {
+  const isOfflinePayment = () => {
+    return ['check', 'cash', 'wire_transfer'].includes(paymentMethod);
+  };
+
+  const handlePayment = async (offlineData?: OfflinePaymentData) => {
     setProcessing(true);
     setError(null);
     setStatus('processing');
@@ -64,10 +93,13 @@ export function PaymentProcessor({
       // In the future, this will integrate with Rainforestpay for credit card and ACH
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      if (paymentMethod === 'check') {
-        // For check payments, mark as pending and require manual confirmation
-        setStatus('pending');
-        onPaymentComplete?.('manual-check-' + Date.now());
+      if (isOfflinePayment()) {
+        // For offline payments, mark as completed and require the form data
+        if (!offlineData?.payorName) {
+          throw new Error('Payor name is required for offline payments');
+        }
+        setStatus('completed');
+        onPaymentComplete?.('offline-' + Date.now(), offlineData);
       } else {
         // For digital payments (future Rainforestpay integration)
         setStatus('completed');
@@ -81,6 +113,14 @@ export function PaymentProcessor({
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleOfflinePaymentSubmit = (data: OfflinePaymentData) => {
+    handlePayment(data);
+  };
+
+  const handleDigitalPayment = () => {
+    handlePayment();
   };
 
   const getStatusIcon = () => {
@@ -99,8 +139,8 @@ export function PaymentProcessor({
   const getStatusMessage = () => {
     switch (status) {
       case 'completed':
-        return paymentMethod === 'check' 
-          ? 'Check payment recorded. Please process the physical check.'
+        return isOfflinePayment()
+          ? `${getPaymentMethodName()} payment recorded successfully!`
           : 'Payment completed successfully!';
       case 'failed':
         return 'Payment failed. Please try again.';
@@ -140,34 +180,59 @@ export function PaymentProcessor({
           <span>{getStatusMessage()}</span>
         </div>
 
-        {paymentMethod === 'check' && status === 'pending' && (
-          <Alert>
-            <FileText className="h-4 w-4" />
-            <AlertDescription>
-              For check payments, you'll need to manually process the physical check and update the payment status once cleared.
-            </AlertDescription>
-          </Alert>
+        {isOfflinePayment() && status === 'pending' && (
+          <>
+            <Alert>
+              <FileText className="h-4 w-4" />
+              <AlertDescription>
+                Please fill in the payment details to record this {getPaymentMethodName().toLowerCase()} payment.
+              </AlertDescription>
+            </Alert>
+
+            <Form {...offlinePaymentForm}>
+              <form onSubmit={offlinePaymentForm.handleSubmit(handleOfflinePaymentSubmit)} className="space-y-4">
+                <OfflinePaymentForm 
+                  control={offlinePaymentForm.control} 
+                  paymentMethod={paymentMethod}
+                />
+                
+                <Button 
+                  type="submit"
+                  disabled={processing || status === 'completed'}
+                  className="w-full"
+                >
+                  {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Record {getPaymentMethodName()} Payment
+                </Button>
+              </form>
+            </Form>
+          </>
         )}
 
-        {(paymentMethod === 'credit_card' || paymentMethod === 'ach') && status === 'pending' && (
-          <Alert>
-            <AlertDescription>
-              Digital payments will be processed through Rainforestpay integration (coming soon).
-            </AlertDescription>
-          </Alert>
+        {!isOfflinePayment() && status === 'pending' && (
+          <>
+            <Alert>
+              <AlertDescription>
+                Digital payments will be processed through Rainforestpay integration (coming soon).
+              </AlertDescription>
+            </Alert>
+
+            <Button 
+              onClick={handleDigitalPayment}
+              disabled={processing || status === 'completed'}
+              className="w-full"
+            >
+              {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Process {getPaymentMethodName()} Payment
+            </Button>
+          </>
         )}
 
-        <Button 
-          onClick={handlePayment}
-          disabled={processing || status === 'completed'}
-          className="w-full"
-        >
-          {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {status === 'completed' 
-            ? 'Payment Completed' 
-            : `Process ${getPaymentMethodName()} Payment`
-          }
-        </Button>
+        {status === 'completed' && (
+          <Button disabled className="w-full">
+            Payment Completed
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

@@ -3,7 +3,7 @@ import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Control } from "react-hook-form";
-import { CreditCard, Building2, FileText } from 'lucide-react';
+import { CreditCard, Building2, FileText, Banknote, ArrowLeftRight } from 'lucide-react';
 
 interface PaymentMethodSelectorProps {
   control: Control<any>;
@@ -71,7 +71,41 @@ export function PaymentMethodSelector({ control, type = 'invoice' }: PaymentMeth
                       Check
                     </FormLabel>
                     <p className="text-sm text-muted-foreground">
-                      {isInvoice ? 'Client pays by check (manual processing)' : 'Pay vendor by check (manual processing)'}
+                      {isInvoice ? 'Client pays by check (offline payment)' : 'Pay vendor by check (offline payment)'}
+                    </p>
+                  </div>
+                </div>
+              </FormItem>
+
+              <FormItem className="flex items-center space-x-3 space-y-0 p-3 border rounded-lg hover:bg-gray-50">
+                <FormControl>
+                  <RadioGroupItem value="cash" />
+                </FormControl>
+                <div className="flex items-center space-x-3 flex-1">
+                  <Banknote className="h-5 w-5 text-green-600" />
+                  <div>
+                    <FormLabel className="font-normal cursor-pointer">
+                      Cash
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      {isInvoice ? 'Client pays with cash (offline payment)' : 'Pay vendor with cash (offline payment)'}
+                    </p>
+                  </div>
+                </div>
+              </FormItem>
+
+              <FormItem className="flex items-center space-x-3 space-y-0 p-3 border rounded-lg hover:bg-gray-50">
+                <FormControl>
+                  <RadioGroupItem value="wire_transfer" />
+                </FormControl>
+                <div className="flex items-center space-x-3 flex-1">
+                  <ArrowLeftRight className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <FormLabel className="font-normal cursor-pointer">
+                      Wire Transfer
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      {isInvoice ? 'Client pays via wire transfer (offline payment)' : 'Pay vendor via wire transfer (offline payment)'}
                     </p>
                   </div>
                 </div>
