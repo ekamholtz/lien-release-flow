@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Table,
   TableBody,
@@ -13,8 +13,7 @@ import { InvoiceStatusBadge } from './InvoiceStatusBadge';
 import { InvoiceActions } from './InvoiceActions';
 import { DbInvoice, InvoiceStatus } from '@/lib/supabase';
 import { QboSyncStatus } from './QboSyncStatus';
-import { ExternalLink, Eye, SendHorizontal } from 'lucide-react';
-import { PaymentDetailDialog } from './PaymentDetailDialog';
+import { Eye, SendHorizontal } from 'lucide-react';
 
 // Update the type definition to make fields optional where needed
 interface InvoicesTableProps {
@@ -28,7 +27,7 @@ interface InvoicesTableProps {
       last_synced_at?: string | null;
     } | null;
   }>;
-  onUpdateStatus: (invoiceId: string, newStatus: InvoiceStatus) => Promise<void>; // Updated to return Promise<void>
+  onUpdateStatus: (invoiceId: string, newStatus: InvoiceStatus) => Promise<void>;
   onPayInvoice: (invoice: any) => void;
   onViewDetails: (invoice: any) => void;
   onRetrySync?: (invoiceId: string) => void;
@@ -43,17 +42,6 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
   onRetrySync,
   isRetrySyncing
 }) => {
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  
-  const handleViewDetails = (invoice: any) => {
-    setSelectedInvoice(invoice);
-    setIsDetailOpen(true);
-    // Still call the original handler if provided
-    if (onViewDetails) {
-      onViewDetails(invoice);
-    }
-  };
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -66,7 +54,6 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
     return new Intl.DateTimeFormat('en-US').format(date);
   };
   
-  // Updated to return a Promise
   const handleSendInvoice = async (invoice: DbInvoice) => {
     await onUpdateStatus(invoice.id, 'sent');
   };
@@ -110,7 +97,7 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
                   <Button
                     variant="outline" 
                     size="icon"
-                    onClick={() => handleViewDetails(invoice)}
+                    onClick={() => onViewDetails(invoice)}
                     title="View Details"
                   >
                     <Eye className="h-4 w-4" />
@@ -130,7 +117,7 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
                   <InvoiceActions 
                     invoice={invoice}
                     onPayInvoice={onPayInvoice} 
-                    onViewDetails={handleViewDetails}
+                    onViewDetails={onViewDetails}
                     onUpdateStatus={onUpdateStatus}
                   />
                 </div>
@@ -147,14 +134,6 @@ export const InvoicesTable: React.FC<InvoicesTableProps> = ({
           )}
         </TableBody>
       </Table>
-      
-      {/* Add the detail dialog */}
-      <PaymentDetailDialog
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        payment={selectedInvoice}
-        type="invoice"
-      />
     </div>
   );
 };

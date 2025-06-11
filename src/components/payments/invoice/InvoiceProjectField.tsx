@@ -7,9 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface InvoiceProjectFieldProps {
   control: Control<any>;
+  onProjectChange?: (projectId: string) => void;
 }
 
-export function InvoiceProjectField({ control }: InvoiceProjectFieldProps) {
+export function InvoiceProjectField({ control, onProjectChange }: InvoiceProjectFieldProps) {
   const { user } = useAuth();
   const formContext = useFormContext();
   
@@ -23,6 +24,11 @@ export function InvoiceProjectField({ control }: InvoiceProjectFieldProps) {
           <FormControl>
             <ProjectSelector value={field.value} onChange={(value) => {
               field.onChange(value);
+              
+              // Call the onProjectChange callback if provided
+              if (onProjectChange) {
+                onProjectChange(value);
+              }
               
               // If a project is selected, get the project_manager_id
               if (value && value !== 'create-new') {

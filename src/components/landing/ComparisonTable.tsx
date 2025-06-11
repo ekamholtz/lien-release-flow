@@ -22,7 +22,7 @@ export function ComparisonTable({ features = [], className }: ComparisonTablePro
           <tr>
             <th className="text-left p-4 border-b border-gray-200">Features</th>
             <th className="p-4 border-b border-gray-200 text-center bg-construction-50 text-construction-700">
-              PaymentFlow
+              CNSTRCT Pay
             </th>
             <th className="p-4 border-b border-gray-200 text-center text-gray-600">
               Other Solutions

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -143,7 +144,7 @@ const AccountsPayable = () => {
       return;
     }
     
-    if (bill.status !== 'pending_payment') {  // Updated status check
+    if (bill.status !== 'pending_payment') {
       toast({
         title: "Cannot Process Payment",
         description: "Only bills pending payment can be paid",
@@ -152,13 +153,17 @@ const AccountsPayable = () => {
       return;
     }
     
+    console.log('handlePayBill called with:', bill);
     setSelectedBill(bill);
     setIsPaymentDialogOpen(true);
+    setIsDetailsModalOpen(false);
   };
   
   const handleViewDetails = (bill: ExtendedBill) => {
+    console.log('handleViewDetails called with:', bill);
     setSelectedBill(bill);
     setIsDetailsModalOpen(true);
+    setIsPaymentDialogOpen(false);
   };
 
   const handleFilterChange = (newFilters: FinanceFiltersState) => {
@@ -217,9 +222,13 @@ const AccountsPayable = () => {
           <PayBill
             bill={selectedBill}
             isOpen={isPaymentDialogOpen}
-            onClose={() => setIsPaymentDialogOpen(false)}
+            onClose={() => {
+              setIsPaymentDialogOpen(false);
+              setSelectedBill(null);
+            }}
             onPaymentComplete={() => {
               fetchBills();
+              setIsPaymentDialogOpen(false);
               setSelectedBill(null);
             }}
           />
@@ -227,7 +236,10 @@ const AccountsPayable = () => {
           <BillDetailsModal
             bill={selectedBill}
             isOpen={isDetailsModalOpen}
-            onClose={() => setIsDetailsModalOpen(false)}
+            onClose={() => {
+              setIsDetailsModalOpen(false);
+              setSelectedBill(null);
+            }}
           />
         </>
       )}

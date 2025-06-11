@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvoicesTable } from '@/components/payments/InvoicesTable';
 import { BillsTable } from '@/components/payments/BillsTable';
+import { InvoiceDetailsModal } from '@/components/payments/InvoiceDetailsModal';
+import { BillDetailsModal } from '@/components/payments/BillDetailsModal';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { DbProject, DbInvoice, DbBill, InvoiceStatus, BillStatus } from '@/lib/supabase';
@@ -33,6 +35,12 @@ type ExtendedBill = DbBill & {
 export function ProjectTransactions({ project }: ProjectTransactionsProps) {
   const { currentCompany } = useCompany();
   const navigate = useNavigate();
+  
+  // State for modals
+  const [selectedInvoice, setSelectedInvoice] = useState<ExtendedInvoice | null>(null);
+  const [selectedBill, setSelectedBill] = useState<ExtendedBill | null>(null);
+  const [isInvoiceDetailsOpen, setIsInvoiceDetailsOpen] = useState(false);
+  const [isBillDetailsOpen, setIsBillDetailsOpen] = useState(false);
   
   const { data: invoices = [], refetch: refetchInvoices } = useQuery({
     queryKey: ['project-invoices', project.id, currentCompany?.id],
@@ -127,15 +135,10 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
     }
   };
 
-  // Placeholder handlers
+  // Placeholder handlers for payment functionality
   const handlePayInvoice = (invoice: ExtendedInvoice) => {
     console.log('Pay invoice', invoice);
     // Implement payment logic here
-  };
-
-  const handleViewInvoiceDetails = (invoice: ExtendedInvoice) => {
-    console.log('View invoice details', invoice);
-    // Implement view details logic here
   };
 
   const handlePayBill = (bill: ExtendedBill) => {
@@ -143,12 +146,31 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
     // Implement payment logic here
   };
 
+  // Updated handlers for viewing details that actually open modals
+  const handleViewInvoiceDetails = (invoice: ExtendedInvoice) => {
+    console.log('View invoice details', invoice);
+    setSelectedInvoice(invoice);
+    setIsInvoiceDetailsOpen(true);
+  };
+
   const handleViewBillDetails = (bill: ExtendedBill) => {
     console.log('View bill details', bill);
-    // Implement view details logic here
+    setSelectedBill(bill);
+    setIsBillDetailsOpen(true);
+  };
+
+  // Modal close handlers
+  const handleInvoiceDetailsClose = () => {
+    setIsInvoiceDetailsOpen(false);
+    setSelectedInvoice(null);
+  };
+
+  const handleBillDetailsClose = () => {
+    setIsBillDetailsOpen(false);
+    setSelectedBill(null);
   };
   
-  // Navigation handlers for the buttons - UPDATED to use correct routes
+  // Navigation handlers for the buttons
   const handleCreateInvoice = () => {
     navigate('/invoices/create', { state: { projectId: project.id } });
   };
@@ -203,6 +225,24 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Invoice Details Modal */}
+      {selectedInvoice && (
+        <InvoiceDetailsModal
+          invoice={selectedInvoice}
+          isOpen={isInvoiceDetailsOpen}
+          onClose={handleInvoiceDetailsClose}
+        />
+      )}
+
+      {/* Bill Details Modal */}
+      {selectedBill && (
+        <BillDetailsModal
+          bill={selectedBill}
+          isOpen={isBillDetailsOpen}
+          onClose={handleBillDetailsClose}
+        />
+      )}
     </div>
   );
 }

@@ -1,14 +1,15 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Check, CreditCard, AlertCircle } from "lucide-react";
+import { Check, CreditCard, ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { processFinixPayment } from "@/lib/payments/finix";
 import { supabase } from "@/integrations/supabase/client";
 import { DbInvoice } from "@/lib/supabase";
+import { PaymentMethodSelector } from "./PaymentMethodSelector";
+import { PaymentProcessor } from "./PaymentProcessor";
+import { Form } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { PaymentMethod, OfflinePaymentData } from "@/lib/payments/types";
 
 interface PayInvoiceProps {
   invoice: DbInvoice;
@@ -17,63 +18,97 @@ interface PayInvoiceProps {
   onPaymentComplete: () => void;
 }
 
+interface PaymentFormData {
+  paymentMethod: PaymentMethod;
+}
+
 export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayInvoiceProps) {
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [nameOnCard, setNameOnCard] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [step, setStep] = useState<'method' | 'process' | 'complete'>('method');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('credit_card');
   const [paymentCompleted, setPaymentCompleted] = useState(false);
 
-  const handlePayment = async () => {
+  const form = useForm<PaymentFormData>({
+    defaultValues: {
+      paymentMethod: 'credit_card'
+    }
+  });
+
+  const handleMethodSelection = (data: PaymentFormData) => {
+    setSelectedPaymentMethod(data.paymentMethod);
+    setStep('process');
+  };
+
+  const isOfflinePayment = (method: PaymentMethod) => {
+    return ['check', 'cash', 'wire_transfer'].includes(method);
+  };
+
+  const handlePaymentComplete = async (paymentId: string, offlineData?: OfflinePaymentData) => {
     try {
-      setIsProcessing(true);
+      const isOffline = isOfflinePayment(selectedPaymentMethod);
       
-      // Process payment with Finix (for invoices we use Finix for pay-in)
-      const paymentResponse = await processFinixPayment({
-        source: {
-          name: nameOnCard,
-          email: "payer@example.com",
-        },
-        amount: invoice.amount,
-        currency: "USD",
-        description: `Payment for Invoice ${invoice.invoice_number}`,
-        reference: invoice.id
-      });
-      
-      // Update invoice status in Supabase
-      const { error } = await supabase
+      // Update invoice status to "paid" in Supabase
+      const { error: invoiceError } = await supabase
         .from('invoices')
         .update({
           status: 'paid',
-          payment_id: paymentResponse.id,
+          payment_id: paymentId,
           payment_date: new Date().toISOString(),
-          payment_provider: 'finix',
-          payment_link: paymentResponse.payment_link
+          payment_provider: isOffline ? 'offline' : 'rainforestpay',
+          payment_method: selectedPaymentMethod
         })
         .eq('id', invoice.id);
       
-      if (error) {
-        throw error;
+      if (invoiceError) {
+        throw invoiceError;
+      }
+
+      // Create payment record with offline data if applicable
+      const paymentData = {
+        entity_type: 'invoice' as const,
+        entity_id: invoice.id,
+        amount: invoice.amount,
+        payment_method: selectedPaymentMethod,
+        payment_provider: isOffline ? 'offline' as const : 'rainforestpay' as const,
+        provider_transaction_id: paymentId,
+        status: 'completed' as const,
+        payment_date: new Date().toISOString(),
+        company_id: invoice.company_id,
+        is_offline: isOffline,
+        ...(offlineData && {
+          payment_type: selectedPaymentMethod,
+          payor_name: offlineData.payorName,
+          payor_company: offlineData.payorCompany,
+          payment_details: offlineData.paymentDetails
+        })
+      };
+
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert(paymentData);
+      
+      if (paymentError) {
+        throw paymentError;
       }
       
       setPaymentCompleted(true);
-      setIsProcessing(false);
+      setStep('complete');
       
       toast({
         title: "Payment Successful",
-        description: `Payment for invoice ${invoice.invoice_number} has been processed successfully.`,
+        description: `Payment for invoice ${invoice.invoice_number} has been processed successfully. Invoice status changed to paid.`,
       });
       
       // Wait 2 seconds before closing for user to see success message
       setTimeout(() => {
         onPaymentComplete();
         onClose();
+        // Reset state for next time
+        setStep('method');
+        setPaymentCompleted(false);
       }, 2000);
       
     } catch (error) {
       console.error("Payment processing error:", error);
-      setIsProcessing(false);
       
       toast({
         title: "Payment Failed",
@@ -83,112 +118,126 @@ export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayI
     }
   };
 
+  const handlePaymentError = (error: string) => {
+    toast({
+      title: "Payment Failed",
+      description: error,
+      variant: "destructive"
+    });
+  };
+
+  const handleClose = () => {
+    setStep('method');
+    setPaymentCompleted(false);
+    form.reset();
+    onClose();
+  };
+
+  const handleBackToMethodSelection = () => {
+    setStep('method');
+  };
+
+  const getDialogTitle = () => {
+    switch (step) {
+      case 'method':
+        return (
+          <div className="flex items-center">
+            <CreditCard className="mr-2 h-5 w-5" />
+            Select Payment Method
+          </div>
+        );
+      case 'process':
+        return (
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackToMethodSelection}
+              className="mr-2 p-1"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            Process Payment
+          </div>
+        );
+      case 'complete':
+        return (
+          <div className="flex items-center">
+            <Check className="mr-2 h-5 w-5 text-green-500" />
+            Payment Successful
+          </div>
+        );
+      default:
+        return 'Pay Invoice';
+    }
+  };
+
+  const getDialogDescription = () => {
+    switch (step) {
+      case 'method':
+        return `Choose how you want to pay invoice ${invoice.invoice_number} - $${invoice.amount.toFixed(2)}`;
+      case 'process':
+        return `Complete payment for invoice ${invoice.invoice_number} - $${invoice.amount.toFixed(2)}`;
+      case 'complete':
+        return `Your payment for invoice ${invoice.invoice_number} has been processed successfully.`;
+      default:
+        return '';
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
-            {paymentCompleted ? (
-              <div className="flex items-center">
-                <Check className="mr-2 h-5 w-5 text-green-500" />
-                Payment Successful
-              </div>
-            ) : (
-              <div className="flex items-center">
-                <CreditCard className="mr-2 h-5 w-5" />
-                Pay Invoice
-              </div>
-            )}
-          </DialogTitle>
-          <DialogDescription>
-            {paymentCompleted 
-              ? `Your payment for invoice ${invoice.invoice_number} has been processed successfully.`
-              : `Complete payment for invoice ${invoice.invoice_number} - $${invoice.amount.toFixed(2)}`
-            }
-          </DialogDescription>
+          <DialogTitle>{getDialogTitle()}</DialogTitle>
+          <DialogDescription>{getDialogDescription()}</DialogDescription>
         </DialogHeader>
         
-        {!paymentCompleted && (
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="card-number">Card Number</Label>
-              <Input
-                id="card-number"
-                placeholder="1234 5678 9012 3456"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
-                disabled={isProcessing}
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="expiry">Expiry Date</Label>
-                <Input
-                  id="expiry"
-                  placeholder="MM/YY"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  disabled={isProcessing}
-                />
-              </div>
+        {step === 'method' && (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleMethodSelection)} className="space-y-6">
+              <PaymentMethodSelector control={form.control} type="invoice" />
               
-              <div className="space-y-2">
-                <Label htmlFor="cvv">CVV</Label>
-                <Input
-                  id="cvv"
-                  placeholder="123"
-                  value={cvv}
-                  onChange={(e) => setCvv(e.target.value)}
-                  disabled={isProcessing}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="name">Name on Card</Label>
-              <Input
-                id="name"
-                placeholder="John Doe"
-                value={nameOnCard}
-                onChange={(e) => setNameOnCard(e.target.value)}
-                disabled={isProcessing}
-              />
-            </div>
-            
-            <div className="rounded-md bg-blue-50 p-3 mt-2">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-blue-400" />
-                </div>
-                <div className="ml-3 text-sm text-blue-700">
-                  <p>This is a demo payment form. No real payments will be processed.</p>
-                </div>
-              </div>
-            </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-construction-600 hover:bg-construction-700">
+                  Continue
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
+
+        {step === 'process' && (
+          <div className="py-4">
+            <PaymentProcessor
+              amount={invoice.amount}
+              paymentMethod={selectedPaymentMethod}
+              entityType="invoice"
+              entityId={invoice.id}
+              onPaymentComplete={handlePaymentComplete}
+              onPaymentError={handlePaymentError}
+            />
           </div>
         )}
-        
-        <DialogFooter>
-          {paymentCompleted ? (
-            <Button onClick={onClose} className="bg-green-600 hover:bg-green-700">
-              Close
-            </Button>
-          ) : (
-            <>
-              <Button variant="outline" onClick={onClose} disabled={isProcessing}>
-                Cancel
+
+        {step === 'complete' && (
+          <div className="py-8 text-center">
+            <Check className="mx-auto h-12 w-12 text-green-500 mb-4" />
+            <p className="text-lg font-medium mb-2">Payment Completed Successfully!</p>
+            <p className="text-muted-foreground">
+              Invoice {invoice.invoice_number} has been marked as paid.
+            </p>
+            
+            <DialogFooter className="mt-6">
+              <Button onClick={handleClose} className="bg-green-600 hover:bg-green-700">
+                Close
               </Button>
-              <Button 
-                onClick={handlePayment} 
-                disabled={isProcessing || !cardNumber || !expiryDate || !cvv || !nameOnCard}
-                className="bg-construction-600 hover:bg-construction-700"
-              >
-                {isProcessing ? "Processing..." : `Pay $${invoice.amount.toFixed(2)}`}
-              </Button>
-            </>
-          )}
-        </DialogFooter>
+            </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
