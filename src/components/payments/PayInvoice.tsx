@@ -46,8 +46,8 @@ export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayI
     try {
       const isOffline = isOfflinePayment(selectedPaymentMethod);
       
-      // Update invoice status in Supabase
-      const { error } = await supabase
+      // Update invoice status to "paid" in Supabase
+      const { error: invoiceError } = await supabase
         .from('invoices')
         .update({
           status: 'paid',
@@ -58,8 +58,8 @@ export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayI
         })
         .eq('id', invoice.id);
       
-      if (error) {
-        throw error;
+      if (invoiceError) {
+        throw invoiceError;
       }
 
       // Create payment record with offline data if applicable
@@ -82,16 +82,20 @@ export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayI
         })
       };
 
-      await supabase
+      const { error: paymentError } = await supabase
         .from('payments')
         .insert(paymentData);
+      
+      if (paymentError) {
+        throw paymentError;
+      }
       
       setPaymentCompleted(true);
       setStep('complete');
       
       toast({
         title: "Payment Successful",
-        description: `Payment for invoice ${invoice.invoice_number} has been processed successfully.`,
+        description: `Payment for invoice ${invoice.invoice_number} has been processed successfully. Invoice status changed to paid.`,
       });
       
       // Wait 2 seconds before closing for user to see success message
