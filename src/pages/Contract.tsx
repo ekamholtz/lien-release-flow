@@ -85,7 +85,7 @@ const Contract = () => {
         return;
       }
 
-      const status = filters.status || 'inprocess';
+      const status = filters.status || 'inprogress';
       const data = await fetchContractsFromEdge(status);
       let contractsList: ExtendedContract[] = [];
 

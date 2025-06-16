@@ -21,12 +21,12 @@ import { CalendarIcon, FileText, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue, 
+  SelectValue,
 } from "@/components/ui/select";
 
 const formSchema = z.object({
@@ -36,6 +36,7 @@ const formSchema = z.object({
   releaseType: z.string().min(1, { message: "Release type is required" }),
   paymentAmount: z.string().min(1, { message: "Payment amount is required" }),
   paymentDate: z.date({ required_error: "Payment date is required" }),
+  contractorMail: z.string().min(1, { message: "MailID is required" }),
   additionalNotes: z.string().optional(),
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms to proceed",
@@ -44,7 +45,12 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function LienReleaseForm() {
+type Props = {
+  onSubmit: (values: FormValues) => void;
+  status:string;
+};
+
+export function LienReleaseForm({ onSubmit,status }: Props) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,13 +61,9 @@ export function LienReleaseForm() {
       paymentAmount: "",
       additionalNotes: "",
       agreeToTerms: false,
+      contractorMail: "",
     },
   });
-
-  function onSubmit(values: FormValues) {
-    console.log(values);
-    // Here you would typically handle the form submission
-  }
 
   return (
     <Form {...form}>
@@ -80,7 +82,7 @@ export function LienReleaseForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="releaseType"
@@ -105,7 +107,7 @@ export function LienReleaseForm() {
             )}
           />
         </div>
-        
+
         <FormField
           control={form.control}
           name="propertyAddress"
@@ -119,7 +121,7 @@ export function LienReleaseForm() {
             </FormItem>
           )}
         />
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
@@ -134,7 +136,7 @@ export function LienReleaseForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="paymentAmount"
@@ -149,46 +151,62 @@ export function LienReleaseForm() {
             )}
           />
         </div>
-        
-        <FormField
-          control={form.control}
-          name="paymentDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Payment Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="paymentDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Payment Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="contractorMail"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email ID</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter email id" type="email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <FormField
           control={form.control}
           name="additionalNotes"
@@ -206,7 +224,7 @@ export function LienReleaseForm() {
             </FormItem>
           )}
         />
-        
+
         <div className="bg-construction-50 p-4 rounded-lg border border-construction-100">
           <div className="flex items-start gap-3">
             <div className="mt-1">
@@ -222,7 +240,7 @@ export function LienReleaseForm() {
             </div>
           </div>
         </div>
-        
+
         <FormField
           control={form.control}
           name="agreeToTerms"
@@ -246,10 +264,10 @@ export function LienReleaseForm() {
             </FormItem>
           )}
         />
-        
+
         <div className="flex gap-3 justify-end">
           <Button type="button" variant="outline">Cancel</Button>
-          <Button type="submit" className="bg-construction-600 hover:bg-construction-700">Generate Lien Release</Button>
+          <Button type="submit" className="bg-construction-600 hover:bg-construction-700">{status === "sending" ? "Sending..." : "Generate Lien Release"}</Button>
         </div>
       </form>
     </Form>
