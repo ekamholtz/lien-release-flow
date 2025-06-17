@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { PaymentStatus, PaymentMethod } from '@/lib/payments/types';
+import { PaymentMethod } from '@/lib/payments/types';
 
 interface PaymentStatusDisplayProps {
-  status: PaymentStatus;
+  status: string; // Changed from PaymentStatus to string to match actual usage
   paymentMethod: PaymentMethod;
 }
 

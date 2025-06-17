@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { XCircle } from 'lucide-react';
-import { PaymentMethod, PaymentStatus, OfflinePaymentData } from '@/lib/payments/types';
+import { PaymentMethod, OfflinePaymentData } from '@/lib/payments/types';
 import { formatCurrency } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
 import { PaymentStatusDisplay } from './PaymentStatusDisplay';
@@ -11,6 +11,8 @@ import { PaymentMethodDisplay } from './PaymentMethodDisplay';
 import { PaymentActions } from './PaymentActions';
 import { PaymentHistory } from './PaymentHistory';
 import { useInvoicePayments } from '@/hooks/useInvoicePayments';
+
+type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 
 interface PaymentProcessorProps {
   amount: number;

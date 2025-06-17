@@ -25,7 +25,13 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
 
       if (error) throw error;
 
-      const totalPaid = payments?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
+      // Convert database results to PaymentTransaction interface
+      const typedPayments: PaymentTransaction[] = (payments || []).map(payment => ({
+        ...payment,
+        amount: Number(payment.amount)
+      }));
+
+      const totalPaid = typedPayments.reduce((sum, payment) => sum + payment.amount, 0);
       const remainingBalance = Math.max(0, invoiceAmount - totalPaid);
       const isFullyPaid = remainingBalance === 0 && totalPaid > 0;
       const isPartiallyPaid = totalPaid > 0 && remainingBalance > 0;
@@ -35,7 +41,7 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
         remainingBalance,
         isFullyPaid,
         isPartiallyPaid,
-        payments: payments || []
+        payments: typedPayments
       });
     } catch (error) {
       console.error('Error fetching payments:', error);

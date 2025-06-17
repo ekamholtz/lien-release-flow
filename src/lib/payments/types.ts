@@ -15,13 +15,13 @@ export interface OfflinePaymentData {
 
 export interface PaymentTransaction {
   id: string;
-  entity_type: 'invoice' | 'bill';
+  entity_type: string; // Changed from 'invoice' | 'bill' to string to match database
   entity_id: string;
   amount: number;
   payment_method: PaymentMethod;
   payment_provider?: PaymentProvider;
   provider_transaction_id?: string;
-  status: PaymentStatus;
+  status: string; // Changed from PaymentStatus to string to match database
   payment_date?: string;
   created_at: string;
   updated_at: string;

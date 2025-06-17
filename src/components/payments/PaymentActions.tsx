@@ -46,7 +46,9 @@ export function PaymentActions({
     return ['check', 'cash', 'wire_transfer'].includes(paymentMethod);
   };
 
-  if (isOfflinePayment() && status !== 'completed') {
+  const isCompleted = status === 'completed';
+
+  if (isOfflinePayment() && !isCompleted) {
     return (
       <>
         <Alert>
@@ -65,7 +67,7 @@ export function PaymentActions({
             
             <Button 
               type="submit"
-              disabled={processing || status === 'completed'}
+              disabled={processing || isCompleted}
               className="w-full"
             >
               {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -77,7 +79,7 @@ export function PaymentActions({
     );
   }
 
-  if (!isOfflinePayment() && status !== 'completed') {
+  if (!isOfflinePayment() && !isCompleted) {
     return (
       <>
         <Alert>
@@ -88,7 +90,7 @@ export function PaymentActions({
 
         <Button 
           onClick={onDigitalPayment}
-          disabled={processing || status === 'completed'}
+          disabled={processing || isCompleted}
           className="w-full"
         >
           {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -98,7 +100,7 @@ export function PaymentActions({
     );
   }
 
-  if (status === 'completed') {
+  if (isCompleted) {
     return (
       <Button disabled className="w-full">
         Payment Completed
