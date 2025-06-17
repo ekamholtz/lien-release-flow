@@ -165,9 +165,15 @@ export function useAccountsReceivable() {
   };
 
   const handlePaymentComplete = () => {
+    // Refresh the invoices list to show updated status
     fetchInvoices();
     setIsPaymentDialogOpen(false);
     setSelectedInvoice(null);
+    
+    toast({
+      title: "Payment Recorded",
+      description: "The payment has been successfully recorded.",
+    });
   };
 
   return {

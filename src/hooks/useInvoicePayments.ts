@@ -54,13 +54,18 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
       const isFullyPaid = remainingBalance === 0 && totalPaid > 0;
       const isPartiallyPaid = totalPaid > 0 && remainingBalance > 0;
 
-      setPaymentSummary({
+      const newSummary = {
         totalPaid,
         remainingBalance,
         isFullyPaid,
         isPartiallyPaid,
         payments: typedPayments
-      });
+      };
+
+      setPaymentSummary(newSummary);
+
+      // Update invoice status based on payment summary
+      await updateInvoiceStatus(newSummary);
     } catch (error) {
       console.error('Error fetching payments:', error);
     } finally {
@@ -84,6 +89,8 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
         .eq('id', invoiceId);
 
       if (error) throw error;
+
+      console.log(`Invoice ${invoiceId} status updated to ${newStatus}`);
     } catch (error) {
       console.error('Error updating invoice status:', error);
     }
