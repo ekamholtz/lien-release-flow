@@ -9,14 +9,17 @@ interface OfflinePaymentFormData {
   payorName: string;
   payorCompany?: string;
   paymentDetails?: string;
+  amount: number;
+  paymentDate: string;
 }
 
 interface OfflinePaymentFormProps {
   control: Control<OfflinePaymentFormData>;
   paymentMethod: string;
+  invoiceAmount?: number;
 }
 
-export function OfflinePaymentForm({ control, paymentMethod }: OfflinePaymentFormProps) {
+export function OfflinePaymentForm({ control, paymentMethod, invoiceAmount }: OfflinePaymentFormProps) {
   const getPaymentMethodLabel = () => {
     switch (paymentMethod) {
       case 'check':
@@ -30,8 +33,62 @@ export function OfflinePaymentForm({ control, paymentMethod }: OfflinePaymentFor
     }
   };
 
+  const getPaymentDetailsPlaceholder = () => {
+    switch (paymentMethod) {
+      case 'check':
+        return 'Check number, bank name, etc.';
+      case 'wire_transfer':
+        return 'Wire reference number, bank details, etc.';
+      case 'cash':
+        return 'Receipt number, notes, etc.';
+      default:
+        return 'Additional payment details';
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Payment Amount *</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={invoiceAmount}
+                  placeholder={invoiceAmount ? `Max: $${invoiceAmount.toFixed(2)}` : "0.00"}
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name="paymentDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Payment Date *</FormLabel>
+              <FormControl>
+                <Input 
+                  type="date"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
       <FormField
         control={control}
         name="payorName"
@@ -76,7 +133,7 @@ export function OfflinePaymentForm({ control, paymentMethod }: OfflinePaymentFor
             </FormLabel>
             <FormControl>
               <Textarea 
-                placeholder={`Enter additional details about the ${getPaymentMethodLabel().toLowerCase()} payment (e.g., check number, reference number, etc.)`}
+                placeholder={getPaymentDetailsPlaceholder()}
                 rows={3}
                 {...field} 
               />

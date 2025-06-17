@@ -9,6 +9,8 @@ export interface OfflinePaymentData {
   payorName: string;
   payorCompany?: string;
   paymentDetails?: string;
+  amount: number;
+  paymentDate: string;
 }
 
 export interface PaymentTransaction {
@@ -41,4 +43,12 @@ export interface PaymentProcessingOptions {
   description?: string;
   metadata?: Record<string, any>;
   offlineData?: OfflinePaymentData;
+}
+
+export interface InvoicePaymentSummary {
+  totalPaid: number;
+  remainingBalance: number;
+  isFullyPaid: boolean;
+  isPartiallyPaid: boolean;
+  payments: PaymentTransaction[];
 }

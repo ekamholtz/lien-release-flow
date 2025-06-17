@@ -46,7 +46,7 @@ export function PaymentActions({
     return ['check', 'cash', 'wire_transfer'].includes(paymentMethod);
   };
 
-  if (isOfflinePayment() && status === 'pending') {
+  if (isOfflinePayment() && status !== 'completed') {
     return (
       <>
         <Alert>
@@ -77,7 +77,7 @@ export function PaymentActions({
     );
   }
 
-  if (!isOfflinePayment() && status === 'pending') {
+  if (!isOfflinePayment() && status !== 'completed') {
     return (
       <>
         <Alert>
