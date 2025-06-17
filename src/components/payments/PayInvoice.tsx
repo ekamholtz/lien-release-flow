@@ -53,6 +53,7 @@ export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayI
             amount={invoice.amount}
             paymentMethod={selectedPaymentMethod}
             invoiceId={invoice.id}
+            invoice={invoice}
             onPaymentComplete={handlePaymentComplete}
             onPaymentError={handlePaymentError}
           />

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,6 +11,7 @@ import { PaymentActions } from './PaymentActions';
 import { PaymentHistory } from './PaymentHistory';
 import { useInvoicePayments } from '@/hooks/useInvoicePayments';
 import { supabase } from '@/integrations/supabase/client';
+import { DbInvoice } from '@/lib/supabase';
 
 type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 
@@ -20,6 +20,7 @@ interface PaymentProcessorProps {
   paymentMethod: PaymentMethod;
   entityType: 'invoice' | 'bill';
   entityId: string;
+  invoice?: DbInvoice; // Add optional invoice data
   onPaymentComplete?: (paymentId: string, offlineData?: OfflinePaymentData) => void;
   onPaymentError?: (error: string) => void;
 }
@@ -29,6 +30,7 @@ export function PaymentProcessor({
   paymentMethod,
   entityType,
   entityId,
+  invoice,
   onPaymentComplete,
   onPaymentError
 }: PaymentProcessorProps) {
@@ -76,6 +78,13 @@ export function PaymentProcessor({
       if (isOfflinePayment() && offlineData) {
         console.log('Processing offline payment:', offlineData);
         
+        // Use the company_id from the invoice if available, otherwise use from existing payments
+        const companyId = invoice?.company_id || paymentSummary.payments[0]?.company_id;
+        
+        if (!companyId) {
+          throw new Error('Company ID is required to process payment');
+        }
+        
         // Save the offline payment to the database
         const paymentData = {
           entity_type: entityType,
@@ -89,7 +98,7 @@ export function PaymentProcessor({
           payor_company: offlineData.payorCompany || null,
           payment_details: offlineData.paymentDetails || null,
           is_offline: true,
-          company_id: paymentSummary.payments[0]?.company_id // Use company_id from existing payments or handle separately
+          company_id: companyId
         };
 
         console.log('Saving payment to database:', paymentData);
