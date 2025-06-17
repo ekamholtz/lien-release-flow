@@ -37,6 +37,8 @@ export function useAccountsReceivable() {
         return;
       }
       
+      console.log('Fetching invoices for company:', currentCompany.id);
+      
       // Always filter by company_id first
       let query = supabase
         .from('invoices')
@@ -69,7 +71,7 @@ export function useAccountsReceivable() {
         throw error;
       }
       
-      console.log('Invoices data:', data);
+      console.log('Fetched invoices:', data?.length || 0);
       setInvoices(data as ExtendedInvoice[] || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
@@ -164,15 +166,19 @@ export function useAccountsReceivable() {
     setSelectedInvoice(null);
   };
 
-  const handlePaymentComplete = () => {
-    // Refresh the invoices list to show updated status
-    fetchInvoices();
+  const handlePaymentComplete = async () => {
+    console.log('Payment completed, refreshing invoices list...');
+    
+    // Close dialogs immediately
     setIsPaymentDialogOpen(false);
     setSelectedInvoice(null);
     
+    // Refresh the invoices list to show updated status
+    await fetchInvoices();
+    
     toast({
       title: "Payment Recorded",
-      description: "The payment has been successfully recorded.",
+      description: "The payment has been successfully recorded and the invoice status has been updated.",
     });
   };
 

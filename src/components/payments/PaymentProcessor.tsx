@@ -11,6 +11,7 @@ import { PaymentMethodDisplay } from './PaymentMethodDisplay';
 import { PaymentActions } from './PaymentActions';
 import { PaymentHistory } from './PaymentHistory';
 import { useInvoicePayments } from '@/hooks/useInvoicePayments';
+import { supabase } from '@/integrations/supabase/client';
 
 type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 
@@ -72,26 +73,56 @@ export function PaymentProcessor({
         }
       }
 
-      // For now, simulate payment processing
-      // In the future, this will integrate with Rainforestpay for credit card and ACH
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (isOfflinePayment() && offlineData) {
+        console.log('Processing offline payment:', offlineData);
+        
+        // Save the offline payment to the database
+        const paymentData = {
+          entity_type: entityType,
+          entity_id: entityId,
+          amount: offlineData.amount,
+          payment_method: paymentMethod,
+          payment_provider: 'offline',
+          status: 'completed',
+          payment_date: new Date(offlineData.paymentDate).toISOString(),
+          payor_name: offlineData.payorName,
+          payor_company: offlineData.payorCompany || null,
+          payment_details: offlineData.paymentDetails || null,
+          is_offline: true,
+          company_id: paymentSummary.payments[0]?.company_id // Use company_id from existing payments or handle separately
+        };
 
-      if (isOfflinePayment()) {
-        // For offline payments, mark as completed and require the form data
+        console.log('Saving payment to database:', paymentData);
+
+        const { data: payment, error: paymentError } = await supabase
+          .from('payments')
+          .insert([paymentData])
+          .select()
+          .single();
+
+        if (paymentError) {
+          console.error('Error saving payment:', paymentError);
+          throw paymentError;
+        }
+
+        console.log('Payment saved successfully:', payment);
+
+        // Refresh payment data and update invoice status
+        await refreshPayments();
+        
         setStatus('completed');
-        onPaymentComplete?.('offline-' + Date.now(), offlineData);
+        onPaymentComplete?.(payment.id, offlineData);
       } else {
         // For digital payments (future Rainforestpay integration)
+        console.log('Processing digital payment...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
         setStatus('completed');
         onPaymentComplete?.('payment-' + Date.now());
       }
-
-      // Refresh payment data and update invoice status
-      await refreshPayments();
-      await updateInvoiceStatus(paymentSummary);
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Payment failed';
+      console.error('Payment processing error:', err);
       setError(errorMessage);
       setStatus('failed');
       onPaymentError?.(errorMessage);
@@ -101,6 +132,7 @@ export function PaymentProcessor({
   };
 
   const handleOfflinePaymentSubmit = (data: OfflinePaymentData) => {
+    console.log('Offline payment form submitted:', data);
     handlePayment(data);
   };
 

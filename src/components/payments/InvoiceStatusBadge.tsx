@@ -13,6 +13,8 @@ export function InvoiceStatusBadge({ status }: InvoiceStatusBadgeProps) {
       return <Badge variant="outline" className="bg-gray-100 text-gray-800 hover:bg-gray-100">Draft</Badge>;
     case 'sent':
       return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Sent</Badge>;
+    case 'partially_paid':
+      return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Partially Paid</Badge>;
     case 'paid':
       return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Paid</Badge>;
     case 'overdue':

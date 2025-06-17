@@ -15,6 +15,8 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
 
   const fetchPayments = async () => {
     try {
+      console.log(`Fetching payments for invoice ${invoiceId}`);
+      
       const { data: payments, error } = await supabase
         .from('payments')
         .select('*')
@@ -24,6 +26,8 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
         .order('payment_date', { ascending: false });
 
       if (error) throw error;
+
+      console.log(`Found ${payments?.length || 0} payments for invoice ${invoiceId}:`, payments);
 
       // Convert database results to PaymentTransaction interface with proper type safety
       const typedPayments: PaymentTransaction[] = (payments || []).map((payment: DbPaymentTransaction) => ({
@@ -54,6 +58,14 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
       const isFullyPaid = remainingBalance === 0 && totalPaid > 0;
       const isPartiallyPaid = totalPaid > 0 && remainingBalance > 0;
 
+      console.log(`Payment summary for invoice ${invoiceId}:`, {
+        totalPaid,
+        remainingBalance,
+        isFullyPaid,
+        isPartiallyPaid,
+        invoiceAmount
+      });
+
       const newSummary = {
         totalPaid,
         remainingBalance,
@@ -83,6 +95,8 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
         newStatus = 'partially_paid';
       }
 
+      console.log(`Updating invoice ${invoiceId} status from current to ${newStatus}`);
+
       const { error } = await supabase
         .from('invoices')
         .update({ status: newStatus })
@@ -90,7 +104,7 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
 
       if (error) throw error;
 
-      console.log(`Invoice ${invoiceId} status updated to ${newStatus}`);
+      console.log(`Invoice ${invoiceId} status successfully updated to ${newStatus}`);
     } catch (error) {
       console.error('Error updating invoice status:', error);
     }
