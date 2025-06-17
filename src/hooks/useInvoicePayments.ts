@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { PaymentTransaction, InvoicePaymentSummary } from '@/lib/payments/types';
+import { PaymentTransaction, InvoicePaymentSummary, PaymentMethod } from '@/lib/payments/types';
 
 export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
   const [paymentSummary, setPaymentSummary] = useState<InvoicePaymentSummary>({
@@ -28,7 +28,8 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
       // Convert database results to PaymentTransaction interface
       const typedPayments: PaymentTransaction[] = (payments || []).map(payment => ({
         ...payment,
-        amount: Number(payment.amount)
+        amount: Number(payment.amount),
+        payment_method: payment.payment_method as PaymentMethod
       }));
 
       const totalPaid = typedPayments.reduce((sum, payment) => sum + payment.amount, 0);
