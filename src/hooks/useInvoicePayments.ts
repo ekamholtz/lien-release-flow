@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { PaymentTransaction, InvoicePaymentSummary, PaymentMethod } from '@/lib/payments/types';
+import { PaymentTransaction, InvoicePaymentSummary, PaymentMethod, PaymentProvider, DbPaymentTransaction } from '@/lib/payments/types';
 
 export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
   const [paymentSummary, setPaymentSummary] = useState<InvoicePaymentSummary>({
@@ -25,11 +25,28 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
 
       if (error) throw error;
 
-      // Convert database results to PaymentTransaction interface
-      const typedPayments: PaymentTransaction[] = (payments || []).map(payment => ({
-        ...payment,
+      // Convert database results to PaymentTransaction interface with proper type safety
+      const typedPayments: PaymentTransaction[] = (payments || []).map((payment: DbPaymentTransaction) => ({
+        id: payment.id,
+        entity_type: payment.entity_type,
+        entity_id: payment.entity_id,
         amount: Number(payment.amount),
-        payment_method: payment.payment_method as PaymentMethod
+        payment_method: payment.payment_method as PaymentMethod,
+        payment_provider: payment.payment_provider as PaymentProvider,
+        provider_transaction_id: payment.provider_transaction_id || undefined,
+        status: payment.status,
+        payment_date: payment.payment_date || undefined,
+        created_at: payment.created_at,
+        updated_at: payment.updated_at,
+        company_id: payment.company_id,
+        user_id: payment.user_id || undefined,
+        metadata: payment.metadata || undefined,
+        notes: payment.notes || undefined,
+        payment_type: payment.payment_type || undefined,
+        payor_name: payment.payor_name || undefined,
+        payor_company: payment.payor_company || undefined,
+        payment_details: payment.payment_details || undefined,
+        is_offline: payment.is_offline || false
       }));
 
       const totalPaid = typedPayments.reduce((sum, payment) => sum + payment.amount, 0);

@@ -5,12 +5,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Form } from '@/components/ui/form';
 import { Loader2, FileText } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
-import { PaymentMethod, PaymentStatus, OfflinePaymentData } from '@/lib/payments/types';
+import { PaymentMethod, OfflinePaymentData } from '@/lib/payments/types';
 import { OfflinePaymentForm } from './OfflinePaymentForm';
 
 interface PaymentActionsProps {
   paymentMethod: PaymentMethod;
-  status: PaymentStatus;
+  status: string; // Changed from PaymentStatus to string to match actual usage
   processing: boolean;
   offlinePaymentForm: UseFormReturn<OfflinePaymentData>;
   onOfflinePaymentSubmit: (data: OfflinePaymentData) => void;
