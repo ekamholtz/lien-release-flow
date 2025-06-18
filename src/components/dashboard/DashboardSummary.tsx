@@ -39,7 +39,7 @@ const SummaryCard = ({ title, value, change, isPositive = true, icon, isLoading 
           <div className="h-4 w-32 bg-gray-200 animate-pulse rounded mt-2"></div>
         )}
       </div>
-      <div className="h-12 w-12 rounded-lg bg-construction-50 flex items-center justify-center">
+      <div className="h-12 w-12 rounded-lg bg-cnstrct-lightgray flex items-center justify-center">
         {icon}
       </div>
     </div>
@@ -64,7 +64,7 @@ export function DashboardSummary() {
         value={formatCurrency(totalOutstanding)}
         change={`${Math.abs(totalOutstandingChange)}%`}
         isPositive={totalOutstandingChange > 0}
-        icon={<DollarSign className="h-6 w-6 text-construction-600" />}
+        icon={<DollarSign className="h-6 w-6 text-cnstrct-navy" />}
         isLoading={isLoading}
       />
       <SummaryCard
@@ -72,7 +72,7 @@ export function DashboardSummary() {
         value={String(pendingApprovals)}
         change={`${Math.abs(pendingApprovalsChange)}%`}
         isPositive={pendingApprovalsChange > 0}
-        icon={<FileClock className="h-6 w-6 text-construction-600" />}
+        icon={<FileClock className="h-6 w-6 text-cnstrct-navy" />}
         isLoading={isLoading}
       />
       <SummaryCard
@@ -80,7 +80,7 @@ export function DashboardSummary() {
         value={String(completedPayments)}
         change={`${Math.abs(completedPaymentsChange)}%`}
         isPositive={completedPaymentsChange > 0}
-        icon={<FileCheck className="h-6 w-6 text-construction-600" />}
+        icon={<FileCheck className="h-6 w-6 text-cnstrct-navy" />}
         isLoading={isLoading}
       />
     </div>
