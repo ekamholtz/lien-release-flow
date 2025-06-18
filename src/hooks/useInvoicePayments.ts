@@ -95,7 +95,12 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
         newStatus = 'partially_paid';
       }
 
-      console.log(`Updating invoice ${invoiceId} status from current to ${newStatus}`);
+      console.log(`Updating invoice ${invoiceId} status to ${newStatus}. Summary:`, {
+        totalPaid: summary.totalPaid,
+        remainingBalance: summary.remainingBalance,
+        isFullyPaid: summary.isFullyPaid,
+        isPartiallyPaid: summary.isPartiallyPaid
+      });
 
       const { error } = await supabase
         .from('invoices')
@@ -118,6 +123,6 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
     paymentSummary,
     loading,
     refreshPayments: fetchPayments,
-    updateInvoiceStatus
+    updateInvoiceStatus: (summary: InvoicePaymentSummary) => updateInvoiceStatus(summary)
   };
 }

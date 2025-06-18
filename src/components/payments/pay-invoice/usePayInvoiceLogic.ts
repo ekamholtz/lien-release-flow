@@ -35,84 +35,58 @@ export function usePayInvoiceLogic(
     setStep('process');
   };
 
-  const calculateInvoiceStatus = async (invoiceId: string, invoiceAmount: number) => {
-    // Get all completed payments for this invoice
-    const { data: payments, error } = await supabase
-      .from('payments')
-      .select('amount')
-      .eq('entity_type', 'invoice')
-      .eq('entity_id', invoiceId)
-      .eq('status', 'completed');
+  const calculateAndUpdateInvoiceStatus = async (invoiceId: string, invoiceAmount: number) => {
+    try {
+      // Get all completed payments for this invoice
+      const { data: payments, error } = await supabase
+        .from('payments')
+        .select('amount')
+        .eq('entity_type', 'invoice')
+        .eq('entity_id', invoiceId)
+        .eq('status', 'completed');
 
-    if (error) {
-      console.error('Error fetching payments:', error);
-      return 'sent'; // Default status
-    }
+      if (error) {
+        console.error('Error fetching payments for status calculation:', error);
+        return 'sent'; // Default status
+      }
 
-    const totalPaid = payments?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
-    const remainingBalance = invoiceAmount - totalPaid;
+      const totalPaid = payments?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
+      const remainingBalance = invoiceAmount - totalPaid;
 
-    if (remainingBalance <= 0) {
-      return 'paid';
-    } else if (totalPaid > 0) {
-      return 'partially_paid';
-    } else {
+      let newStatus = 'sent';
+      if (remainingBalance <= 0 && totalPaid > 0) {
+        newStatus = 'paid';
+      } else if (totalPaid > 0 && remainingBalance > 0) {
+        newStatus = 'partially_paid';
+      }
+
+      console.log(`Calculated invoice status: ${newStatus}. Total paid: ${totalPaid}, Remaining: ${remainingBalance}`);
+
+      // Update the invoice status
+      const { error: updateError } = await supabase
+        .from('invoices')
+        .update({ status: newStatus })
+        .eq('id', invoiceId);
+
+      if (updateError) {
+        console.error('Error updating invoice status:', updateError);
+        throw updateError;
+      }
+
+      console.log(`Invoice ${invoiceId} status updated to ${newStatus}`);
+      return newStatus;
+    } catch (error) {
+      console.error('Error in calculateAndUpdateInvoiceStatus:', error);
       return 'sent';
     }
   };
 
   const handlePaymentComplete = async (paymentId: string, offlineData?: OfflinePaymentData) => {
     try {
-      const isOffline = isOfflinePayment(selectedPaymentMethod);
-      const paymentAmount = offlineData?.amount || invoice.amount;
+      console.log('Payment completed, updating invoice status...');
       
-      // Create payment record with offline data if applicable
-      const paymentData = {
-        entity_type: 'invoice' as const,
-        entity_id: invoice.id,
-        amount: paymentAmount,
-        payment_method: selectedPaymentMethod,
-        payment_provider: isOffline ? 'offline' as const : 'rainforestpay' as const,
-        provider_transaction_id: paymentId,
-        status: 'completed' as const,
-        payment_date: offlineData?.paymentDate ? new Date(offlineData.paymentDate).toISOString() : new Date().toISOString(),
-        company_id: invoice.company_id,
-        is_offline: isOffline,
-        ...(offlineData && {
-          payment_type: selectedPaymentMethod,
-          payor_name: offlineData.payorName,
-          payor_company: offlineData.payorCompany,
-          payment_details: offlineData.paymentDetails
-        })
-      };
-
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert(paymentData);
-      
-      if (paymentError) {
-        throw paymentError;
-      }
-
-      // Calculate and update invoice status based on total payments
-      const newStatus = await calculateInvoiceStatus(invoice.id, invoice.amount);
-      
-      const { error: invoiceError } = await supabase
-        .from('invoices')
-        .update({
-          status: newStatus,
-          ...(newStatus === 'paid' && {
-            payment_id: paymentId,
-            payment_date: paymentData.payment_date,
-            payment_provider: paymentData.payment_provider,
-            payment_method: selectedPaymentMethod
-          })
-        })
-        .eq('id', invoice.id);
-      
-      if (invoiceError) {
-        throw invoiceError;
-      }
+      // Calculate and update the invoice status
+      const newStatus = await calculateAndUpdateInvoiceStatus(invoice.id, invoice.amount);
       
       setPaymentCompleted(true);
       setStep('complete');
