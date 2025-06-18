@@ -7,43 +7,46 @@ interface InvoiceStatusBadgeProps {
 }
 
 export function InvoiceStatusBadge({ status }: InvoiceStatusBadgeProps) {
-  const getStatusClasses = (status: InvoiceStatus) => {
+  const getStatusConfig = (status: InvoiceStatus) => {
     switch (status) {
       case 'draft':
-        return 'border-gray-300 bg-gray-100 text-gray-800';
+        return {
+          classes: 'bg-slate-100 text-slate-700 border-slate-300',
+          label: 'Draft'
+        };
       case 'sent':
-        return 'border-blue-300 bg-blue-100 text-blue-800';
+        return {
+          classes: 'bg-sky-100 text-sky-700 border-sky-300',
+          label: 'Sent'
+        };
       case 'partially_paid':
-        return 'border-yellow-300 bg-yellow-100 text-yellow-800';
+        return {
+          classes: 'bg-amber-100 text-amber-700 border-amber-300',
+          label: 'Partially Paid'
+        };
       case 'paid':
-        return 'border-green-300 bg-green-100 text-green-800';
+        return {
+          classes: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+          label: 'Paid'
+        };
       case 'overdue':
-        return 'border-red-300 bg-red-100 text-red-800';
+        return {
+          classes: 'bg-rose-100 text-rose-700 border-rose-300',
+          label: 'Overdue'
+        };
       default:
-        return 'border-gray-300 bg-gray-100 text-gray-800';
+        return {
+          classes: 'bg-slate-100 text-slate-700 border-slate-300',
+          label: status
+        };
     }
   };
 
-  const getStatusLabel = (status: InvoiceStatus) => {
-    switch (status) {
-      case 'draft':
-        return 'Draft';
-      case 'sent':
-        return 'Sent';
-      case 'partially_paid':
-        return 'Partially Paid';
-      case 'paid':
-        return 'Paid';
-      case 'overdue':
-        return 'Overdue';
-      default:
-        return status;
-    }
-  };
+  const config = getStatusConfig(status);
 
   return (
-    <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${getStatusClasses(status)}`}>
-      {getStatusLabel(status)}
-    </div>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.classes}`}>
+      {config.label}
+    </span>
   );
 }
