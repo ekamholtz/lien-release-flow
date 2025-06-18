@@ -1,0 +1,130 @@
+
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useCompany } from '@/contexts/CompanyContext';
+import type { Transaction } from '@/components/dashboard/types';
+
+interface UseRecentTransactionsProps {
+  projectId?: string | null;
+  dateRange?: { from: Date | null, to: Date | null } | null;
+  managerId?: string | null;
+}
+
+export function useRecentTransactions({ projectId, dateRange, managerId }: UseRecentTransactionsProps) {
+  const { currentCompany } = useCompany();
+  
+  return useQuery({
+    queryKey: ['recent-transactions', projectId, currentCompany?.id, dateRange, managerId],
+    queryFn: async () => {
+      // If no current company, return empty array
+      if (!currentCompany?.id) {
+        console.log("No current company selected");
+        return [];
+      }
+      
+      console.log("Fetching transactions for company:", currentCompany.id);
+      console.log("Filters:", { projectId, dateRange, managerId });
+      
+      try {
+        // Build the invoices query with explicit company_id filter
+        let invoicesQuery = supabase
+          .from('invoices')
+          .select('id, invoice_number, amount, status, client_name, created_at, project_id')
+          .eq('company_id', currentCompany.id);
+        
+        // Build the bills query with explicit company_id filter
+        // Only include 'pending_payment' and 'paid' bills in recent transactions
+        let billsQuery = supabase
+          .from('bills')
+          .select('id, bill_number, amount, status, vendor_name, created_at, project_id')
+          .eq('company_id', currentCompany.id)
+          .in('status', ['pending_payment', 'paid']); // Only include these statuses
+        
+        // Apply additional filters to both queries
+        
+        // Filter by project if specified
+        if (projectId === 'unassigned') {
+          invoicesQuery = invoicesQuery.is('project_id', null);
+          billsQuery = billsQuery.is('project_id', null);
+        } else if (projectId) {
+          invoicesQuery = invoicesQuery.eq('project_id', projectId);
+          billsQuery = billsQuery.eq('project_id', projectId);
+        }
+        
+        // Filter by project manager if specified
+        if (managerId) {
+          invoicesQuery = invoicesQuery.eq('project_manager_id', managerId);
+          billsQuery = billsQuery.eq('project_manager_id', managerId);
+        }
+        
+        // Filter by date range if specified
+        if (dateRange?.from) {
+          const fromDate = dateRange.from.toISOString();
+          invoicesQuery = invoicesQuery.gte('created_at', fromDate);
+          billsQuery = billsQuery.gte('created_at', fromDate);
+        }
+        
+        if (dateRange?.to) {
+          const toDate = dateRange.to.toISOString();
+          invoicesQuery = invoicesQuery.lte('created_at', toDate);
+          billsQuery = billsQuery.lte('created_at', toDate);
+        }
+        
+        // Execute the queries and handle the results safely
+        const invoicesPromise = invoicesQuery.limit(10);
+        const billsPromise = billsQuery.limit(10);
+        
+        const [invoicesResult, billsResult] = await Promise.all([invoicesPromise, billsPromise]);
+        
+        // Check for errors
+        if (invoicesResult.error) {
+          console.error("Error fetching invoices:", invoicesResult.error);
+          throw invoicesResult.error;
+        }
+        
+        if (billsResult.error) {
+          console.error("Error fetching bills:", billsResult.error);
+          throw billsResult.error;
+        }
+        
+        console.log("Invoices fetched:", invoicesResult.data?.length || 0);
+        console.log("Bills fetched:", billsResult.data?.length || 0);
+        
+        // Map invoice data to Transaction type
+        const invoices: Transaction[] = (invoicesResult.data || []).map(invoice => ({
+          id: invoice.id,
+          amount: invoice.amount,
+          status: invoice.status,
+          created_at: invoice.created_at,
+          client_name: invoice.client_name,
+          project_id: invoice.project_id,
+          invoice_number: invoice.invoice_number,
+          transactionType: 'invoice'
+        }));
+        
+        // Map bill data to Transaction type
+        const bills: Transaction[] = (billsResult.data || []).map(bill => ({
+          id: bill.id,
+          amount: bill.amount,
+          status: bill.status,
+          created_at: bill.created_at,
+          client_name: bill.vendor_name, // Use vendor_name as client_name
+          project_id: bill.project_id,
+          bill_number: bill.bill_number,
+          transactionType: 'bill'
+        }));
+        
+        // Combine and sort by date
+        const combined = [...invoices, ...bills].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ).slice(0, 5); // Get the 5 most recent transactions
+        
+        return combined;
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+        throw error;
+      }
+    },
+    enabled: !!currentCompany?.id
+  });
+}
