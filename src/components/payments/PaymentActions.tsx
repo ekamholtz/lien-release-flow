@@ -1,16 +1,13 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Form } from '@/components/ui/form';
-import { Loader2, FileText } from 'lucide-react';
-import { UseFormReturn } from 'react-hook-form';
 import { PaymentMethod, OfflinePaymentData } from '@/lib/payments/types';
 import { OfflinePaymentForm } from './OfflinePaymentForm';
+import { UseFormReturn } from 'react-hook-form';
 
 interface PaymentActionsProps {
   paymentMethod: PaymentMethod;
-  status: string; // Changed from PaymentStatus to string to match actual usage
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
   processing: boolean;
   offlinePaymentForm: UseFormReturn<OfflinePaymentData>;
   onOfflinePaymentSubmit: (data: OfflinePaymentData) => void;
@@ -25,88 +22,35 @@ export function PaymentActions({
   onOfflinePaymentSubmit,
   onDigitalPayment
 }: PaymentActionsProps) {
-  const getPaymentMethodName = () => {
-    switch (paymentMethod) {
-      case 'credit_card':
-        return 'Credit Card';
-      case 'ach':
-        return 'ACH Transfer';
-      case 'check':
-        return 'Check';
-      case 'cash':
-        return 'Cash';
-      case 'wire_transfer':
-        return 'Wire Transfer';
-      default:
-        return 'Payment';
-    }
-  };
+  const isOfflinePayment = ['check', 'cash', 'wire_transfer'].includes(paymentMethod);
 
-  const isOfflinePayment = () => {
-    return ['check', 'cash', 'wire_transfer'].includes(paymentMethod);
-  };
+  if (status === 'completed') {
+    return null;
+  }
 
-  const isCompleted = status === 'completed';
-
-  if (isOfflinePayment() && !isCompleted) {
+  if (isOfflinePayment) {
     return (
-      <>
-        <Alert>
-          <FileText className="h-4 w-4" />
-          <AlertDescription>
-            Please fill in the payment details to record this {getPaymentMethodName().toLowerCase()} payment.
-          </AlertDescription>
-        </Alert>
-
-        <Form {...offlinePaymentForm}>
-          <form onSubmit={offlinePaymentForm.handleSubmit(onOfflinePaymentSubmit)} className="space-y-4">
-            <OfflinePaymentForm 
-              control={offlinePaymentForm.control} 
-              paymentMethod={paymentMethod}
-            />
-            
-            <Button 
-              type="submit"
-              disabled={processing || isCompleted}
-              className="w-full"
-            >
-              {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Record {getPaymentMethodName()} Payment
-            </Button>
-          </form>
-        </Form>
-      </>
+      <OfflinePaymentForm
+        form={offlinePaymentForm}
+        onSubmit={onOfflinePaymentSubmit}
+        paymentMethod={paymentMethod}
+        disabled={processing}
+      />
     );
   }
 
-  if (!isOfflinePayment() && !isCompleted) {
-    return (
-      <>
-        <Alert>
-          <AlertDescription>
-            Digital payments will be processed through Rainforestpay integration (coming soon).
-          </AlertDescription>
-        </Alert>
-
-        <Button 
-          onClick={onDigitalPayment}
-          disabled={processing || isCompleted}
-          className="w-full"
-        >
-          {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Process {getPaymentMethodName()} Payment
-        </Button>
-      </>
-    );
-  }
-
-  if (isCompleted) {
-    return (
-      <Button disabled className="w-full">
-        Payment Completed
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-600">
+        Click the button below to process your {paymentMethod} payment.
+      </p>
+      <Button
+        onClick={onDigitalPayment}
+        disabled={processing}
+        className="w-full"
+      >
+        {processing ? 'Processing...' : 'Process Payment'}
       </Button>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }

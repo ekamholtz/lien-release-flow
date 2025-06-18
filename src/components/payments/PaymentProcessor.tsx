@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -20,7 +21,7 @@ interface PaymentProcessorProps {
   paymentMethod: PaymentMethod;
   entityType: 'invoice' | 'bill';
   entityId: string;
-  invoice?: DbInvoice; // Add optional invoice data
+  invoice?: DbInvoice;
   onPaymentComplete?: (paymentId: string, offlineData?: OfflinePaymentData) => void;
   onPaymentError?: (error: string) => void;
 }
@@ -57,6 +58,12 @@ export function PaymentProcessor({
   };
 
   const handlePayment = async (offlineData?: OfflinePaymentData) => {
+    // Prevent double submission
+    if (processing) {
+      console.log('Payment already processing, ignoring duplicate submission');
+      return;
+    }
+
     setProcessing(true);
     setError(null);
     setStatus('processing');
@@ -72,6 +79,29 @@ export function PaymentProcessor({
         }
         if (offlineData.amount > paymentSummary.remainingBalance) {
           throw new Error('Payment amount cannot exceed remaining balance');
+        }
+
+        // Check for duplicate payments before saving
+        console.log('Checking for duplicate payments...');
+        const { data: existingPayments, error: checkError } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('entity_type', entityType)
+          .eq('entity_id', entityId)
+          .eq('payment_method', paymentMethod)
+          .eq('amount', offlineData.amount)
+          .eq('payor_name', offlineData.payorName)
+          .eq('payment_details', offlineData.paymentDetails || '')
+          .eq('payment_date', new Date(offlineData.paymentDate).toISOString().split('T')[0]);
+
+        if (checkError) {
+          console.error('Error checking for duplicates:', checkError);
+          throw checkError;
+        }
+
+        if (existingPayments && existingPayments.length > 0) {
+          console.log('Found existing payment with same details:', existingPayments);
+          throw new Error('A payment with identical details already exists. Please verify the payment information.');
         }
       }
 
