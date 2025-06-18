@@ -1,25 +1,12 @@
 
 import React from 'react';
-import { Badge } from "@/components/ui/badge";
+import { InvoiceStatusBadge } from '@/components/payments/InvoiceStatusBadge';
 import { format } from 'date-fns';
 import { DbInvoice } from '@/lib/supabase';
 import { formatCurrency } from "@/lib/utils";
 
 interface InvoiceBasicDetailsProps {
   invoice: DbInvoice & { projects?: { name: string } };
-}
-
-// Helper function to determine badge variant based on status
-function getStatusVariant(status: string): "default" | "destructive" | "outline" | "secondary" {
-  switch (status) {
-    case 'draft': return 'outline';
-    case 'sent': return 'secondary';
-    case 'approved': return 'default';
-    case 'paid': return 'default';
-    case 'overdue': return 'destructive';
-    case 'rejected': return 'destructive';
-    default: return 'outline';
-  }
 }
 
 export function InvoiceBasicDetails({ invoice }: InvoiceBasicDetailsProps) {
@@ -48,9 +35,7 @@ export function InvoiceBasicDetails({ invoice }: InvoiceBasicDetailsProps) {
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">Status</p>
         <div className="font-medium">
-          <Badge variant={getStatusVariant(invoice.status)}>
-            {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-          </Badge>
+          <InvoiceStatusBadge status={invoice.status} />
         </div>
       </div>
     </div>
