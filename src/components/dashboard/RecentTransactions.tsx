@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Badge } from "@/components/ui/badge";
+import { InvoiceStatusBadge } from '@/components/payments/InvoiceStatusBadge';
+import { BillStatusBadge } from '@/components/payments/BillStatusBadge';
 import { useCompany } from '@/contexts/CompanyContext';
 
 interface RecentTransactionsProps {
@@ -194,12 +194,11 @@ export function RecentTransactions({ projectId, dateRange, managerId }: RecentTr
                       ? `Invoice #${transaction.invoice_number}` 
                       : `Bill #${transaction.bill_number}`}
                   </p>
-                  <Badge 
-                    variant={transaction.status === 'paid' ? 'default' : 'secondary'}
-                    className="text-xs"
-                  >
-                    {transaction.status}
-                  </Badge>
+                  {transaction.transactionType === 'invoice' ? (
+                    <InvoiceStatusBadge status={transaction.status as any} />
+                  ) : (
+                    <BillStatusBadge status={transaction.status as any} />
+                  )}
                 </div>
                 <div className="flex items-center mt-1">
                   <p className="text-xs text-gray-500">{transaction.client_name}</p>
