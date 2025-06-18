@@ -39,7 +39,7 @@ export function PaymentProcessor({
   const [status, setStatus] = useState<PaymentStatus>('pending');
   const [error, setError] = useState<string | null>(null);
 
-  const { paymentSummary, loading, refreshPayments, updateInvoiceStatus } = useInvoicePayments(entityId, amount);
+  const { paymentSummary, loading, refreshPayments } = useInvoicePayments(entityId, amount);
 
   const offlinePaymentForm = useForm<OfflinePaymentData>({
     defaultValues: {
@@ -146,7 +146,7 @@ export function PaymentProcessor({
 
         console.log('Payment saved successfully:', payment);
 
-        // Refresh payment data and update invoice status
+        // Refresh payment data to get updated totals
         await refreshPayments();
         
         setStatus('completed');

@@ -122,7 +122,6 @@ export function useInvoicePayments(invoiceId: string, invoiceAmount: number) {
   return {
     paymentSummary,
     loading,
-    refreshPayments: fetchPayments,
-    updateInvoiceStatus: (summary: InvoicePaymentSummary) => updateInvoiceStatus(summary)
+    refreshPayments: fetchPayments
   };
 }

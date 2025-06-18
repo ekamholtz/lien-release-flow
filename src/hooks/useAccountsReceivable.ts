@@ -173,13 +173,15 @@ export function useAccountsReceivable() {
     setIsPaymentDialogOpen(false);
     setSelectedInvoice(null);
     
-    // Refresh the invoices list to show updated status
-    await fetchInvoices();
-    
-    toast({
-      title: "Payment Recorded",
-      description: "The payment has been successfully recorded and the invoice status has been updated.",
-    });
+    // Add a small delay before refreshing to allow database updates to propagate
+    setTimeout(async () => {
+      await fetchInvoices();
+      
+      toast({
+        title: "Payment Recorded",
+        description: "The payment has been successfully recorded and the invoice status has been updated.",
+      });
+    }, 1000);
   };
 
   return {
