@@ -11,6 +11,7 @@ import { ExtendedContract } from '@/types/contract';
 interface ContractsTableProps {
   contracts: ExtendedContract[];
   onViewDetails: (contract: ExtendedContract) => void;
+  onDelete: (contract: ExtendedContract) => void;
   onSortChange: (key: 'title' | 'owner' | 'createdAt') => void;
   sortKey: string;
   sortOrder: string;
@@ -19,6 +20,7 @@ interface ContractsTableProps {
 export function ContractsTable({
   contracts,
   onViewDetails,
+  onDelete,
   onSortChange,
   sortKey,
   sortOrder,
@@ -61,6 +63,7 @@ export function ContractsTable({
                 <ContractActions
                   contract={contract}
                   onViewDetails={onViewDetails}
+                  onDelete={onDelete}
                 />
               </TableCell>
             </TableRow>

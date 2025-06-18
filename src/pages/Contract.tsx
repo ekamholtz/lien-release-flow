@@ -3,14 +3,13 @@ import { AppLayout } from '@/components/AppLayout';
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
 import { ContractDetailsModal } from '@/components/contracts/ContractDetailsModal';
 import { useCompany } from '@/contexts/CompanyContext';
 import { ContractsTable } from '@/components/contracts/ContractsTable';
 import { ContractFilters, ContractFiltersState } from '@/components/contracts/ContractFilters';
 import { ExtendedContract } from '@/types/contract';
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 const Contract = () => {
   const navigate = useNavigate();
@@ -66,11 +65,7 @@ const Contract = () => {
       return data;
     } catch (err) {
       console.error('Error calling edge function:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to load contracts.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load contracts.');
       return null;
     }
   };
@@ -105,11 +100,7 @@ const Contract = () => {
 
     } catch (error) {
       console.error('Error fetching contracts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load contracts. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load contracts. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -120,10 +111,31 @@ const Contract = () => {
   }, [filters, currentCompany?.id]);
 
   const handleViewDetails = (contract: ExtendedContract) => {
-    // setSelectedContract(contract);
-    console.log("hiiii", contract);
     checkStatus(contract.objectId);
     setIsDetailsModalOpen(true);
+  };
+  const handleDelete = async (contract: ExtendedContract) => {
+    if (!contract.objectId) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("remove-contract", {
+        body: { documentId: contract.objectId },
+      });
+
+      if (data.deletedAt) {
+        toast.success('Deleted the contract.');
+        await fetchContracts();
+        return;
+      }
+      if (error) {
+        toast.error( 'Failed to load contracts.');
+        console.error("Supabase function error:", error);
+        return;
+      }
+
+    } catch (err) {
+      console.error("Status check error catch:", err);
+    }
   };
 
   const checkStatus = async (agreementId: string) => {
@@ -193,6 +205,7 @@ const Contract = () => {
             <ContractsTable
               contracts={contracts}
               onViewDetails={handleViewDetails}
+              onDelete={handleDelete}
               onSortChange={(key) => {
                 if (key === sortKey) {
                   setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');

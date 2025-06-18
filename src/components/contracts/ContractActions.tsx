@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { Eye } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 
 // Import the correct type or define it here
 type ExtendedContract = {
@@ -20,9 +20,10 @@ type ExtendedContract = {
 interface ContractActionsProps {
   contract: ExtendedContract;
   onViewDetails: (contract: ExtendedContract) => void;
+  onDelete: (contract: ExtendedContract) => void;
 }
 
-export function ContractActions({ contract, onViewDetails }: ContractActionsProps) {
+export function ContractActions({ contract, onViewDetails, onDelete }: ContractActionsProps) {
   return (
     <div className="flex items-center justify-end gap-2">
       <TooltipProvider>
@@ -40,8 +41,26 @@ export function ContractActions({ contract, onViewDetails }: ContractActionsProp
           <TooltipContent>
             <p>View Details</p>
           </TooltipContent>
+          
         </Tooltip>
       </TooltipProvider>
+      <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-red-600"
+                  onClick={() => onDelete(contract)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
     </div>
   );
 }
