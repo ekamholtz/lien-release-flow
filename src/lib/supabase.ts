@@ -66,7 +66,7 @@ export type DbTeamMember = {
   created_at: string;
 };
 
-export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
+export type InvoiceStatus = 'draft' | 'sent' | 'partially_paid' | 'paid' | 'overdue';
 
 export type DbInvoice = {
   id: string;

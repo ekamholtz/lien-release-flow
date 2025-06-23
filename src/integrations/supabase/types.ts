@@ -1269,6 +1269,36 @@ export type Database = {
           },
         ]
       }
+      signed_contracts: {
+        Row: {
+          created_at: string | null
+          document_id: string
+          document_url: string | null
+          id: string
+          signer_email: string | null
+          signer_name: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_id: string
+          document_url?: string | null
+          id?: string
+          signer_email?: string | null
+          signer_name?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string
+          document_url?: string | null
+          id?: string
+          signer_email?: string | null
+          signer_name?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null

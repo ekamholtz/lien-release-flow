@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Badge } from "@/components/ui/badge";
 import { InvoiceStatus } from '@/lib/supabase';
 
 interface InvoiceStatusBadgeProps {
@@ -8,16 +7,46 @@ interface InvoiceStatusBadgeProps {
 }
 
 export function InvoiceStatusBadge({ status }: InvoiceStatusBadgeProps) {
-  switch (status) {
-    case 'draft':
-      return <Badge variant="outline" className="bg-gray-100 text-gray-800 hover:bg-gray-100">Draft</Badge>;
-    case 'sent':
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Sent</Badge>;
-    case 'paid':
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Paid</Badge>;
-    case 'overdue':
-      return <Badge variant="destructive">Overdue</Badge>;
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
+  const getStatusConfig = (status: InvoiceStatus) => {
+    switch (status) {
+      case 'draft':
+        return {
+          classes: 'bg-slate-100 text-slate-700 border-slate-300',
+          label: 'Draft'
+        };
+      case 'sent':
+        return {
+          classes: 'bg-sky-100 text-sky-700 border-sky-300',
+          label: 'Sent'
+        };
+      case 'partially_paid':
+        return {
+          classes: 'bg-amber-100 text-amber-700 border-amber-300',
+          label: 'Partially Paid'
+        };
+      case 'paid':
+        return {
+          classes: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+          label: 'Paid'
+        };
+      case 'overdue':
+        return {
+          classes: 'bg-rose-100 text-rose-700 border-rose-300',
+          label: 'Overdue'
+        };
+      default:
+        return {
+          classes: 'bg-slate-100 text-slate-700 border-slate-300',
+          label: status
+        };
+    }
+  };
+
+  const config = getStatusConfig(status);
+
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.classes}`}>
+      {config.label}
+    </span>
+  );
 }
