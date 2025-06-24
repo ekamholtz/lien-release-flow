@@ -1,10 +1,8 @@
-
 import React, { useState, useContext } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjectWizard } from '@/hooks/useProjectWizard';
 import { useProjectSubmission } from '@/hooks/useProjectSubmission';
 import { ProjectBasicInfo } from './wizard/ProjectBasicInfo';
-import { ProjectContract, ContractData } from './wizard/ProjectContract';
 import { ProjectMilestones } from './wizard/ProjectMilestones';
 import { ProjectDocuments } from './wizard/ProjectDocuments';
 import { ProjectWizardSummary } from './wizard/ProjectWizardSummary';
@@ -23,36 +21,31 @@ export function ProjectWizard({ onClose, initialProjectId, basicInfoOnly = false
   // Pass initialProjectId to the useProjectWizard hook to load project data
   const { formData, updateFormData, initialLoading } = useProjectWizard(initialProjectId);
   const { submitProject, isSubmitting } = useProjectSubmission();
-  const [contractData, setContractData] = useState<ContractData>({ type: 'skip' });
   
   const handleNext = () => {
     if (currentStep === 'basic-info') {
       if (basicInfoOnly) {
         setCurrentStep('summary');
       } else {
-        setCurrentStep('contract');
+        setCurrentStep('documents');
       }
-    } else if (currentStep === 'contract') {
+    } else if (currentStep === 'documents') {
       setCurrentStep('milestones');
     } else if (currentStep === 'milestones') {
-      setCurrentStep('documents');
-    } else if (currentStep === 'documents') {
       setCurrentStep('summary');
     }
   };
   
   const handleBack = () => {
-    if (currentStep === 'contract') {
+    if (currentStep === 'documents') {
       setCurrentStep('basic-info');
     } else if (currentStep === 'milestones') {
-      setCurrentStep('contract');
-    } else if (currentStep === 'documents') {
-      setCurrentStep('milestones');
+      setCurrentStep('documents');
     } else if (currentStep === 'summary') {
       if (basicInfoOnly) {
         setCurrentStep('basic-info');
       } else {
-        setCurrentStep('documents');
+        setCurrentStep('milestones');
       }
     }
   };
@@ -117,12 +110,12 @@ export function ProjectWizard({ onClose, initialProjectId, basicInfoOnly = false
           />
         )}
         
-        {currentStep === 'contract' && (
-          <ProjectContract
-            initialContract={contractData}
+        {currentStep === 'documents' && (
+          <ProjectDocuments
+            initialDocuments={formData.documents}
             onBack={handleBack}
-            onSubmit={(contract) => {
-              setContractData(contract);
+            onSubmit={(documents) => {
+              updateFormData({ documents });
               handleNext();
             }}
           />
@@ -136,17 +129,6 @@ export function ProjectWizard({ onClose, initialProjectId, basicInfoOnly = false
             onBack={handleBack}
             onSubmit={(milestones) => {
               updateFormData({ milestones });
-              handleNext();
-            }}
-          />
-        )}
-        
-        {currentStep === 'documents' && (
-          <ProjectDocuments
-            initialDocuments={formData.documents}
-            onBack={handleBack}
-            onSubmit={(documents) => {
-              updateFormData({ documents });
               handleNext();
             }}
           />

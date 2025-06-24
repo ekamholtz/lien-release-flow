@@ -2,7 +2,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-export type WizardStep = 'basic-info' | 'contract' | 'milestones' | 'documents' | 'summary' | string;
+export type WizardStep = 'basic-info' | 'documents' | 'milestones' | 'summary' | string;
 
 interface WizardProgressProps {
   currentStep: WizardStep;
@@ -20,13 +20,12 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
       return currentStepIndex >= stepIndex && stepIndex >= 0;
     }
     
-    // Updated step order for project wizard: basic-info -> contract -> milestones -> documents -> summary
+    // Default step order for project wizard
     const stepOrder = {
       'basic-info': 0,
-      'contract': 1,
+      'documents': 1,
       'milestones': 2,
-      'documents': 3,
-      'summary': 4
+      'summary': 3
     };
     
     return stepOrder[currentStep as keyof typeof stepOrder] >= stepOrder[step as keyof typeof stepOrder];
@@ -74,11 +73,11 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
     );
   }
 
-  // Default project wizard progress with new order
+  // Default project wizard progress
   return (
     <div className="flex justify-center mb-6">
       <div className="flex items-center">
-        {/* Step 1: Basic Info */}
+        {/* Step 1 */}
         <div className={cn(
           "w-10 h-10 rounded-full flex items-center justify-center",
           isStepActive('basic-info') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
@@ -89,7 +88,7 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
         {basicInfoOnly ? (
           // If basicInfoOnly, show direct connection to summary
           <>
-            {/* Connector 1-5 */}
+            {/* Connector 1-4 */}
             <div className="w-12 h-1 bg-gray-200">
               <div className={cn(
                 "h-1",
@@ -97,7 +96,7 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
               )} style={{ width: '100%' }}></div>
             </div>
             
-            {/* Step 5 (Summary) */}
+            {/* Step 4 (Summary) */}
             <div className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center",
               isStepActive('summary') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
@@ -112,14 +111,14 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
             <div className="w-12 h-1 bg-gray-200">
               <div className={cn(
                 "h-1",
-                isStepActive('contract') ? "bg-cnstrct-orange" : "bg-gray-200"
+                isStepActive('documents') ? "bg-cnstrct-orange" : "bg-gray-200"
               )} style={{ width: '100%' }}></div>
             </div>
             
-            {/* Step 2: Contract */}
+            {/* Step 2 */}
             <div className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center",
-              isStepActive('contract') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
+              isStepActive('documents') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
             )}>
               2
             </div>
@@ -132,7 +131,7 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
               )} style={{ width: '100%' }}></div>
             </div>
             
-            {/* Step 3: Milestones */}
+            {/* Step 3 */}
             <div className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center",
               isStepActive('milestones') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
@@ -144,32 +143,16 @@ export function WizardProgress({ currentStep, basicInfoOnly = false, steps, setS
             <div className="w-12 h-1 bg-gray-200">
               <div className={cn(
                 "h-1",
-                isStepActive('documents') ? "bg-cnstrct-orange" : "bg-gray-200"
-              )} style={{ width: '100%' }}></div>
-            </div>
-            
-            {/* Step 4: Documents */}
-            <div className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center",
-              isStepActive('documents') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
-            )}>
-              4
-            </div>
-            
-            {/* Connector 4-5 */}
-            <div className="w-12 h-1 bg-gray-200">
-              <div className={cn(
-                "h-1",
                 isStepActive('summary') ? "bg-cnstrct-orange" : "bg-gray-200"
               )} style={{ width: '100%' }}></div>
             </div>
             
-            {/* Step 5: Summary */}
+            {/* Step 4 */}
             <div className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center",
               isStepActive('summary') ? "bg-cnstrct-orange text-white" : "bg-gray-200 text-gray-500"
             )}>
-              5
+              4
             </div>
           </>
         )}
