@@ -3,12 +3,12 @@ import React, { useState, useContext } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjectWizard } from '@/hooks/useProjectWizard';
 import { useProjectSubmission } from '@/hooks/useProjectSubmission';
-import { ProjectBasicInfo } from './wizard/ProjectBasicInfo';
-import { ProjectContract, ContractData } from './wizard/ProjectContract';
-import { ProjectMilestones } from './wizard/ProjectMilestones';
-import { ProjectDocuments } from './wizard/ProjectDocuments';
-import { ProjectWizardSummary } from './wizard/ProjectWizardSummary';
-import { WizardProgress, WizardStep } from './wizard/WizardProgress';
+import { ProjectBasicInfo } from './ProjectBasicInfo';
+import { ProjectContract, ContractData } from './ProjectContract';
+import { ProjectMilestones } from './ProjectMilestones';
+import { ProjectDocuments } from './ProjectDocuments';
+import { ProjectWizardSummary } from './ProjectWizardSummary';
+import { WizardProgress, WizardStep } from './WizardProgress';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectWizardProps {

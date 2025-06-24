@@ -30,7 +30,30 @@ export function ProjectContractSummary({ contractData }: ProjectContractSummaryP
     }
   };
 
-  const totalAmount = contractData.lineItems?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
+  const calculateTotals = () => {
+    if (!contractData.lineItems) return { totalBudget: 0, totalPrice: 0, itemCount: 0, subItemCount: 0 };
+    
+    let totalBudget = 0;
+    let totalPrice = 0;
+    let subItemCount = 0;
+    
+    contractData.lineItems.forEach(item => {
+      item.subItems.forEach(subItem => {
+        totalBudget += subItem.budget || 0;
+        totalPrice += subItem.price || 0;
+        subItemCount++;
+      });
+    });
+    
+    return {
+      totalBudget,
+      totalPrice,
+      itemCount: contractData.lineItems.length,
+      subItemCount
+    };
+  };
+
+  const { totalBudget, totalPrice, itemCount, subItemCount } = calculateTotals();
 
   return (
     <div>
@@ -51,23 +74,44 @@ export function ProjectContractSummary({ contractData }: ProjectContractSummaryP
               )}
               {contractData.lineItems && contractData.lineItems.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  <p className="text-sm font-medium">Line Items ({contractData.lineItems.length})</p>
-                  <div className="bg-gray-50 rounded-md p-3 space-y-1">
-                    {contractData.lineItems.slice(0, 3).map((item, index) => (
-                      <div key={item.id} className="flex justify-between text-xs">
-                        <span className="truncate pr-2">{item.description || 'Untitled Item'}</span>
-                        <span>${item.amount?.toFixed(2) || '0.00'}</span>
+                  <p className="text-sm font-medium">
+                    Line Items: {itemCount} items ({subItemCount} sub-items)
+                  </p>
+                  <div className="bg-gray-50 rounded-md p-3 space-y-2">
+                    {contractData.lineItems.slice(0, 2).map((item, index) => (
+                      <div key={item.id} className="space-y-1">
+                        <div className="flex justify-between text-sm font-medium">
+                          <span className="truncate pr-2">{item.description || 'Untitled Item'}</span>
+                          <span>
+                            ${item.subItems.reduce((sum, sub) => sum + (sub.price || 0), 0).toFixed(2)}
+                          </span>
+                        </div>
+                        {item.subItems.slice(0, 2).map((subItem, subIndex) => (
+                          <div key={subItem.id} className="flex justify-between text-xs text-muted-foreground pl-4">
+                            <span className="truncate pr-2">• {subItem.description || 'Untitled Sub-item'}</span>
+                            <span>${subItem.price?.toFixed(2) || '0.00'}</span>
+                          </div>
+                        ))}
+                        {item.subItems.length > 2 && (
+                          <div className="text-xs text-muted-foreground pl-4">
+                            +{item.subItems.length - 2} more sub-items
+                          </div>
+                        )}
                       </div>
                     ))}
-                    {contractData.lineItems.length > 3 && (
+                    {contractData.lineItems.length > 2 && (
                       <div className="text-xs text-muted-foreground pt-1">
-                        +{contractData.lineItems.length - 3} more items
+                        +{contractData.lineItems.length - 2} more line items
                       </div>
                     )}
-                    <div className="border-t pt-1 mt-2">
+                    <div className="border-t pt-2 mt-3 space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Total Budget:</span>
+                        <span>${totalBudget.toFixed(2)}</span>
+                      </div>
                       <div className="flex justify-between text-sm font-medium">
-                        <span>Total:</span>
-                        <span>${totalAmount.toFixed(2)}</span>
+                        <span>Total Price:</span>
+                        <span>${totalPrice.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
