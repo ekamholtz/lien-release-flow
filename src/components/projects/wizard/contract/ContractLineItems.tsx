@@ -324,7 +324,7 @@ export function ContractLineItems({ lineItems, onChange, projectValue }: Contrac
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="space-y-1">
-                  <div className="text-muted-foreground">Project Value</div>
+                  <div className="text-muted-foreground">Contract Value</div>
                   <div className="font-medium text-lg">${projectValue?.toFixed(2) || '0.00'}</div>
                 </div>
                 
@@ -353,8 +353,8 @@ export function ContractLineItems({ lineItems, onChange, projectValue }: Contrac
                   isOverBudget ? 'bg-red-50 text-red-700' : 'bg-orange-50 text-orange-700'
                 }`}>
                   {isOverBudget 
-                    ? 'Line items exceed the project value. Consider adjusting pricing or project scope.'
-                    : 'Line items are under the project value. You may want to add more items or adjust pricing.'
+                    ? 'Line items exceed the contract value. Consider adjusting pricing or project scope.'
+                    : 'Line items are under the contract value. You may want to add more items or adjust pricing.'
                   }
                 </div>
               )}
