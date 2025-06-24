@@ -6,6 +6,7 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { toast } from 'sonner';
 import { Milestone } from '@/components/projects/wizard/ProjectMilestones';
 import { ProjectDocument } from '@/components/projects/wizard/ProjectDocuments';
+import { ContractData } from '@/components/projects/wizard/ProjectContract';
 import { ProjectType } from '@/types/project';
 import { WizardStep } from '@/components/projects/wizard/WizardProgress';
 
@@ -24,6 +25,7 @@ export interface ProjectFormData {
   projectTypeId?: string;
   documents: ProjectDocument[];
   milestones: Milestone[];
+  contractData?: ContractData;
   companyId?: string;
 }
 
@@ -39,6 +41,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
     startDate: new Date(),
     documents: [],
     milestones: [],
+    contractData: { type: 'skip' },
     companyId: currentCompany?.id
   });
   const [initialLoading, setInitialLoading] = useState(!!initialProjectId);
@@ -112,6 +115,7 @@ export function useProjectWizard(initialProjectId?: string | null) {
             endDate: project.end_date ? new Date(project.end_date) : null,
             projectTypeId: project.project_type_id || undefined,
             companyId: project.company_id || currentCompany.id,
+            contractData: { type: 'skip' }, // Default contract data for existing projects
             documents: documents?.map(doc => ({
               file: new File([], doc.name, { type: doc.file_type }), // Placeholder file
               sharedWithClient: doc.shared_with_client,
@@ -159,21 +163,25 @@ export function useProjectWizard(initialProjectId?: string | null) {
 
   const handleNextStep = () => {
     if (currentStep === 'basic-info') {
-      setCurrentStep('documents');
-    } else if (currentStep === 'documents') {
+      setCurrentStep('contract');
+    } else if (currentStep === 'contract') {
       setCurrentStep('milestones');
     } else if (currentStep === 'milestones') {
+      setCurrentStep('documents');
+    } else if (currentStep === 'documents') {
       setCurrentStep('summary');
     }
   };
 
   const handlePreviousStep = () => {
-    if (currentStep === 'documents') {
+    if (currentStep === 'contract') {
       setCurrentStep('basic-info');
     } else if (currentStep === 'milestones') {
-      setCurrentStep('documents');
-    } else if (currentStep === 'summary') {
+      setCurrentStep('contract');
+    } else if (currentStep === 'documents') {
       setCurrentStep('milestones');
+    } else if (currentStep === 'summary') {
+      setCurrentStep('documents');
     }
   };
 

@@ -7,7 +7,9 @@ import { ProjectContactInfoSummary } from './ProjectContactInfoSummary';
 import { ProjectDescriptionSummary } from './ProjectDescriptionSummary';
 import { ProjectDocumentsSummary } from './ProjectDocumentsSummary';
 import { ProjectMilestonesSummary } from './ProjectMilestonesSummary';
+import { ProjectContractSummary } from './ProjectContractSummary';
 import { useProjectTypeLookup } from './useProjectTypeLookup';
+import { ContractData } from '../ProjectContract';
 
 // Extend the File type to include our custom properties
 interface ExtendedFile extends File {
@@ -28,6 +30,7 @@ interface ProjectWizardSummaryContentProps {
     startDate: Date;
     endDate?: Date | null;
     projectTypeId?: string;
+    contractData?: ContractData;
     documents: ExtendedFile[];
     milestones: {
       name: string;
@@ -73,10 +76,10 @@ export function ProjectWizardSummaryContent({ projectData }: ProjectWizardSummar
         </>
       )}
       
-      {projectData.documents.length > 0 && (
+      {projectData.contractData && projectData.contractData.type !== 'skip' && (
         <>
           <Separator />
-          <ProjectDocumentsSummary documents={projectData.documents} />
+          <ProjectContractSummary contractData={projectData.contractData} />
         </>
       )}
       
@@ -84,6 +87,13 @@ export function ProjectWizardSummaryContent({ projectData }: ProjectWizardSummar
         <>
           <Separator />
           <ProjectMilestonesSummary milestones={projectData.milestones} />
+        </>
+      )}
+      
+      {projectData.documents.length > 0 && (
+        <>
+          <Separator />
+          <ProjectDocumentsSummary documents={projectData.documents} />
         </>
       )}
     </Card>
