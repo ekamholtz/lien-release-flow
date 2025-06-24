@@ -27,9 +27,10 @@ export interface ContractLineItem {
 interface ContractLineItemsProps {
   lineItems: ContractLineItem[];
   onChange: (lineItems: ContractLineItem[]) => void;
+  projectValue?: number;
 }
 
-export function ContractLineItems({ lineItems, onChange }: ContractLineItemsProps) {
+export function ContractLineItems({ lineItems, onChange, projectValue }: ContractLineItemsProps) {
   const addLineItem = () => {
     const newItem: ContractLineItem = {
       id: `parent-${Date.now()}`,
@@ -119,6 +120,10 @@ export function ContractLineItems({ lineItems, onChange }: ContractLineItemsProp
     const { totalPrice } = calculateParentTotals(item.subItems);
     return sum + totalPrice;
   }, 0);
+
+  const difference = projectValue ? grandTotal - projectValue : 0;
+  const isOverBudget = difference > 0;
+  const isUnderBudget = difference < 0;
 
   return (
     <div className="space-y-4">
@@ -312,15 +317,49 @@ export function ContractLineItems({ lineItems, onChange }: ContractLineItemsProp
             );
           })}
 
-          {lineItems.length > 0 && (
-            <div className="flex justify-end">
-              <div className="bg-gray-100 px-4 py-3 rounded-md">
-                <span className="text-lg font-semibold">
-                  Grand Total: ${grandTotal.toFixed(2)}
-                </span>
+          {/* Contract Value Comparison */}
+          <Card className="p-4 bg-gray-50 border-2">
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-gray-700">Contract Value Comparison</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="space-y-1">
+                  <div className="text-muted-foreground">Project Value</div>
+                  <div className="font-medium text-lg">${projectValue?.toFixed(2) || '0.00'}</div>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="text-muted-foreground">Line Items Total</div>
+                  <div className="font-medium text-lg">${grandTotal.toFixed(2)}</div>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="text-muted-foreground">Difference</div>
+                  <div className={`font-medium text-lg ${
+                    isOverBudget ? 'text-red-600' : 
+                    isUnderBudget ? 'text-orange-600' : 
+                    'text-green-600'
+                  }`}>
+                    {difference > 0 ? '+' : ''}${difference.toFixed(2)}
+                    {isOverBudget && ' (Over Budget)'}
+                    {isUnderBudget && ' (Under Budget)'}
+                    {difference === 0 && ' (Matches)'}
+                  </div>
+                </div>
               </div>
+              
+              {difference !== 0 && (
+                <div className={`text-xs p-2 rounded ${
+                  isOverBudget ? 'bg-red-50 text-red-700' : 'bg-orange-50 text-orange-700'
+                }`}>
+                  {isOverBudget 
+                    ? 'Line items exceed the project value. Consider adjusting pricing or project scope.'
+                    : 'Line items are under the project value. You may want to add more items or adjust pricing.'
+                  }
+                </div>
+              )}
             </div>
-          )}
+          </Card>
         </div>
       )}
     </div>

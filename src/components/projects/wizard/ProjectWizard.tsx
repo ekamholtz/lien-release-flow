@@ -121,6 +121,7 @@ export function ProjectWizard({ onClose, initialProjectId, basicInfoOnly = false
         {currentStep === 'contract' && (
           <ProjectContract
             initialContract={contractData}
+            projectValue={formData.value}
             onBack={handleBack}
             onSubmit={(contract) => {
               setContractData(contract);

@@ -19,11 +19,12 @@ export interface ContractData {
 
 interface ProjectContractProps {
   initialContract?: ContractData;
+  projectValue?: number;
   onBack: () => void;
   onSubmit: (contractData: ContractData) => void;
 }
 
-export function ProjectContract({ initialContract, onBack, onSubmit }: ProjectContractProps) {
+export function ProjectContract({ initialContract, projectValue, onBack, onSubmit }: ProjectContractProps) {
   const [contractType, setContractType] = useState<'create' | 'upload' | 'skip'>(
     initialContract?.type || 'skip'
   );
@@ -162,6 +163,7 @@ export function ProjectContract({ initialContract, onBack, onSubmit }: ProjectCo
             <ContractLineItems
               lineItems={lineItems}
               onChange={setLineItems}
+              projectValue={projectValue}
             />
           </Card>
         </div>

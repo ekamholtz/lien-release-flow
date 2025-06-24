@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { WizardActions } from './WizardActions';
 import { ProjectWizardSummaryContent } from './summary/ProjectWizardSummaryContent';
 import { supabase } from '@/integrations/supabase/client';
+import { ContractData } from './ProjectContract';
 
 // Extend the File type to include our custom properties
 interface ExtendedFile extends File {
@@ -34,6 +35,7 @@ interface ProjectWizardSummaryProps {
       percentage?: number;
       dueType?: string;
     }[];
+    contractData?: ContractData;
   };
   isLoading: boolean;
   onBack: () => void;
