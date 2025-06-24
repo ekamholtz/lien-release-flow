@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { WizardActions } from './WizardActions';
+import { ContractLineItems, ContractLineItem } from './contract/ContractLineItems';
 
 export interface ContractData {
   type: 'create' | 'upload' | 'skip';
   title?: string;
   description?: string;
   file?: File;
+  lineItems?: ContractLineItem[];
 }
 
 interface ProjectContractProps {
@@ -28,6 +30,7 @@ export function ProjectContract({ initialContract, onBack, onSubmit }: ProjectCo
   const [title, setTitle] = useState(initialContract?.title || '');
   const [description, setDescription] = useState(initialContract?.description || '');
   const [uploadedFile, setUploadedFile] = useState<File | null>(initialContract?.file || null);
+  const [lineItems, setLineItems] = useState<ContractLineItem[]>(initialContract?.lineItems || []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -42,6 +45,7 @@ export function ProjectContract({ initialContract, onBack, onSubmit }: ProjectCo
       title: contractType === 'create' ? title : undefined,
       description: contractType === 'create' ? description : undefined,
       file: contractType === 'upload' ? uploadedFile || undefined : undefined,
+      lineItems: contractType === 'create' ? lineItems : undefined,
     };
     
     onSubmit(contractData);
@@ -127,31 +131,40 @@ export function ProjectContract({ initialContract, onBack, onSubmit }: ProjectCo
 
       {/* Create Contract Form */}
       {contractType === 'create' && (
-        <Card className="p-6">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="contract-title">Contract Title</Label>
-              <Input
-                id="contract-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter contract title"
-                className="mt-1"
-              />
+        <div className="space-y-6">
+          <Card className="p-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="contract-title">Contract Title</Label>
+                <Input
+                  id="contract-title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter contract title"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="contract-description">Description (Optional)</Label>
+                <Textarea
+                  id="contract-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Brief description of the contract terms"
+                  className="mt-1"
+                  rows={3}
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="contract-description">Description (Optional)</Label>
-              <Textarea
-                id="contract-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description of the contract terms"
-                className="mt-1"
-                rows={3}
-              />
-            </div>
-          </div>
-        </Card>
+          </Card>
+
+          <Card className="p-6">
+            <ContractLineItems
+              lineItems={lineItems}
+              onChange={setLineItems}
+            />
+          </Card>
+        </div>
       )}
 
       {/* Upload Contract Form */}
