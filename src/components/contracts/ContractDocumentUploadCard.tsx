@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch"; // Assuming you're using a Switch component
+import DocxToHtmlViewer, { DocxToHtmlViewerRef } from "./DocxToHtmlViewer";
 
 type Props = {
   file: File | null;
@@ -33,6 +34,11 @@ type Props = {
   setAllowModifications: (val: boolean) => void;
   setAutoReminder: (val: boolean) => void;
   onSubmit: () => void;
+  setSignatureBoxes: React.Dispatch<React.SetStateAction<any[]>>;
+  onClose: () => void;
+  sendForSigning: () => void;
+  showModal: boolean;
+  viewerRef: React.RefObject<DocxToHtmlViewerRef>;
 };
 
 export const ContractDocumentUploadCard: React.FC<Props> = ({
@@ -62,6 +68,12 @@ export const ContractDocumentUploadCard: React.FC<Props> = ({
   setAllowModifications,
   setAutoReminder,
   onSubmit,
+  viewerRef,
+  setSignatureBoxes,
+  sendForSigning,
+  showModal,
+  onClose,
+
 }) => {
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -72,7 +84,9 @@ export const ContractDocumentUploadCard: React.FC<Props> = ({
     <Card>
       <CardContent className="py-6 space-y-4">
         {/* <h2 className="text-2xl font-bold text-primary">Documents</h2> */}
-        <Input type="file" accept="application/pdf" onChange={handleUpload} />
+        {/* <Input type="file" accept="application/pdf" onChange={handleUpload} /> */}
+        <DocxToHtmlViewer ref={viewerRef} setSignatureBoxes={setSignatureBoxes} onSubmit={sendForSigning} showModal={showModal} onClose={onClose} />
+
         <Input
           type="text"
           placeholder="Signer name"
@@ -139,7 +153,7 @@ export const ContractDocumentUploadCard: React.FC<Props> = ({
         <Button
           className="w-full"
           onClick={onSubmit}
-          disabled={status === "sending" || !file || !email || !name}
+          disabled={status === "sending" || !email || !name}
         >
           {status === "sending" ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

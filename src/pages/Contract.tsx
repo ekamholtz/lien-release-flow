@@ -115,7 +115,10 @@ const Contract = () => {
     setIsDetailsModalOpen(true);
   };
   const handleDelete = async (contract: ExtendedContract) => {
+
     if (!contract.objectId) return;
+    const confirmed = window.confirm(`Are you sure you want to delete this contract "${contract.title}"?`);
+    if (!confirmed) return;
 
     try {
       const { data, error } = await supabase.functions.invoke("remove-contract", {
@@ -128,7 +131,7 @@ const Contract = () => {
         return;
       }
       if (error) {
-        toast.error( 'Failed to load contracts.');
+        toast.error('Failed to load contracts.');
         console.error("Supabase function error:", error);
         return;
       }

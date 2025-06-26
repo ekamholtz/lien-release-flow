@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { ContractDocumentUploadCard } from "@/components/contracts/ContractDocumentUploadCard";
 import { AgreementStatusCard } from "@/components/contracts/AgreementStatusCard";
@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import DocxToHtmlViewer, { DocxToHtmlViewerRef } from "@/components/contracts/DocxToHtmlViewer";
+import { toast } from "sonner";
 
 const CreateContract: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +28,9 @@ const CreateContract: React.FC = () => {
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [agreementId, setAgreementId] = useState("");
   const [signedUrl, setSignedUrl] = useState("");
+  const viewerRef = useRef<DocxToHtmlViewerRef>(null);
+  const [signatureBoxes, setSignatureBoxes] = useState<any[]>([]);
+  const [showModal, setShowModal] = useState<boolean>(false);
 
   const toBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -42,12 +47,21 @@ const CreateContract: React.FC = () => {
       reader.readAsDataURL(file);
     });
 
-  const sendForSigning = async () => {
-    if (!file || !email || !name) return;
-    setStatus("sending");
+  const handleNext = () => {
+    setShowModal(true);
+  }
 
+  const sendForSigning = async () => {
+    if (!email || !name) return;
+    if (!viewerRef.current) {
+      toast.error("Document preview not ready.");
+      return;
+    }
+    const base64File = await viewerRef.current.getMergedHtml();
+    setShowModal(false);
+    setStatus("sending");
     try {
-      const base64File = await toBase64(file);
+      // const base64File = await toBase64(file);
 
       const { data, error } = await supabase.functions.invoke("send-pdf-signature", {
         body: {
@@ -63,6 +77,24 @@ const CreateContract: React.FC = () => {
           enableOTP,
           allowModifications,
           autoReminder,
+          signers: [
+            {
+              role: "contractor",
+              signing_order: 1,
+              email: email,
+              name: name,
+              phone: phone || "",
+              widgets: signatureBoxes.map((box, index) => ({
+                type: "signature",
+                page: 1,
+                x: box.x,
+                y: box.y,
+                w: box.w,
+                h: box.h,
+                name: `signature_${index + 1}`,
+              }))
+            }
+          ]
         },
       });
 
@@ -85,25 +117,25 @@ const CreateContract: React.FC = () => {
   };
 
   const checkStatus = async () => {
-  if (!agreementId) return;
+    if (!agreementId) return;
 
-  try {
-    const { data, error } = await supabase.functions.invoke("get-contract-details", {
-      body: { documentId: agreementId }, 
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke("get-contract-details", {
+        body: { documentId: agreementId },
+      });
 
-    if (error) {
-      console.error("Supabase function error:", error);
-      return;
+      if (error) {
+        console.error("Supabase function error:", error);
+        return;
+      }
+
+      if (data?.status === "completed") {
+        setSignedUrl(data.downloadUrl);
+      }
+    } catch (err) {
+      console.error("Status check error:", err);
     }
-
-    if (data?.status === "completed") {
-      setSignedUrl(data.downloadUrl);
-    }
-  } catch (err) {
-    console.error("Status check error:", err);
-  }
-};
+  };
 
 
   return (
@@ -125,6 +157,7 @@ const CreateContract: React.FC = () => {
           <ContractDocumentUploadCard
             file={file}
             name={name}
+            setPhone={setPhone}
             email={email}
             phone={phone}
             title={title}
@@ -139,7 +172,6 @@ const CreateContract: React.FC = () => {
             setFile={setFile}
             setName={setName}
             setEmail={setEmail}
-            setPhone={setPhone}
             setTitle={setTitle}
             setNote={setNote}
             setDescription={setDescription}
@@ -148,7 +180,12 @@ const CreateContract: React.FC = () => {
             setEnableOTP={setEnableOTP}
             setAllowModifications={setAllowModifications}
             setAutoReminder={setAutoReminder}
-            onSubmit={sendForSigning}
+            onSubmit={handleNext}
+            viewerRef={viewerRef}
+            setSignatureBoxes={setSignatureBoxes}
+            sendForSigning={sendForSigning}
+            showModal={showModal}
+            onClose={() => setShowModal(false)}
           />
 
           {agreementId && (
@@ -158,6 +195,7 @@ const CreateContract: React.FC = () => {
               checkStatus={checkStatus}
             />
           )}
+
         </div>
       </div>
 
