@@ -16,7 +16,9 @@ import { useCompany } from '@/contexts/CompanyContext';
 
 const companyProfileSchema = z.object({
   name: z.string().min(1, 'Company name is required'),
-  address: z.string().optional(),
+  street_address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   logo_url: z.string().url('Invalid URL').optional().or(z.literal(''))
@@ -34,7 +36,9 @@ export function CompanyProfileForm() {
     resolver: zodResolver(companyProfileSchema),
     defaultValues: {
       name: '',
-      address: '',
+      street_address: '',
+      city: '',
+      state: '',
       phone: '',
       email: '',
       logo_url: ''
@@ -44,22 +48,27 @@ export function CompanyProfileForm() {
   // Load current company data
   useEffect(() => {
     if (currentCompany) {
-      const { data } = supabase
-        .from('companies')
-        .select('*')
-        .eq('id', currentCompany.id)
-        .single()
-        .then(({ data, error }) => {
-          if (!error && data) {
-            form.reset({
-              name: data.name || '',
-              address: data.address || '',
-              phone: data.phone || '',
-              email: data.email || '',
-              logo_url: data.logo_url || ''
-            });
-          }
-        });
+      const loadCompanyData = async () => {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', currentCompany.id)
+          .single();
+          
+        if (!error && data) {
+          form.reset({
+            name: data.name || '',
+            street_address: data.street_address || '',
+            city: data.city || '',
+            state: data.state || '',
+            phone: data.phone || '',
+            email: data.email || '',
+            logo_url: data.logo_url || ''
+          });
+        }
+      };
+      
+      loadCompanyData();
     }
   }, [currentCompany, form]);
 
@@ -133,7 +142,9 @@ export function CompanyProfileForm() {
         .from('companies')
         .update({
           name: data.name,
-          address: data.address || null,
+          street_address: data.street_address || null,
+          city: data.city || null,
+          state: data.state || null,
           phone: data.phone || null,
           email: data.email || null,
           logo_url: data.logo_url || null,
@@ -255,21 +266,47 @@ export function CompanyProfileForm() {
 
             <FormField
               control={form.control}
-              name="address"
+              name="street_address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>Street Address</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="123 Main St, City, State 12345" 
-                      {...field}
-                      rows={3}
-                    />
+                    <Input placeholder="123 Main Street" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City</FormLabel>
+                    <FormControl>
+                      <Input placeholder="New York" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>State</FormLabel>
+                    <FormControl>
+                      <Input placeholder="NY" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
