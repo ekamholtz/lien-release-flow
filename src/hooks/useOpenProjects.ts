@@ -7,6 +7,7 @@ export type OpenProject = {
   id: string;
   name: string;
   status: string;
+  location?: string;
 };
 
 export function useOpenProjects() {
@@ -27,7 +28,7 @@ export function useOpenProjects() {
       
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name, status')
+        .select('id, name, status, location')
         .eq('company_id', currentCompany.id)
         .in('status', ['active', 'in_progress', 'draft'])
         .order('name');

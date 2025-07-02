@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { OpenProjectSelector } from "./OpenProjectSelector";
+import { useOpenProjects } from "@/hooks/useOpenProjects";
 
 const formSchema = z.object({
   projectId: z.string().min(1, { message: "Project selection is required" }),
@@ -56,6 +57,7 @@ type Props = {
 
 export const LienReleaseForm = forwardRef<LienReleaseFormRef, Props>(
   ({ onSubmit, status }, ref) => {
+    const { projects } = useOpenProjects();
     const form = useForm<FormValues>({
       resolver: zodResolver(formSchema),
       defaultValues: {
@@ -70,6 +72,21 @@ export const LienReleaseForm = forwardRef<LienReleaseFormRef, Props>(
       },
     });
     const formRef = useRef<HTMLFormElement>(null);
+
+    // Watch for projectId changes to auto-populate property address
+    const projectId = form.watch("projectId");
+
+    useEffect(() => {
+      if (projectId && projects.length > 0) {
+        const selectedProject = projects.find(project => project.id === projectId);
+        if (selectedProject?.location) {
+          form.setValue("propertyAddress", selectedProject.location);
+        }
+      } else if (!projectId) {
+        // Clear the property address if no project is selected
+        form.setValue("propertyAddress", "");
+      }
+    }, [projectId, projects, form]);
 
     useImperativeHandle(ref, () => ({
       submitForm: () => {
@@ -283,7 +300,6 @@ export const LienReleaseForm = forwardRef<LienReleaseFormRef, Props>(
 
           <div className="flex gap-3 justify-end">
             <Button type="button" variant="outline">Cancel</Button>
-            {/* <Button type="submit" className="bg-construction-600 hover:bg-construction-700">{status === "sending" ? "Sending..." : "Generate Lien Release"}</Button> */}
             <Button type="submit" className="bg-construction-600 hover:bg-construction-700">{status === "sending" ? "Sending..." : "Next"}</Button>
           </div>
         </form>
