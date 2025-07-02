@@ -9,27 +9,29 @@ import html2pdf from "html2pdf.js";
 export const htmlToBase64Pdf = async (element: HTMLElement): Promise<string> => {
   return new Promise((resolve, reject) => {
     const options = {
-      margin: [10, 10, 10, 10],
+      margin: [15, 15, 15, 15],
       filename: "invoice.pdf",
       image: { 
         type: "jpeg", 
-        quality: 0.98 
+        quality: 0.95
       },
       html2canvas: { 
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        logging: true,
+        logging: false,
         letterRendering: true,
         removeContainer: false,
         scrollX: 0,
         scrollY: 0,
-        width: 800,
-        height: element.scrollHeight || 1200
+        x: 0,
+        y: 0,
+        width: 595,
+        height: Math.max(842, element.scrollHeight + 100)
       },
       jsPDF: { 
-        unit: "mm", 
+        unit: "pt", 
         format: "a4", 
         orientation: "portrait"
       }
@@ -44,8 +46,6 @@ export const htmlToBase64Pdf = async (element: HTMLElement): Promise<string> => 
       clientWidth: element.clientWidth,
       clientHeight: element.clientHeight
     });
-    console.log('Element content preview:', element.innerHTML.substring(0, 500));
-    console.log('Element computed styles:', window.getComputedStyle(element));
 
     // Ensure element is visible and has content
     if (!element.innerHTML || element.innerHTML.trim().length === 0) {
@@ -60,7 +60,6 @@ export const htmlToBase64Pdf = async (element: HTMLElement): Promise<string> => 
       .outputPdf("datauristring")
       .then((dataUri: string) => {
         console.log('PDF conversion complete. DataURI length:', dataUri.length);
-        console.log('DataURI preview:', dataUri.substring(0, 100));
         
         if (!dataUri || dataUri.length < 100) {
           console.error('Generated PDF appears to be empty or invalid');
