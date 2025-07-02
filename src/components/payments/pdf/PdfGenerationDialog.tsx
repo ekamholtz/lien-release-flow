@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, Download, Eye } from 'lucide-react';
 import { DbInvoice } from '@/lib/supabase';
-import { PdfService, PdfGenerationOptions } from '@/services/pdfService';
+import { ReactPdfService, PdfGenerationOptions } from '@/services/reactPdfService';
 import { toast } from '@/hooks/use-toast';
 
 interface PdfGenerationDialogProps {
@@ -32,12 +32,12 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
   const handleGeneratePdf = async () => {
     try {
       setIsGenerating(true);
-      const pdfBase64 = await PdfService.generateInvoicePdf(invoice, options);
+      const pdfBase64 = await ReactPdfService.generateInvoicePdf(invoice, options);
       setGeneratedPdf(pdfBase64);
       
       toast({
         title: "PDF Generated",
-        description: "Your invoice PDF has been generated successfully.",
+        description: "Your invoice PDF has been generated successfully with React PDF.",
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -54,7 +54,7 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
   const handleDownloadPdf = () => {
     if (generatedPdf) {
       const fileName = `invoice-${invoice.invoice_number}.pdf`;
-      PdfService.downloadPdf(generatedPdf, fileName);
+      ReactPdfService.downloadPdf(generatedPdf, fileName);
     }
   };
 

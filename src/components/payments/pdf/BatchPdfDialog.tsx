@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Download, FileText } from 'lucide-react';
 import { DbInvoice } from '@/lib/supabase';
-import { PdfService, PdfGenerationOptions } from '@/services/pdfService';
+import { ReactPdfService, PdfGenerationOptions } from '@/services/reactPdfService';
 import { toast } from '@/hooks/use-toast';
 
 interface BatchPdfDialogProps {
@@ -60,17 +60,17 @@ export function BatchPdfDialog({ invoices, isOpen, onClose }: BatchPdfDialogProp
       setIsGenerating(true);
       
       const selectedInvoiceObjects = invoices.filter(inv => selectedInvoices.includes(inv.id));
-      const results = await PdfService.generateBatchPdfs(selectedInvoiceObjects, options);
+      const results = await ReactPdfService.generateBatchPdfs(selectedInvoiceObjects, options);
       
       // Download each PDF
       results.forEach(({ invoice, pdf }) => {
         const fileName = `invoice-${invoice.invoice_number}.pdf`;
-        PdfService.downloadPdf(pdf, fileName);
+        ReactPdfService.downloadPdf(pdf, fileName);
       });
       
       toast({
         title: "PDFs Generated",
-        description: `Successfully generated ${results.length} invoice PDFs.`,
+        description: `Successfully generated ${results.length} invoice PDFs using React PDF.`,
       });
       
       onClose();
