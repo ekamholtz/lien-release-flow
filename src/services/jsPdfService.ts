@@ -1,367 +1,160 @@
-
 import jsPDF from 'jspdf';
-import { DbInvoice } from '@/lib/supabase';
-import { supabase } from '@/integrations/supabase/client';
-
-export interface PdfGenerationOptions {
-  showLineItems: 'none' | 'summary' | 'detailed';
-  companyLogo?: string;
-  paymentTerms?: string;
-  notes?: string;
-}
-
-interface InvoiceLineItem {
-  id: string;
-  description: string;
-  cost: number;
-  markup_percentage: number;
-  price: number;
-  category_name?: string;
-}
+import { Invoice, LineItem } from '@/lib/types/invoice';
 
 interface CompanyProfile {
   name: string;
-  address?: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
   phone?: string;
   email?: string;
   logo_url?: string;
 }
 
-export class JsPdfService {
-  static async loadImageAsBase64(url: string): Promise<string | null> {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch image');
-      
-      const blob = await response.blob();
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.error('Error loading image:', error);
-      return null;
-    }
-  }
-
-  static async generateInvoicePdf(
-    invoice: DbInvoice & { 
-      projects?: { name: string };
-      company?: { name: string };
-    },
-    options: PdfGenerationOptions
-  ): Promise<string> {
-    console.log('=== jsPDF Generation Started ===');
-    console.log('Invoice:', invoice.invoice_number);
-    console.log('Options:', options);
-    
-    // Fetch company profile data
-    let companyProfile: CompanyProfile = {
-      name: invoice.company?.name || 'Your Company'
-    };
-    
-    if (invoice.company_id) {
-      console.log('Fetching company profile...');
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('name, address, phone, email, logo_url')
-        .eq('id', invoice.company_id)
-        .single();
-      
-      if (!companyError && companyData) {
-        companyProfile = companyData;
-        console.log('Company profile loaded:', companyProfile.name);
-      }
-    }
-    
-    // Fetch line items if needed
-    let lineItems: InvoiceLineItem[] = [];
-    
-    if (options.showLineItems !== 'none' && invoice.has_line_items) {
-      console.log('Fetching line items...');
-      const { data, error } = await supabase
-        .from('invoice_line_items')
-        .select(`
-          *,
-          expense_categories (name)
-        `)
-        .eq('invoice_id', invoice.id);
-      
-      if (!error && data) {
-        lineItems = data.map((item: any) => ({
-          ...item,
-          category_name: item.expense_categories?.name || 'Uncategorized'
-        }));
-        console.log('Line items fetched:', lineItems.length);
-      } else {
-        console.log('No line items or error:', error);
-      }
-    }
-
-    try {
-      // Create new jsPDF document
-      const doc = new jsPDF();
-      let yPosition = 20;
-      
-      // Load company logo if available
-      let logoImage: string | null = null;
-      const logoUrl = options.companyLogo || companyProfile.logo_url;
-      if (logoUrl) {
-        console.log('Loading company logo...');
-        logoImage = await this.loadImageAsBase64(logoUrl);
-        if (logoImage) {
-          console.log('Logo loaded successfully');
-        }
-      }
-      
-      // Helper functions
-      const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD'
-        }).format(amount);
-      };
-
-      const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return new Intl.DateTimeFormat('en-US').format(date);
-      };
-
-      const addText = (text: string, x: number, y: number, options?: { fontSize?: number, fontStyle?: string, align?: 'left' | 'center' | 'right' }) => {
-        if (options?.fontSize) doc.setFontSize(options.fontSize);
-        if (options?.fontStyle) doc.setFont('helvetica', options.fontStyle as any);
-        
-        if (options?.align === 'right') {
-          doc.text(text, x, y, { align: 'right' });
-        } else if (options?.align === 'center') {
-          doc.text(text, x, y, { align: 'center' });
-        } else {
-          doc.text(text, x, y);
-        }
-        
-        // Reset to default
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(12);
-      };
-
-      // Company Logo and Header
-      if (logoImage) {
-        try {
-          doc.addImage(logoImage, 'JPEG', 20, yPosition, 40, 30);
-          yPosition += 35;
-        } catch (logoError) {
-          console.error('Error adding logo to PDF:', logoError);
-          yPosition += 5; // Small spacing if logo fails
-        }
-      }
-
-      // Invoice Title
-      addText('INVOICE', 105, yPosition, { fontSize: 24, fontStyle: 'bold', align: 'center' });
-      yPosition += 10;
-      addText(`#${invoice.invoice_number}`, 105, yPosition, { fontSize: 14, align: 'center' });
-      yPosition += 20;
-
-      // Company Information
-      addText('From:', 20, yPosition, { fontStyle: 'bold' });
-      addText('Bill To:', 120, yPosition, { fontStyle: 'bold' });
-      yPosition += 8;
-      
-      // Company details (left side)
-      addText(companyProfile.name, 20, yPosition, { fontStyle: 'bold' });
-      yPosition += 6;
-      
-      if (companyProfile.address) {
-        addText(companyProfile.address, 20, yPosition);
-        yPosition += 6;
-      }
-      
-      let clientYPosition = yPosition - (companyProfile.address ? 12 : 6);
-      
-      // Client details (right side)
-      addText(invoice.client_name, 120, clientYPosition);
-      clientYPosition += 6;
-      addText(invoice.client_email, 120, clientYPosition);
-      clientYPosition += 6;
-      
-      // Add company contact info if available
-      if (companyProfile.phone || companyProfile.email) {
-        let contactInfo = [];
-        if (companyProfile.phone) contactInfo.push(`Phone: ${companyProfile.phone}`);
-        if (companyProfile.email) contactInfo.push(`Email: ${companyProfile.email}`);
-        
-        contactInfo.forEach(info => {
-          addText(info, 20, yPosition, { fontSize: 10 });
-          yPosition += 5;
-        });
-      }
-      
-      yPosition = Math.max(yPosition, clientYPosition) + 10;
-
-      // Invoice Information Box
-      doc.setFillColor(245, 245, 245);
-      doc.rect(20, yPosition, 170, 25, 'F');
-      doc.setDrawColor(200, 200, 200);
-      doc.rect(20, yPosition, 170, 25);
-      
-      yPosition += 8;
-      addText(`Invoice Date: ${formatDate(invoice.created_at)}`, 25, yPosition, { fontStyle: 'bold' });
-      addText(`Due Date: ${formatDate(invoice.due_date)}`, 120, yPosition, { fontStyle: 'bold' });
-      yPosition += 8;
-      
-      addText(`Project: ${invoice.projects?.name || 'General'}`, 25, yPosition, { fontStyle: 'bold' });
-      addText(`Status: ${invoice.status}`, 120, yPosition, { fontStyle: 'bold' });
-      yPosition += 15;
-
-      // Line Items
-      if (options.showLineItems === 'detailed' && lineItems.length > 0) {
-        addText('Invoice Details', 20, yPosition, { fontSize: 14, fontStyle: 'bold' });
-        yPosition += 10;
-        
-        // Table header
-        doc.setFillColor(240, 240, 240);
-        doc.rect(20, yPosition - 5, 170, 8, 'F');
-        doc.setDrawColor(200, 200, 200);
-        doc.rect(20, yPosition - 5, 170, 8);
-        
-        addText('Category', 25, yPosition, { fontStyle: 'bold', fontSize: 10 });
-        addText('Description', 70, yPosition, { fontStyle: 'bold', fontSize: 10 });
-        addText('Cost', 120, yPosition, { fontStyle: 'bold', fontSize: 10 });
-        addText('Markup', 140, yPosition, { fontStyle: 'bold', fontSize: 10 });
-        addText('Price', 165, yPosition, { fontStyle: 'bold', fontSize: 10 });
-        yPosition += 8;
-        
-        // Table rows
-        lineItems.forEach((item) => {
-          doc.setDrawColor(230, 230, 230);
-          doc.line(20, yPosition + 2, 190, yPosition + 2);
-          
-          addText(item.category_name || 'Uncategorized', 25, yPosition, { fontSize: 9 });
-          addText(item.description || '-', 70, yPosition, { fontSize: 9 });
-          addText(formatCurrency(Number(item.cost)), 135, yPosition, { fontSize: 9, align: 'right' });
-          addText(`${item.markup_percentage}%`, 155, yPosition, { fontSize: 9, align: 'right' });
-          addText(formatCurrency(Number(item.price)), 185, yPosition, { fontSize: 9, align: 'right' });
-          yPosition += 8;
-        });
-        
-        yPosition += 10;
-      } else if (options.showLineItems === 'summary' && lineItems.length > 0) {
-        const totalCost = lineItems.reduce((sum, item) => sum + Number(item.cost), 0);
-        const totalPrice = lineItems.reduce((sum, item) => sum + Number(item.price), 0);
-        const totalMarkup = totalPrice - totalCost;
-        
-        addText('Invoice Summary', 20, yPosition, { fontSize: 14, fontStyle: 'bold' });
-        yPosition += 10;
-        
-        doc.setFillColor(245, 245, 245);
-        doc.rect(20, yPosition - 5, 170, 25, 'F');
-        doc.setDrawColor(200, 200, 200);
-        doc.rect(20, yPosition - 5, 170, 25);
-        
-        yPosition += 3;
-        addText('Total Cost:', 25, yPosition, { fontStyle: 'bold' });
-        addText(formatCurrency(totalCost), 185, yPosition, { align: 'right' });
-        yPosition += 8;
-        
-        addText('Total Markup:', 25, yPosition, { fontStyle: 'bold' });
-        addText(formatCurrency(totalMarkup), 185, yPosition, { align: 'right' });
-        yPosition += 8;
-        
-        // Total line
-        doc.setDrawColor(31, 41, 55);
-        doc.setLineWidth(2);
-        doc.line(25, yPosition, 185, yPosition);
-        yPosition += 5;
-        
-        addText('Total:', 25, yPosition, { fontStyle: 'bold' });
-        addText(formatCurrency(totalPrice), 185, yPosition, { fontStyle: 'bold', align: 'right' });
-        yPosition += 15;
-      }
-
-      // Total Amount (always shown)
-      doc.setDrawColor(31, 41, 55);
-      doc.setLineWidth(2);
-      doc.line(20, yPosition, 190, yPosition);
-      yPosition += 10;
-      
-      addText(`Total: ${formatCurrency(Number(invoice.amount))}`, 190, yPosition, { 
-        fontSize: 20, 
-        fontStyle: 'bold', 
-        align: 'right' 
-      });
-      yPosition += 20;
-
-      // Payment Terms
-      if (options.paymentTerms) {
-        addText('Payment Terms', 20, yPosition, { fontSize: 14, fontStyle: 'bold' });
-        yPosition += 8;
-        
-        const lines = doc.splitTextToSize(options.paymentTerms, 170);
-        doc.text(lines, 20, yPosition);
-        yPosition += lines.length * 6 + 10;
-      }
-
-      // Notes
-      if (options.notes) {
-        addText('Notes', 20, yPosition, { fontSize: 14, fontStyle: 'bold' });
-        yPosition += 8;
-        
-        const lines = doc.splitTextToSize(options.notes, 170);
-        doc.text(lines, 20, yPosition);
-        yPosition += lines.length * 6 + 10;
-      }
-
-      // Footer
-      yPosition = Math.max(yPosition, 260); // Ensure footer is near bottom
-      doc.setDrawColor(211, 211, 211);
-      doc.line(20, yPosition, 190, yPosition);
-      yPosition += 8;
-      
-      addText('Thank you for your business!', 105, yPosition, { 
-        fontSize: 11, 
-        align: 'center' 
-      });
-
-      // Generate base64 string
-      const pdfBase64 = doc.output('datauristring').split(',')[1];
-      console.log('jsPDF generated successfully, size:', pdfBase64.length);
-      
-      return pdfBase64;
-    } catch (error) {
-      console.error('Error in jsPDF generation:', error);
-      throw error;
-    }
-  }
-
-  static downloadPdf(base64Pdf: string, fileName: string): void {
-    const link = document.createElement('a');
-    link.href = `data:application/pdf;base64,${base64Pdf}`;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  static async generateBatchPdfs(
-    invoices: (DbInvoice & { 
-      projects?: { name: string };
-      company?: { name: string };
-    })[],
-    options: PdfGenerationOptions
-  ): Promise<{ invoice: DbInvoice; pdf: string }[]> {
-    const results = [];
-    
-    for (const invoice of invoices) {
-      try {
-        console.log(`Generating jsPDF for invoice ${invoice.invoice_number}...`);
-        const pdf = await this.generateInvoicePdf(invoice, options);
-        results.push({ invoice, pdf });
-      } catch (error) {
-        console.error(`Failed to generate jsPDF for invoice ${invoice.invoice_number}:`, error);
-      }
-    }
-    
-    return results;
-  }
+interface Customer {
+  name: string;
+  email?: string;
+  phone?: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
 }
+
+export const generateInvoicePDF = async (
+  invoice: Invoice,
+  lineItems: LineItem[],
+  companyProfile?: CompanyProfile
+): Promise<string> => {
+  try {
+    const pdf = new jsPDF();
+    
+    // Set up fonts and styling
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    
+    // Company header
+    if (companyProfile?.name) {
+      pdf.text(companyProfile.name, 20, 30);
+    } else {
+      pdf.text('Your Company', 20, 30);
+    }
+    
+    // Company address
+    let yPosition = 40;
+    if (companyProfile?.street_address) {
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(companyProfile.street_address, 20, yPosition);
+      yPosition += 5;
+    }
+    
+    if (companyProfile?.city || companyProfile?.state) {
+      const cityState = [companyProfile?.city, companyProfile?.state].filter(Boolean).join(', ');
+      if (cityState) {
+        pdf.text(cityState, 20, yPosition);
+        yPosition += 5;
+      }
+    }
+    
+    if (companyProfile?.phone) {
+      pdf.text(`Phone: ${companyProfile.phone}`, 20, yPosition);
+      yPosition += 5;
+    }
+    
+    if (companyProfile?.email) {
+      pdf.text(`Email: ${companyProfile.email}`, 20, yPosition);
+      yPosition += 10;
+    }
+
+    // Invoice details
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Invoice', 150, 30);
+
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`Invoice Number: ${invoice.invoice_number}`, 150, 40);
+    pdf.text(`Date: ${new Date(invoice.invoice_date).toLocaleDateString()}`, 150, 48);
+    pdf.text(`Due Date: ${new Date(invoice.due_date).toLocaleDateString()}`, 150, 56);
+
+    // Customer details
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Bill to:', 20, 70);
+
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(invoice.customer_name, 20, 78);
+    
+    let customerYPosition = 86;
+    if (invoice.customer_street_address) {
+      pdf.text(invoice.customer_street_address, 20, customerYPosition);
+      customerYPosition += 5;
+    }
+    
+    if (invoice.customer_city || invoice.customer_state) {
+      const cityState = [invoice.customer_city, invoice.customer_state].filter(Boolean).join(', ');
+      if (cityState) {
+        pdf.text(cityState, 20, customerYPosition);
+        customerYPosition += 5;
+      }
+    }
+
+    if (invoice.customer_email) {
+      pdf.text(`Email: ${invoice.customer_email}`, 20, customerYPosition);
+      customerYPosition += 5;
+    }
+
+    if (invoice.customer_phone) {
+      pdf.text(`Phone: ${invoice.customer_phone}`, 20, customerYPosition);
+      customerYPosition += 10;
+    }
+
+    // Line items table
+    const tableColumnWidths = [70, 30, 40, 40];
+    let tableXPosition = 20;
+    let tableYPosition = customerYPosition + 5;
+
+    // Table headers
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Item', tableXPosition, tableYPosition);
+    tableXPosition += tableColumnWidths[0];
+    pdf.text('Quantity', tableXPosition, tableYPosition);
+    tableXPosition += tableColumnWidths[1];
+    pdf.text('Unit Price', tableXPosition, tableYPosition);
+    tableXPosition += tableColumnWidths[2];
+    pdf.text('Total', tableXPosition, tableYPosition);
+
+    tableYPosition += 7;
+    pdf.line(20, tableYPosition, 195, tableYPosition);
+    tableYPosition += 5;
+    tableXPosition = 20;
+
+    // Table rows
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    lineItems.forEach((item) => {
+      tableXPosition = 20;
+      pdf.text(item.description, tableXPosition, tableYPosition);
+      tableXPosition += tableColumnWidths[0];
+      pdf.text(item.quantity.toString(), tableXPosition, tableYPosition);
+      tableXPosition += tableColumnWidths[1];
+      pdf.text(`$${item.unit_price.toFixed(2)}`, tableXPosition, tableYPosition);
+      tableXPosition += tableColumnWidths[2];
+      pdf.text(`$${(item.quantity * item.unit_price).toFixed(2)}`, tableXPosition, tableYPosition);
+      tableYPosition += 6;
+    });
+
+    // Total amount
+    const totalAmount = lineItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Total: $${totalAmount.toFixed(2)}`, 150, tableYPosition + 15);
+
+    return pdf.output('datauristring');
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    throw new Error('Failed to generate PDF');
+  }
+};
