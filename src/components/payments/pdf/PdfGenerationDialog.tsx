@@ -1,15 +1,16 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Download, Eye } from 'lucide-react';
+import { Loader2, Download, Eye, Building } from 'lucide-react';
 import { DbInvoice } from '@/lib/supabase';
 import { JsPdfService, PdfGenerationOptions } from '@/services/jsPdfService';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PdfGenerationDialogProps {
   invoice: DbInvoice & { 
@@ -28,6 +29,33 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPdf, setGeneratedPdf] = useState<string | null>(null);
+  const [companyLogo, setCompanyLogo] = useState<string>('');
+
+  // Load company logo when dialog opens
+  useEffect(() => {
+    if (isOpen && invoice.company_id) {
+      loadCompanyLogo();
+    }
+  }, [isOpen, invoice.company_id]);
+
+  const loadCompanyLogo = async () => {
+    if (!invoice.company_id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('logo_url')
+        .eq('id', invoice.company_id)
+        .single();
+      
+      if (!error && data?.logo_url) {
+        setCompanyLogo(data.logo_url);
+        setOptions(prev => ({ ...prev, companyLogo: data.logo_url }));
+      }
+    } catch (error) {
+      console.error('Error loading company logo:', error);
+    }
+  };
 
   const handleGeneratePdf = async () => {
     try {
@@ -37,7 +65,7 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
       
       toast({
         title: "PDF Generated",
-        description: "Your invoice PDF has been generated successfully with jsPDF.",
+        description: "Your invoice PDF has been generated successfully with enhanced company branding.",
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -78,7 +106,8 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
     setOptions({
       showLineItems: 'summary',
       paymentTerms: 'Payment is due within 30 days of invoice date.',
-      notes: ''
+      notes: '',
+      companyLogo: companyLogo
     });
   };
 
@@ -91,7 +120,10 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Generate Invoice PDF</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Building className="h-5 w-5" />
+            Generate Invoice PDF
+          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
@@ -120,13 +152,31 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="companyLogo" className="text-sm font-medium">Company Logo URL (Optional)</Label>
-            <Input
-              id="companyLogo"
-              placeholder="https://example.com/logo.png"
-              value={options.companyLogo || ''}
-              onChange={(e) => setOptions(prev => ({ ...prev, companyLogo: e.target.value }))}
-            />
+            <Label htmlFor="companyLogo" className="text-sm font-medium">Company Logo</Label>
+            <div className="space-y-3">
+              {(options.companyLogo || companyLogo) && (
+                <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/50">
+                  <img 
+                    src={options.companyLogo || companyLogo} 
+                    alt="Company logo preview" 
+                    className="h-12 w-12 object-contain border rounded"
+                  />
+                  <div className="text-sm">
+                    <p className="font-medium">Current company logo</p>
+                    <p className="text-muted-foreground">Will be included in the PDF</p>
+                  </div>
+                </div>
+              )}
+              <Input
+                id="companyLogo"
+                placeholder="https://example.com/logo.png"
+                value={options.companyLogo || ''}
+                onChange={(e) => setOptions(prev => ({ ...prev, companyLogo: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Override the company logo with a different URL, or leave empty to use the company's default logo
+              </p>
+            </div>
           </div>
 
           <div className="space-y-2">

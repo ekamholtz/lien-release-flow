@@ -19,7 +19,33 @@ interface InvoiceLineItem {
   category_name?: string;
 }
 
+interface CompanyProfile {
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  logo_url?: string;
+}
+
 export class JsPdfService {
+  static async loadImageAsBase64(url: string): Promise<string | null> {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch image');
+      
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error loading image:', error);
+      return null;
+    }
+  }
+
   static async generateInvoicePdf(
     invoice: DbInvoice & { 
       projects?: { name: string };
@@ -30,6 +56,25 @@ export class JsPdfService {
     console.log('=== jsPDF Generation Started ===');
     console.log('Invoice:', invoice.invoice_number);
     console.log('Options:', options);
+    
+    // Fetch company profile data
+    let companyProfile: CompanyProfile = {
+      name: invoice.company?.name || 'Your Company'
+    };
+    
+    if (invoice.company_id) {
+      console.log('Fetching company profile...');
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('name, address, phone, email, logo_url')
+        .eq('id', invoice.company_id)
+        .single();
+      
+      if (!companyError && companyData) {
+        companyProfile = companyData;
+        console.log('Company profile loaded:', companyProfile.name);
+      }
+    }
     
     // Fetch line items if needed
     let lineItems: InvoiceLineItem[] = [];
@@ -59,6 +104,17 @@ export class JsPdfService {
       // Create new jsPDF document
       const doc = new jsPDF();
       let yPosition = 20;
+      
+      // Load company logo if available
+      let logoImage: string | null = null;
+      const logoUrl = options.companyLogo || companyProfile.logo_url;
+      if (logoUrl) {
+        console.log('Loading company logo...');
+        logoImage = await this.loadImageAsBase64(logoUrl);
+        if (logoImage) {
+          console.log('Logo loaded successfully');
+        }
+      }
       
       // Helper functions
       const formatCurrency = (amount: number) => {
@@ -90,23 +146,58 @@ export class JsPdfService {
         doc.setFontSize(12);
       };
 
-      // Header
+      // Company Logo and Header
+      if (logoImage) {
+        try {
+          doc.addImage(logoImage, 'JPEG', 20, yPosition, 40, 30);
+          yPosition += 35;
+        } catch (logoError) {
+          console.error('Error adding logo to PDF:', logoError);
+          yPosition += 5; // Small spacing if logo fails
+        }
+      }
+
+      // Invoice Title
       addText('INVOICE', 105, yPosition, { fontSize: 24, fontStyle: 'bold', align: 'center' });
       yPosition += 10;
       addText(`#${invoice.invoice_number}`, 105, yPosition, { fontSize: 14, align: 'center' });
       yPosition += 20;
 
-      // Company and Bill To section
+      // Company Information
       addText('From:', 20, yPosition, { fontStyle: 'bold' });
       addText('Bill To:', 120, yPosition, { fontStyle: 'bold' });
       yPosition += 8;
       
-      addText(invoice.company?.name || 'Your Company', 20, yPosition);
-      addText(invoice.client_name, 120, yPosition);
+      // Company details (left side)
+      addText(companyProfile.name, 20, yPosition, { fontStyle: 'bold' });
       yPosition += 6;
       
-      addText(invoice.client_email, 120, yPosition);
-      yPosition += 15;
+      if (companyProfile.address) {
+        addText(companyProfile.address, 20, yPosition);
+        yPosition += 6;
+      }
+      
+      let clientYPosition = yPosition - (companyProfile.address ? 12 : 6);
+      
+      // Client details (right side)
+      addText(invoice.client_name, 120, clientYPosition);
+      clientYPosition += 6;
+      addText(invoice.client_email, 120, clientYPosition);
+      clientYPosition += 6;
+      
+      // Add company contact info if available
+      if (companyProfile.phone || companyProfile.email) {
+        let contactInfo = [];
+        if (companyProfile.phone) contactInfo.push(`Phone: ${companyProfile.phone}`);
+        if (companyProfile.email) contactInfo.push(`Email: ${companyProfile.email}`);
+        
+        contactInfo.forEach(info => {
+          addText(info, 20, yPosition, { fontSize: 10 });
+          yPosition += 5;
+        });
+      }
+      
+      yPosition = Math.max(yPosition, clientYPosition) + 10;
 
       // Invoice Information Box
       doc.setFillColor(245, 245, 245);

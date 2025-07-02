@@ -340,24 +340,36 @@ export type Database = {
       }
       companies: {
         Row: {
+          address: string | null
           created_at: string
+          email: string | null
           external_id: string | null
           id: string
+          logo_url: string | null
           name: string
+          phone: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
           created_at?: string
+          email?: string | null
           external_id?: string | null
           id?: string
+          logo_url?: string | null
           name: string
+          phone?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
           created_at?: string
+          email?: string | null
           external_id?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
+          phone?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1456,10 +1468,14 @@ export type Database = {
       create_company_with_admin: {
         Args: { p_name: string; p_user_id: string; p_email: string }
         Returns: {
+          address: string | null
           created_at: string
+          email: string | null
           external_id: string | null
           id: string
+          logo_url: string | null
           name: string
+          phone: string | null
           updated_at: string
         }
       }
@@ -1504,10 +1520,14 @@ export type Database = {
       get_user_companies: {
         Args: Record<PropertyKey, never>
         Returns: {
+          address: string | null
           created_at: string
+          email: string | null
           external_id: string | null
           id: string
+          logo_url: string | null
           name: string
+          phone: string | null
           updated_at: string
         }[]
       }
@@ -1567,10 +1587,14 @@ export type Database = {
       update_company: {
         Args: { p_id: string; p_name: string; p_external_id?: string }
         Returns: {
+          address: string | null
           created_at: string
+          email: string | null
           external_id: string | null
           id: string
+          logo_url: string | null
           name: string
+          phone: string | null
           updated_at: string
         }
       }
