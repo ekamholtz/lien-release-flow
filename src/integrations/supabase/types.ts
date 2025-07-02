@@ -113,6 +113,8 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          invoice_line_item_id: string | null
+          invoiced: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -123,6 +125,8 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          invoice_line_item_id?: string | null
+          invoiced?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -133,6 +137,8 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          invoice_line_item_id?: string | null
+          invoiced?: boolean | null
           updated_at?: string | null
         }
         Relationships: [
@@ -150,6 +156,13 @@ export type Database = {
             referencedRelation: "expense_categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bill_line_items_invoice_line_item_id_fkey"
+            columns: ["invoice_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_line_items"
+            referencedColumns: ["id"]
+          },
         ]
       }
       bills: {
@@ -162,6 +175,9 @@ export type Database = {
           has_line_items: boolean | null
           id: string
           lien_release_status: string | null
+          payment_date: string | null
+          payment_provider: string | null
+          payment_reference: string | null
           project_id: string | null
           project_manager_id: string | null
           qbo_bill_id: string | null
@@ -180,6 +196,9 @@ export type Database = {
           has_line_items?: boolean | null
           id?: string
           lien_release_status?: string | null
+          payment_date?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
           project_id?: string | null
           project_manager_id?: string | null
           qbo_bill_id?: string | null
@@ -198,6 +217,9 @@ export type Database = {
           has_line_items?: boolean | null
           id?: string
           lien_release_status?: string | null
+          payment_date?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
           project_id?: string | null
           project_manager_id?: string | null
           qbo_bill_id?: string | null
@@ -318,24 +340,42 @@ export type Database = {
       }
       companies: {
         Row: {
+          city: string | null
           created_at: string
+          email: string | null
           external_id: string | null
           id: string
+          logo_url: string | null
           name: string
+          phone: string | null
+          state: string | null
+          street_address: string | null
           updated_at: string
         }
         Insert: {
+          city?: string | null
           created_at?: string
+          email?: string | null
           external_id?: string | null
           id?: string
+          logo_url?: string | null
           name: string
+          phone?: string | null
+          state?: string | null
+          street_address?: string | null
           updated_at?: string
         }
         Update: {
+          city?: string | null
           created_at?: string
+          email?: string | null
           external_id?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
+          phone?: string | null
+          state?: string | null
+          street_address?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -484,6 +524,80 @@ export type Database = {
           },
         ]
       }
+      invoice_line_items: {
+        Row: {
+          category_id: string | null
+          cost: number | null
+          created_at: string
+          description: string | null
+          id: string
+          invoice_id: string | null
+          markup_percentage: number | null
+          price: number
+          pricing_method: string
+          source_bill_line_item_id: string | null
+          source_milestone_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id?: string | null
+          markup_percentage?: number | null
+          price: number
+          pricing_method?: string
+          source_bill_line_item_id?: string | null
+          source_milestone_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id?: string | null
+          markup_percentage?: number | null
+          price?: number
+          pricing_method?: string
+          source_bill_line_item_id?: string | null
+          source_milestone_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_source_bill_line_item_id_fkey"
+            columns: ["source_bill_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "bill_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_source_milestone_id_fkey"
+            columns: ["source_milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount: number
@@ -493,9 +607,14 @@ export type Database = {
           company_id: string | null
           created_at: string
           due_date: string
+          has_line_items: boolean | null
           id: string
           invoice_number: string
+          payment_date: string | null
+          payment_link: string | null
           payment_method: string
+          payment_provider: string | null
+          payment_reference: string | null
           project_id: string | null
           project_manager_id: string | null
           qbo_invoice_id: string | null
@@ -511,9 +630,14 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           due_date: string
+          has_line_items?: boolean | null
           id?: string
           invoice_number: string
+          payment_date?: string | null
+          payment_link?: string | null
           payment_method?: string
+          payment_provider?: string | null
+          payment_reference?: string | null
           project_id?: string | null
           project_manager_id?: string | null
           qbo_invoice_id?: string | null
@@ -529,9 +653,14 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           due_date?: string
+          has_line_items?: boolean | null
           id?: string
           invoice_number?: string
+          payment_date?: string | null
+          payment_link?: string | null
           payment_method?: string
+          payment_provider?: string | null
+          payment_reference?: string | null
           project_id?: string | null
           project_manager_id?: string | null
           qbo_invoice_id?: string | null
@@ -734,6 +863,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          is_offline: boolean | null
+          metadata: Json | null
+          notes: string | null
+          payment_date: string | null
+          payment_details: string | null
+          payment_method: string
+          payment_provider: string | null
+          payment_type: string | null
+          payor_company: string | null
+          payor_name: string | null
+          provider_transaction_id: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          is_offline?: boolean | null
+          metadata?: Json | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_details?: string | null
+          payment_method: string
+          payment_provider?: string | null
+          payment_type?: string | null
+          payor_company?: string | null
+          payor_name?: string | null
+          provider_transaction_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          is_offline?: boolean | null
+          metadata?: Json | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_details?: string | null
+          payment_method?: string
+          payment_provider?: string | null
+          payment_type?: string | null
+          payor_company?: string | null
+          payor_name?: string | null
+          provider_transaction_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       permissions: {
         Row: {
@@ -1089,6 +1287,36 @@ export type Database = {
           },
         ]
       }
+      signed_contracts: {
+        Row: {
+          created_at: string | null
+          document_id: string
+          document_url: string | null
+          id: string
+          signer_email: string | null
+          signer_name: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_id: string
+          document_url?: string | null
+          id?: string
+          signer_email?: string | null
+          signer_name?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string
+          document_url?: string | null
+          id?: string
+          signer_email?: string | null
+          signer_name?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -1246,10 +1474,16 @@ export type Database = {
       create_company_with_admin: {
         Args: { p_name: string; p_user_id: string; p_email: string }
         Returns: {
+          city: string | null
           created_at: string
+          email: string | null
           external_id: string | null
           id: string
+          logo_url: string | null
           name: string
+          phone: string | null
+          state: string | null
+          street_address: string | null
           updated_at: string
         }
       }
@@ -1294,10 +1528,16 @@ export type Database = {
       get_user_companies: {
         Args: Record<PropertyKey, never>
         Returns: {
+          city: string | null
           created_at: string
+          email: string | null
           external_id: string | null
           id: string
+          logo_url: string | null
           name: string
+          phone: string | null
+          state: string | null
+          street_address: string | null
           updated_at: string
         }[]
       }
@@ -1357,10 +1597,16 @@ export type Database = {
       update_company: {
         Args: { p_id: string; p_name: string; p_external_id?: string }
         Returns: {
+          city: string | null
           created_at: string
+          email: string | null
           external_id: string | null
           id: string
+          logo_url: string | null
           name: string
+          phone: string | null
+          state: string | null
+          street_address: string | null
           updated_at: string
         }
       }

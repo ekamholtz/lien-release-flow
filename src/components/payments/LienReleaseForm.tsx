@@ -1,5 +1,4 @@
-
-import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,9 +27,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { OpenProjectSelector } from "./OpenProjectSelector";
+import { useOpenProjects } from "@/hooks/useOpenProjects";
 
 const formSchema = z.object({
-  projectName: z.string().min(1, { message: "Project name is required" }),
+  projectId: z.string().min(1, { message: "Project selection is required" }),
   propertyAddress: z.string().min(1, { message: "Property address is required" }),
   contractorName: z.string().min(1, { message: "Contractor name is required" }),
   releaseType: z.string().min(1, { message: "Release type is required" }),
@@ -56,10 +57,11 @@ type Props = {
 
 export const LienReleaseForm = forwardRef<LienReleaseFormRef, Props>(
   ({ onSubmit, status }, ref) => {
+    const { projects } = useOpenProjects();
     const form = useForm<FormValues>({
       resolver: zodResolver(formSchema),
       defaultValues: {
-        projectName: "",
+        projectId: "",
         propertyAddress: "",
         contractorName: "",
         releaseType: "",
@@ -71,12 +73,26 @@ export const LienReleaseForm = forwardRef<LienReleaseFormRef, Props>(
     });
     const formRef = useRef<HTMLFormElement>(null);
 
+    // Watch for projectId changes to auto-populate property address
+    const projectId = form.watch("projectId");
+
+    useEffect(() => {
+      if (projectId && projects.length > 0) {
+        const selectedProject = projects.find(project => project.id === projectId);
+        if (selectedProject?.location) {
+          form.setValue("propertyAddress", selectedProject.location);
+        }
+      } else if (!projectId) {
+        // Clear the property address if no project is selected
+        form.setValue("propertyAddress", "");
+      }
+    }, [projectId, projects, form]);
+
     useImperativeHandle(ref, () => ({
       submitForm: () => {
         form.handleSubmit(onSubmit)();
       },
     }));
-
 
     return (
       <Form {...form}>
@@ -84,12 +100,16 @@ export const LienReleaseForm = forwardRef<LienReleaseFormRef, Props>(
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
-              name="projectName"
+              name="projectId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Project Name</FormLabel>
+                  <FormLabel>Project</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter project name" {...field} />
+                    <OpenProjectSelector
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select or create a project"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -280,7 +300,6 @@ export const LienReleaseForm = forwardRef<LienReleaseFormRef, Props>(
 
           <div className="flex gap-3 justify-end">
             <Button type="button" variant="outline">Cancel</Button>
-            {/* <Button type="submit" className="bg-construction-600 hover:bg-construction-700">{status === "sending" ? "Sending..." : "Generate Lien Release"}</Button> */}
             <Button type="submit" className="bg-construction-600 hover:bg-construction-700">{status === "sending" ? "Sending..." : "Next"}</Button>
           </div>
         </form>

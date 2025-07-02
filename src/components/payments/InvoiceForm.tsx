@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -32,6 +33,8 @@ interface InvoiceFormProps {
 export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lineItems, setLineItems] = useState<any[]>([]);
+  const [useLineItems, setUseLineItems] = useState(false);
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const { user } = useAuth();
@@ -57,7 +60,8 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
     
     try {
       console.log('Form Values:', values);
-      console.log('Attached files:', files);
+      console.log('Line items:', lineItems);
+      console.log('Use line items:', useLineItems);
       
       // Convert amount from string to number
       const amountNumber = parseFloat(values.amount);
@@ -120,7 +124,8 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
           due_date: formattedDueDate,
           status: 'draft' as InvoiceStatus,
           company_id: companyId,
-          project_manager_id: projectManagerId
+          project_manager_id: projectManagerId,
+          has_line_items: useLineItems
         })
         .select();
       
@@ -129,18 +134,64 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
         toast.error(`Failed to create invoice: ${error.message}`);
         return;
       }
+
+      const invoiceId = data[0].id;
+
+      // Save line items if using line items mode
+      if (useLineItems && lineItems.length > 0) {
+        const lineItemsToInsert = lineItems.map(item => ({
+          invoice_id: invoiceId,
+          category_id: item.category_id || null,
+          description: item.description,
+          cost: Number(item.cost || 0),
+          markup_percentage: Number(item.markup_percentage || 0),
+          price: Number(item.price || 0),
+          pricing_method: item.pricing_method,
+          source_milestone_id: item.source_milestone_id || null,
+          source_bill_line_item_id: item.source_bill_line_item_id || null
+        }));
+
+        const { error: lineItemsError } = await supabase
+          .from('invoice_line_items')
+          .insert(lineItemsToInsert);
+
+        if (lineItemsError) {
+          console.error('Error saving line items:', lineItemsError);
+          toast.error('Invoice created but failed to save line items');
+        }
+
+        // Mark source bill line items as invoiced
+        const billLineItemIds = lineItems
+          .filter(item => item.source_bill_line_item_id)
+          .map(item => item.source_bill_line_item_id);
+
+        if (billLineItemIds.length > 0) {
+          const { error: updateError } = await supabase
+            .from('bill_line_items')
+            .update({ 
+              invoiced: true,
+              invoice_line_item_id: invoiceId
+            })
+            .in('id', billLineItemIds);
+
+          if (updateError) {
+            console.error('Error updating bill line items:', updateError);
+          }
+        }
+      }
       
       // Handle file uploads if there are any
-      if (files.length > 0 && data?.[0]?.id) {
-        // Upload logic here (can be expanded in the future)
+      if (files.length > 0) {
         toast.info(`${files.length} files will be processed for upload.`);
       }
       
-      toast.success(`Invoice ${values.invoiceNumber} has been created with ${files.length} attachment(s)`);
+      toast.success(`Invoice ${values.invoiceNumber} has been created with ${useLineItems ? lineItems.length : 0} line item(s)`);
       
       // Reset form
       form.reset();
       setFiles([]);
+      setLineItems([]);
+      setUseLineItems(false);
       
       // Navigate to invoices page
       navigate('/invoices');
@@ -163,7 +214,13 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <InvoiceFormFields control={form.control} />
+        <InvoiceFormFields 
+          control={form.control}
+          lineItems={lineItems}
+          onLineItemsChange={setLineItems}
+          useLineItems={useLineItems}
+          onUseLineItemsChange={setUseLineItems}
+        />
         
         <FileUpload onFileSelect={handleFileSelect} />
         <FilePreview files={files} onRemoveFile={removeFile} />
