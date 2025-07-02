@@ -9,29 +9,25 @@ import html2pdf from "html2pdf.js";
 export const htmlToBase64Pdf = async (element: HTMLElement): Promise<string> => {
   return new Promise((resolve, reject) => {
     const options = {
-      margin: [15, 15, 15, 15],
+      margin: [10, 10, 10, 10],
       filename: "invoice.pdf",
       image: { 
         type: "jpeg", 
-        quality: 0.95
+        quality: 1.0
       },
       html2canvas: { 
-        scale: 1.5,
+        scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
         letterRendering: true,
-        removeContainer: false,
+        removeContainer: true,
         scrollX: 0,
-        scrollY: 0,
-        x: 0,
-        y: 0,
-        width: 595,
-        height: Math.max(842, element.scrollHeight + 100)
+        scrollY: 0
       },
       jsPDF: { 
-        unit: "pt", 
+        unit: "mm", 
         format: "a4", 
         orientation: "portrait"
       }

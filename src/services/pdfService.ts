@@ -1,3 +1,4 @@
+
 import { htmlToBase64Pdf } from '@/utils/htmlToBase64Pdf';
 import { DbInvoice } from '@/lib/supabase';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,39 +55,35 @@ export class PdfService {
       }
     }
 
-    // Create a properly sized container for PDF generation
+    // Create container with simple, PDF-compatible styling
     const tempContainer = document.createElement('div');
     tempContainer.style.cssText = `
       position: absolute;
-      top: -9999px;
+      top: -10000px;
       left: 0;
-      width: 595px;
-      min-height: 842px;
+      width: 210mm;
+      min-height: 297mm;
       background: white;
-      padding: 40px;
-      font-family: 'Arial', sans-serif;
+      font-family: Arial, sans-serif;
       font-size: 12px;
       line-height: 1.4;
-      color: #000;
+      color: black;
+      padding: 20mm;
       box-sizing: border-box;
-      overflow: visible;
     `;
     
-    // Add to DOM first
     document.body.appendChild(tempContainer);
     console.log('Container added to DOM');
 
     try {
-      // Generate improved HTML content with proper A4 sizing
-      const htmlContent = this.createA4OptimizedInvoiceHtml(invoice, lineItems, options);
+      // Generate simple HTML content
+      const htmlContent = this.createSimpleInvoiceHtml(invoice, lineItems, options);
       console.log('HTML content generated, length:', htmlContent.length);
       
       tempContainer.innerHTML = htmlContent;
       
-      // Wait for DOM to update and fonts to load
-      await new Promise(resolve => {
-        setTimeout(resolve, 500);
-      });
+      // Wait for content to render
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       console.log('Container after content added:');
       console.log('- Width:', tempContainer.offsetWidth);
@@ -103,7 +100,6 @@ export class PdfService {
       console.error('Error in PDF generation:', error);
       throw error;
     } finally {
-      // Clean up
       if (document.body.contains(tempContainer)) {
         document.body.removeChild(tempContainer);
         console.log('Container cleaned up');
@@ -111,7 +107,7 @@ export class PdfService {
     }
   }
 
-  private static createA4OptimizedInvoiceHtml(
+  private static createSimpleInvoiceHtml(
     invoice: DbInvoice & { 
       projects?: { name: string };
       company?: { name: string };
@@ -131,90 +127,95 @@ export class PdfService {
       return new Intl.DateTimeFormat('en-US').format(date);
     };
 
-    // Optimized HTML for A4 PDF generation
+    // Very simple HTML with minimal CSS
     return `
-      <div style="width: 100%; max-width: 515px; margin: 0; padding: 0; background: white; color: #000; font-family: Arial, sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="font-family: Arial, sans-serif; font-size: 12px; color: black;">
+        <tr>
+          <td style="text-align: center; padding-bottom: 30px;">
+            <h1 style="font-size: 24px; margin: 0 0 10px 0; color: black;">INVOICE</h1>
+            <p style="font-size: 14px; margin: 0; color: black;">#${invoice.invoice_number}</p>
+          </td>
+        </tr>
         
-        <!-- Header Section -->
-        <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #000;">
-          ${options.companyLogo ? `<div style="margin-bottom: 15px;"><img src="${options.companyLogo}" alt="Company Logo" style="max-height: 60px; max-width: 200px;" /></div>` : ''}
-          <h1 style="font-size: 28px; margin: 10px 0 5px 0; color: #000; font-weight: bold;">INVOICE</h1>
-          <p style="font-size: 16px; margin: 0; color: #666;">#${invoice.invoice_number}</p>
-        </div>
+        <tr>
+          <td style="padding-bottom: 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td width="50%" style="vertical-align: top; padding-right: 20px;">
+                  <p style="margin: 0 0 5px 0; font-weight: bold; color: black;">From:</p>
+                  <p style="margin: 0 0 5px 0; color: black;">${invoice.company?.name || 'Your Company'}</p>
+                </td>
+                <td width="50%" style="vertical-align: top; padding-left: 20px;">
+                  <p style="margin: 0 0 5px 0; font-weight: bold; color: black;">Bill To:</p>
+                  <p style="margin: 0 0 5px 0; color: black;">${invoice.client_name}</p>
+                  <p style="margin: 0 0 5px 0; color: black;">${invoice.client_email}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
         
-        <!-- Company and Bill To Section -->
-        <table style="width: 100%; margin-bottom: 30px; border-collapse: collapse;">
-          <tr>
-            <td style="width: 50%; vertical-align: top; padding-right: 15px;">
-              <h3 style="margin: 0 0 10px 0; color: #000; font-size: 14px; font-weight: bold;">From:</h3>
-              <div style="font-size: 12px;">
-                <div style="margin-bottom: 5px; font-weight: bold;">${invoice.company?.name || 'Your Company'}</div>
-              </div>
-            </td>
-            <td style="width: 50%; vertical-align: top; padding-left: 15px;">
-              <h3 style="margin: 0 0 10px 0; color: #000; font-size: 14px; font-weight: bold;">Bill To:</h3>
-              <div style="font-size: 12px;">
-                <div style="margin-bottom: 5px; font-weight: bold;">${invoice.client_name}</div>
-                <div style="margin-bottom: 5px;">${invoice.client_email}</div>
-              </div>
-            </td>
-          </tr>
-        </table>
+        <tr>
+          <td style="padding: 15px 0; background-color: #f5f5f5;">
+            <table width="100%" cellpadding="5" cellspacing="0">
+              <tr>
+                <td width="50%">
+                  <strong>Invoice Date:</strong> ${formatDate(invoice.created_at)}
+                </td>
+                <td width="50%">
+                  <strong>Due Date:</strong> ${formatDate(invoice.due_date)}
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Project:</strong> ${invoice.projects?.name || 'General'}
+                </td>
+                <td>
+                  <strong>Status:</strong> ${invoice.status}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
         
-        <!-- Invoice Details Section -->
-        <div style="margin-bottom: 30px; background: #f8f8f8; padding: 15px;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="width: 50%; font-size: 12px; padding: 3px 0;">
-                <strong>Invoice Date:</strong> ${formatDate(invoice.created_at)}
-              </td>
-              <td style="width: 50%; font-size: 12px; padding: 3px 0;">
-                <strong>Due Date:</strong> ${formatDate(invoice.due_date)}
-              </td>
-            </tr>
-            <tr>
-              <td style="font-size: 12px; padding: 3px 0;">
-                <strong>Project:</strong> ${invoice.projects?.name || 'General'}
-              </td>
-              <td style="font-size: 12px; padding: 3px 0;">
-                <strong>Status:</strong> <span style="text-transform: capitalize;">${invoice.status}</span>
-              </td>
-            </tr>
-          </table>
-        </div>
+        ${this.createSimpleLineItemsHtml(lineItems, options)}
         
-        ${this.createA4LineItemsHtml(lineItems, options)}
-        
-        <!-- Total Section -->
-        <div style="text-align: right; margin: 30px 0; padding: 20px 0; border-top: 2px solid #000;">
-          <h2 style="font-size: 24px; margin: 0; color: #000; font-weight: bold;">
-            Total: ${formatCurrency(Number(invoice.amount))}
-          </h2>
-        </div>
+        <tr>
+          <td style="text-align: right; padding: 30px 0; border-top: 2px solid black;">
+            <h2 style="font-size: 20px; margin: 0; color: black;">
+              Total: ${formatCurrency(Number(invoice.amount))}
+            </h2>
+          </td>
+        </tr>
         
         ${options.paymentTerms ? `
-          <div style="margin: 20px 0;">
-            <h3 style="color: #000; font-size: 14px; margin-bottom: 8px; font-weight: bold;">Payment Terms</h3>
-            <p style="font-size: 12px; line-height: 1.4; color: #333; margin: 0;">${options.paymentTerms}</p>
-          </div>
+          <tr>
+            <td style="padding: 15px 0;">
+              <p style="margin: 0 0 5px 0; font-weight: bold; color: black;">Payment Terms</p>
+              <p style="margin: 0; color: black;">${options.paymentTerms}</p>
+            </td>
+          </tr>
         ` : ''}
         
         ${options.notes ? `
-          <div style="margin: 20px 0;">
-            <h3 style="color: #000; font-size: 14px; margin-bottom: 8px; font-weight: bold;">Notes</h3>
-            <p style="font-size: 12px; line-height: 1.4; color: #333; margin: 0;">${options.notes}</p>
-          </div>
+          <tr>
+            <td style="padding: 15px 0;">
+              <p style="margin: 0 0 5px 0; font-weight: bold; color: black;">Notes</p>
+              <p style="margin: 0; color: black;">${options.notes}</p>
+            </td>
+          </tr>
         ` : ''}
         
-        <!-- Footer -->
-        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc;">
-          <p style="color: #999; font-size: 11px; margin: 0;">Thank you for your business!</p>
-        </div>
-      </div>
+        <tr>
+          <td style="text-align: center; padding-top: 30px; border-top: 1px solid #ccc;">
+            <p style="color: #666; font-size: 11px; margin: 0;">Thank you for your business!</p>
+          </td>
+        </tr>
+      </table>
     `;
   }
 
-  private static createA4LineItemsHtml(lineItems: InvoiceLineItem[], options: PdfGenerationOptions): string {
+  private static createSimpleLineItemsHtml(lineItems: InvoiceLineItem[], options: PdfGenerationOptions): string {
     if (options.showLineItems === 'none' || lineItems.length === 0) {
       return '';
     }
@@ -229,28 +230,30 @@ export class PdfService {
     if (options.showLineItems === 'detailed') {
       const rows = lineItems.map(item => `
         <tr>
-          <td style="border: 1px solid #ccc; padding: 8px; font-size: 11px;">${item.category_name || 'Uncategorized'}</td>
-          <td style="border: 1px solid #ccc; padding: 8px; font-size: 11px;">${item.description || '-'}</td>
-          <td style="border: 1px solid #ccc; padding: 8px; text-align: right; font-size: 11px;">${formatCurrency(Number(item.cost))}</td>
-          <td style="border: 1px solid #ccc; padding: 8px; text-align: right; font-size: 11px;">${item.markup_percentage}%</td>
-          <td style="border: 1px solid #ccc; padding: 8px; text-align: right; font-size: 11px; font-weight: bold;">${formatCurrency(Number(item.price))}</td>
+          <td style="border: 1px solid #ccc; padding: 8px;">${item.category_name || 'Uncategorized'}</td>
+          <td style="border: 1px solid #ccc; padding: 8px;">${item.description || '-'}</td>
+          <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">${formatCurrency(Number(item.cost))}</td>
+          <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">${item.markup_percentage}%</td>
+          <td style="border: 1px solid #ccc; padding: 8px; text-align: right; font-weight: bold;">${formatCurrency(Number(item.price))}</td>
         </tr>
       `).join('');
 
       return `
-        <div style="margin: 30px 0;">
-          <h3 style="color: #000; margin-bottom: 15px; font-size: 16px; font-weight: bold;">Invoice Details</h3>
-          <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-            <tr style="background: #f0f0f0;">
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; font-weight: bold;">Category</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; font-weight: bold;">Description</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right; font-size: 12px; font-weight: bold;">Cost</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right; font-size: 12px; font-weight: bold;">Markup</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right; font-size: 12px; font-weight: bold;">Price</th>
-            </tr>
-            ${rows}
-          </table>
-        </div>
+        <tr>
+          <td style="padding: 20px 0;">
+            <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px; color: black;">Invoice Details</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+              <tr style="background-color: #f0f0f0;">
+                <th style="border: 1px solid #ccc; padding: 8px; text-align: left; font-weight: bold;">Category</th>
+                <th style="border: 1px solid #ccc; padding: 8px; text-align: left; font-weight: bold;">Description</th>
+                <th style="border: 1px solid #ccc; padding: 8px; text-align: right; font-weight: bold;">Cost</th>
+                <th style="border: 1px solid #ccc; padding: 8px; text-align: right; font-weight: bold;">Markup</th>
+                <th style="border: 1px solid #ccc; padding: 8px; text-align: right; font-weight: bold;">Price</th>
+              </tr>
+              ${rows}
+            </table>
+          </td>
+        </tr>
       `;
     }
 
@@ -260,37 +263,25 @@ export class PdfService {
       const totalMarkup = totalPrice - totalCost;
 
       return `
-        <div style="margin: 30px 0;">
-          <h3 style="color: #000; margin-bottom: 15px; font-size: 16px; font-weight: bold;">Invoice Summary</h3>
-          <div style="background: #f5f5f5; padding: 20px; border: 1px solid #ccc;">
-            <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 20px 0;">
+            <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px; color: black;">Invoice Summary</p>
+            <table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f5f5f5; border: 1px solid #ccc;">
               <tr>
-                <td style="font-size: 14px; padding: 5px 0; border-bottom: 1px solid #ddd;">
-                  <strong>Total Cost:</strong>
-                </td>
-                <td style="font-size: 14px; padding: 5px 0; text-align: right; border-bottom: 1px solid #ddd;">
-                  ${formatCurrency(totalCost)}
-                </td>
+                <td style="font-weight: bold;">Total Cost:</td>
+                <td style="text-align: right;">${formatCurrency(totalCost)}</td>
               </tr>
               <tr>
-                <td style="font-size: 14px; padding: 5px 0; border-bottom: 1px solid #ddd;">
-                  <strong>Total Markup:</strong>
-                </td>
-                <td style="font-size: 14px; padding: 5px 0; text-align: right; border-bottom: 1px solid #ddd;">
-                  ${formatCurrency(totalMarkup)}
-                </td>
+                <td style="font-weight: bold;">Total Markup:</td>
+                <td style="text-align: right;">${formatCurrency(totalMarkup)}</td>
               </tr>
-              <tr>
-                <td style="font-size: 16px; padding: 10px 0; border-top: 2px solid #000;">
-                  <strong>Total:</strong>
-                </td>
-                <td style="font-size: 16px; padding: 10px 0; text-align: right; font-weight: bold; border-top: 2px solid #000;">
-                  ${formatCurrency(totalPrice)}
-                </td>
+              <tr style="border-top: 2px solid black;">
+                <td style="font-weight: bold; padding-top: 10px;">Total:</td>
+                <td style="text-align: right; font-weight: bold; padding-top: 10px;">${formatCurrency(totalPrice)}</td>
               </tr>
             </table>
-          </div>
-        </div>
+          </td>
+        </tr>
       `;
     }
 
