@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { LienReleaseForm, LienReleaseFormRef } from "@/components/payments/LienReleaseForm";
@@ -8,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const LienRelease = () => {
-
   const viewerRef = useRef<DocxToHtmlViewerRef>(null);
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [signatureBoxes, setSignatureBoxes] = useState<any[]>([]);
@@ -16,7 +16,6 @@ const LienRelease = () => {
   const [formValues, setFormValues] = useState<any>(null);
 
   const handleSubmit = async () => {
-
     if (!viewerRef.current) {
       toast.error("Document preview not ready.");
       return;
@@ -77,9 +76,39 @@ const LienRelease = () => {
       toast.error("Document preview not ready.");
       return;
     }
-    const base64File = await viewerRef.current.getMergedHtml(values);
-    setFormValues(values);
-    setShowModal(true);
+
+    try {
+      // Get project name from projectId
+      let projectName = "";
+      if (values.projectId) {
+        const { data: project, error } = await supabase
+          .from('projects')
+          .select('name')
+          .eq('id', values.projectId)
+          .single();
+
+        if (error) {
+          console.error("Error fetching project:", error);
+          toast.error("Failed to load project details");
+          return;
+        }
+        
+        projectName = project?.name || "";
+      }
+
+      // Create enhanced form values with project name for template
+      const enhancedValues = {
+        ...values,
+        projectName,
+      };
+
+      const base64File = await viewerRef.current.getMergedHtml(enhancedValues);
+      setFormValues(enhancedValues);
+      setShowModal(true);
+    } catch (err) {
+      console.error("Error preparing document:", err);
+      toast.error("Failed to prepare document for preview");
+    }
   };
 
   const formRef = useRef<LienReleaseFormRef>(null);

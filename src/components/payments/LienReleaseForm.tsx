@@ -1,4 +1,3 @@
-
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -28,9 +27,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { OpenProjectSelector } from "./OpenProjectSelector";
 
 const formSchema = z.object({
-  projectName: z.string().min(1, { message: "Project name is required" }),
+  projectId: z.string().min(1, { message: "Project selection is required" }),
   propertyAddress: z.string().min(1, { message: "Property address is required" }),
   contractorName: z.string().min(1, { message: "Contractor name is required" }),
   releaseType: z.string().min(1, { message: "Release type is required" }),
@@ -59,7 +59,7 @@ export const LienReleaseForm = forwardRef<LienReleaseFormRef, Props>(
     const form = useForm<FormValues>({
       resolver: zodResolver(formSchema),
       defaultValues: {
-        projectName: "",
+        projectId: "",
         propertyAddress: "",
         contractorName: "",
         releaseType: "",
@@ -77,19 +77,22 @@ export const LienReleaseForm = forwardRef<LienReleaseFormRef, Props>(
       },
     }));
 
-
     return (
       <Form {...form}>
         <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
-              name="projectName"
+              name="projectId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Project Name</FormLabel>
+                  <FormLabel>Project</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter project name" {...field} />
+                    <OpenProjectSelector
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select or create a project"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
