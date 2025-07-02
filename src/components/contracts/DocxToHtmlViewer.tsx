@@ -12,162 +12,142 @@ import { Button } from "../ui/button";
 
 export type DocxToHtmlViewerRef = {
   getMergedHtml: (formData?: any) => Promise<string>;
+  getHtmlContent: () => string | null;
 };
 
 type Props = {
-  setSignatureBoxes: React.Dispatch<React.SetStateAction<any[]>>;
   onSubmit: () => void;
   onClose: () => void;
   showModal: boolean;
+  title: string;
+  setFileType: (type: "pdf" | "docx") => void;
 };
 
 const DocxToHtmlViewer = forwardRef<DocxToHtmlViewerRef, Props>(
-  ({ setSignatureBoxes, onSubmit, onClose, showModal }, ref) => {
-    const [fileName, setFileName] = useState<string>("");
-    const [htmlContent, setHtmlContent] = useState<string>("");
-    const [mergedHtmlPreview, setMergedHtmlPreview] = useState<string>("");
+  ({ onSubmit, onClose, showModal, title, setFileType }, ref) => {
+    const [fileName, setFileName] = useState("");
+    const [htmlContent, setHtmlContent] = useState("");
+    const [mergedHtmlPreview, setMergedHtmlPreview] = useState("");
 
     const editableRef = useRef<HTMLDivElement>(null);
 
     useImperativeHandle(ref, () => ({
-      getMergedHtml: async (formData?) => {
-        let baseHtml = htmlContent;
-        let filledHtml = baseHtml;
+      getHtmlContent: () => htmlContent,
+      getMergedHtml: async (formData?: any) => {
+        let filledHtml = htmlContent;
 
         if (formData) {
-          filledHtml = baseHtml
-            .replace(/{{\s*projectName\s*}}/g, formData.projectName || "")
-            .replace(/{{\s*propertyAddress\s*}}/g, formData.propertyAddress || "")
-            .replace(/{{\s*contractorName\s*}}/g, formData.contractorName || "")
-            .replace(/{{\s*releaseType\s*}}/g, formData.releaseType || "")
-            .replace(/{{\s*paymentAmount\s*}}/g, formData.paymentAmount || "")
-            .replace(/{{\s*additionalNotes\s*}}/g, formData.additionalNotes || "")
-            .replace(/{{\s*contractorMail\s*}}/g, formData.contractorMail || "")
-            .replace(
-              /{{\s*paymentDate\s*}}/g,
-              formData.paymentDate
-                ? new Date(formData.paymentDate).toLocaleDateString("en-US")
-                : ""
-            );
+          const replacements: Record<string, (d: any) => string> = {
+            "project name": d => d.projectName,
+            "property address": d => d.propertyAddress,
+            "contractor name": d => d.contractorName,
+            "vendor/contractor/subcontractor": d => d.contractorName,
+            "release type": d => d.releaseType,
+            "payment amount": d => d.paymentAmount,
+            "notes": d => d.additionalNotes,
+            "email": d => d.contractorMail,
+            "contractor mail": d => d.contractorMail,
+            "date": d =>
+              d.paymentDate
+                ? new Date(d.paymentDate).toLocaleDateString("en-US")
+                : "",
+            "payment date": d =>
+              d.paymentDate
+                ? new Date(d.paymentDate).toLocaleDateString("en-US")
+                : "",
+            "cutoff date for covered work": d =>
+              d.cutoffDate
+                ? new Date(d.cutoffDate).toLocaleDateString("en-US")
+                : "",
+          };
+
+          filledHtml = filledHtml.replace(
+            /_{4,}\s*\[([^\]]+)\]/g,
+            (match, label) => {
+              const labelKey = label.trim().toLowerCase();
+              for (const key in replacements) {
+                if (labelKey.includes(key)) {
+                  return replacements[key](formData) ?? "";
+                }
+              }
+              return match;
+            }
+          );
+
+          filledHtml = filledHtml.replace(
+            /\$\s*_{4,}/g,
+            () => {
+              const value = formData?.paymentAmount;
+              return value ? `$${value}` : "$";
+            }
+          );
+
+          const wordContextRegex =
+            /((?:\b[\w/]+\b[\s\r\n:,$-]*){0,5})_{4,}((?:[\s\r\n:,$-]*\b[\w/]+\b){0,5})/g;
+
+          filledHtml = filledHtml.replace(
+            wordContextRegex,
+            (match, before = "", after = "") => {
+              const context = (
+                [
+                  ...before.trim().split(/\s+/).slice(-5),
+                  ...after.trim().split(/\s+/).slice(0, 5),
+                ]
+                  .join(" ")
+                  .toLowerCase()
+                  .replace(/[^a-z0-9\s/]/gi, "")
+              );
+
+              for (const key in replacements) {
+                if (context.includes(key)) {
+                  return `${before}${replacements[key](formData) ?? ""}${after}`;
+                }
+              }
+
+              return match;
+            }
+          );
         }
 
-        const merged = `
-      <div>
-        ${filledHtml}
-        ${formData
-            ? `<div style="margin-top: 30px; border-top: 1px solid #999; padding-top: 20px;">
-                <h3>Lien Release</h3>
-                <p><strong>Project Name:</strong> ${formData.projectName || ""}</p>
-                <p><strong>Contractor Name:</strong> ${formData.contractorName || ""}</p>
-              </div>`
-            : ""
-          }
-      </div>
-    `;
-
-        setMergedHtmlPreview(merged); // show preview
+        setMergedHtmlPreview(filledHtml);
 
         const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = merged;
+        tempDiv.innerHTML = filledHtml;
         document.body.appendChild(tempDiv);
 
         try {
           const base64 = await htmlToBase64Pdf(tempDiv);
-          document.body.removeChild(tempDiv);
           return base64;
-        } catch (err) {
+        } finally {
           document.body.removeChild(tempDiv);
-          throw err;
         }
-      },
+      }
+
     }));
 
     const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (!file || !file.name.endsWith(".docx")) {
-        toast.error("Please upload a valid .docx file.");
-        return;
-      }
+      if (!file) return;
 
+      const extension = file.name.split(".").pop()?.toLowerCase();
       setFileName(file.name);
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.convertToHtml({ arrayBuffer });
-        setHtmlContent(result.value);
-      } catch (err) {
-        toast.error("Failed to convert .docx");
-        console.error(err);
+
+      if (extension === "docx") {
+        setFileType("docx");
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.convertToHtml({ arrayBuffer });
+          setHtmlContent(result.value);
+          setMergedHtmlPreview("");
+        } catch (err) {
+          toast.error("Failed to convert .docx file.");
+        }
+      } else if (extension === "pdf") {
+        setFileType("pdf");
+        toast("PDF support coming soon.");
+      } else {
+        toast.error("Unsupported file format. Please upload a .docx or .pdf file.");
       }
-    };
-
-    const updateAllSignatureBoxStates = () => {
-      const boxes = Array.from(
-        editableRef.current?.querySelectorAll(".signature-box") || []
-      );
-      const updated = boxes.map((el: any) => {
-        const style = window.getComputedStyle(el);
-        return {
-          x: parseInt(style.left),
-          y: parseInt(style.top),
-          w: parseInt(style.width),
-          h: parseInt(style.height),
-        };
-      });
-      setSignatureBoxes(updated);
-    };
-
-    const addSignatureBox = () => {
-      const box = document.createElement("div");
-      box.className = "signature-box";
-      box.style.left = "50px";
-      box.style.top = "50px";
-      box.style.position = "absolute";
-
-      const label = document.createElement("span");
-      label.textContent = "Signature";
-      box.appendChild(label);
-
-      const closeBtn = document.createElement("button");
-      closeBtn.textContent = "×";
-      closeBtn.className = "signature-close";
-      closeBtn.onclick = () => {
-        box.remove();
-        updateAllSignatureBoxStates();
-      };
-      box.appendChild(closeBtn);
-
-      let offsetX = 0,
-        offsetY = 0;
-      box.addEventListener("mousedown", (e) => {
-        if ((e.target as HTMLElement).tagName === "BUTTON") return;
-
-        offsetX = e.offsetX;
-        offsetY = e.offsetY;
-
-        const moveHandler = (eMove: MouseEvent) => {
-          const containerRect = editableRef.current?.getBoundingClientRect();
-          if (!containerRect) return;
-
-          const x = eMove.clientX - containerRect.left - offsetX;
-          const y = eMove.clientY - containerRect.top - offsetY;
-
-          box.style.left = `${x}px`;
-          box.style.top = `${y}px`;
-
-          updateAllSignatureBoxStates();
-        };
-
-        const upHandler = () => {
-          document.removeEventListener("mousemove", moveHandler);
-          document.removeEventListener("mouseup", upHandler);
-        };
-
-        document.addEventListener("mousemove", moveHandler);
-        document.addEventListener("mouseup", upHandler);
-      });
-
-      editableRef.current?.appendChild(box);
-      updateAllSignatureBoxStates();
     };
 
     return (
@@ -175,22 +155,13 @@ const DocxToHtmlViewer = forwardRef<DocxToHtmlViewerRef, Props>(
         <div className="flex items-center justify-between mb-2">
           <input type="file" accept=".docx" onChange={handleFileUpload} />
         </div>
-        {fileName && <p className="text-sm">Uploaded: {fileName}</p>}
+
+        {fileName && <p className="text-sm text-gray-600">Uploaded: {fileName}</p>}
 
         {showModal && (
           <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center">
             <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl relative">
               <h2 className="text-lg font-semibold mb-4">Document Preview</h2>
-
-              <div className="flex justify-end mb-2">
-                <button
-                  onClick={addSignatureBox}
-                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                >
-                  Add Signature Box
-                </button>
-              </div>
-
               <div
                 ref={editableRef}
                 contentEditable
@@ -210,7 +181,7 @@ const DocxToHtmlViewer = forwardRef<DocxToHtmlViewerRef, Props>(
                   onClick={onSubmit}
                   className="bg-construction-600 hover:bg-construction-700"
                 >
-                  Generate Lien Release
+                  {title === "contract" ? "Send for Signing" : "Generate Lien Release"}
                 </Button>
               </div>
             </div>
@@ -224,12 +195,12 @@ const DocxToHtmlViewer = forwardRef<DocxToHtmlViewerRef, Props>(
             height: 50px;
             background-color: rgba(0, 119, 255, 0.2);
             border: 2px dashed #0077ff;
-            color: #000;
-            font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 10px;
+            font-weight: bold;
+            color: #000;
             cursor: move;
             user-select: none;
           }
