@@ -1,5 +1,5 @@
 
-import { Document, Page, Text, View, StyleSheet, pdf, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
 import { DbInvoice } from '@/lib/supabase';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -183,7 +183,6 @@ const InvoicePDF = ({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>INVOICE</Text>
@@ -196,7 +195,6 @@ const InvoicePDF = ({
           </View>
         </View>
 
-        {/* Bill To Section */}
         <View style={styles.billToSection}>
           <View style={styles.billToColumn}>
             <Text style={styles.sectionTitle}>Bill To:</Text>
@@ -209,7 +207,6 @@ const InvoicePDF = ({
           </View>
         </View>
 
-        {/* Invoice Info */}
         <View style={styles.infoSection}>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Invoice Date:</Text>
@@ -225,7 +222,6 @@ const InvoicePDF = ({
           </View>
         </View>
 
-        {/* Line Items - Detailed */}
         {options.showLineItems === 'detailed' && lineItems.length > 0 && (
           <View style={styles.table}>
             <Text style={styles.sectionTitle}>Invoice Details</Text>
@@ -258,7 +254,6 @@ const InvoicePDF = ({
           </View>
         )}
 
-        {/* Line Items - Summary */}
         {options.showLineItems === 'summary' && lineItems.length > 0 && (
           <View style={styles.summarySection}>
             <Text style={styles.sectionTitle}>Invoice Summary</Text>
@@ -277,14 +272,12 @@ const InvoicePDF = ({
           </View>
         )}
 
-        {/* Total Amount */}
         <View style={styles.totalSection}>
           <Text style={styles.totalAmount}>
             Total: {formatCurrency(Number(invoice.amount))}
           </Text>
         </View>
 
-        {/* Payment Terms */}
         {options.paymentTerms && (
           <View style={styles.notesSection}>
             <Text style={styles.sectionTitle}>Payment Terms</Text>
@@ -292,7 +285,6 @@ const InvoicePDF = ({
           </View>
         )}
 
-        {/* Notes */}
         {options.notes && (
           <View style={styles.notesSection}>
             <Text style={styles.sectionTitle}>Notes</Text>
@@ -300,7 +292,6 @@ const InvoicePDF = ({
           </View>
         )}
 
-        {/* Footer */}
         <View style={styles.footer}>
           <Text>Thank you for your business!</Text>
         </View>
