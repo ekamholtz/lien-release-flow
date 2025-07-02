@@ -29,6 +29,8 @@ import OnboardingPage from './pages/OnboardingPage';
 import { useCompany } from './contexts/CompanyContext';
 import Contract from './pages/Contract';
 import CreateContract from './pages/CreateContract';
+import ReviewPdfPage from './pages/ReviewPdfPage';
+import DocxFillPage from './pages/DocxFillPage';
 
 // Auth guard for protected routes
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -264,6 +266,22 @@ const App = () => {
           element={
             <ProtectedRoute>
               <CreateContract />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/review-doc-pdf" 
+          element={
+            <ProtectedRoute>
+              <ReviewPdfPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/fill-template" 
+          element={
+            <ProtectedRoute>
+              <DocxFillPage />
             </ProtectedRoute>
           } 
         />

@@ -1,100 +1,124 @@
 import React, { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
+
 import { AppLayout } from "@/components/AppLayout";
+import { Button } from "@/components/ui/button";
 import { ContractDocumentUploadCard } from "@/components/contracts/ContractDocumentUploadCard";
 import { AgreementStatusCard } from "@/components/contracts/AgreementStatusCard";
+import { DocxToHtmlViewerRef } from "@/components/contracts/PdfViewer";
+import { convertDocxToHtml, htmlToBase64Pdf, htmlToBase64PdfString, pdfFileToBase64 } from "@/utils/htmlToBase64Pdf";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import DocxToHtmlViewer, { DocxToHtmlViewerRef } from "@/components/contracts/DocxToHtmlViewer";
-import { toast } from "sonner";
 
 const CreateContract: React.FC = () => {
   const navigate = useNavigate();
+  const viewerRef = useRef<DocxToHtmlViewerRef>(null);
 
   const [file, setFile] = useState<File | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [title, setTitle] = useState("Sample Document");
-  const [note, setNote] = useState("Please sign the document");
-  const [description, setDescription] = useState("Contract Agreement");
-  const [timeToCompleteDays, setTimeToCompleteDays] = useState(15);
-  const [sendInOrder, setSendInOrder] = useState(true);
-  const [enableOTP, setEnableOTP] = useState(false);
-  const [allowModifications, setAllowModifications] = useState(false);
-  const [autoReminder, setAutoReminder] = useState(false);
+  const [fileType, setFileType] = useState<"docx" | "pdf" | null>(null);
+  const [signatureBoxes, setSignatureBoxes] = useState<any[]>([]);
+  const [showModal, setShowModal] = useState<boolean>(false);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    title: "Sample Document",
+    note: "Please sign the document",
+    description: "Contract Agreement",
+    timeToCompleteDays: 15,
+    sendInOrder: true,
+    enableOTP: false,
+    allowModifications: false,
+    autoReminder: false,
+  });
 
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [agreementId, setAgreementId] = useState("");
   const [signedUrl, setSignedUrl] = useState("");
-  const viewerRef = useRef<DocxToHtmlViewerRef>(null);
-  const [signatureBoxes, setSignatureBoxes] = useState<any[]>([]);
-  const [showModal, setShowModal] = useState<boolean>(false);
 
-  const toBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result;
-        if (typeof result === "string") {
-          resolve(result.split(",")[1]); // Remove base64 prefix
-        } else {
-          reject("Failed to convert file to base64");
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+  const handleNext = async () => {
+    try {
+      if (!fileType) {
+        toast.error("Please upload a .docx or .pdf file first.");
+        return;
+      }
 
-  const handleNext = () => {
-    setShowModal(true);
-  }
+      let base64File = "";
+      if (fileType === "docx") {
+        // base64File = await viewerRef.current!.getMergedHtml();
+        const html = await convertDocxToHtml(file);
+        base64File = await htmlToBase64PdfString(html);
+      } else if (fileType === "pdf") {
+        base64File = await pdfFileToBase64(file);
+      }
+
+      if (!base64File) {
+        toast.error("Failed to generate document preview.");
+        return;
+      }
+
+      navigate("/review-doc-pdf", {
+        state: {
+          base64: base64File,
+          fileName: "Document",
+          fileType,
+          ...formData,
+        },
+      });
+    } catch (error) {
+      console.error("Error processing document:", error);
+      toast.error("An unexpected error occurred while preparing the document.");
+    }
+  };
 
   const sendForSigning = async () => {
-    if (!email || !name) return;
-    if (!viewerRef.current) {
+    const fileType = viewerRef.current?.getFileType?.();
+
+    if (!viewerRef.current || !fileType) {
       toast.error("Document preview not ready.");
       return;
     }
-    const base64File = await viewerRef.current.getMergedHtml();
+
+    if (signatureBoxes.length === 0) {
+      toast.error("Please add at least one signature box before submitting.");
+      return;
+    }
+
+    let base64File = "";
+    if (fileType === "docx") {
+      base64File = await viewerRef.current.getMergedHtml();
+    } else if (fileType === "pdf") {
+      base64File = await viewerRef.current.getBase64();
+    }
+
     setShowModal(false);
     setStatus("sending");
-    try {
-      // const base64File = await toBase64(file);
 
+    try {
       const { data, error } = await supabase.functions.invoke("send-pdf-signature", {
         body: {
           file: base64File,
-          email,
-          name,
-          phone,
-          title,
-          note,
-          description,
-          timeToCompleteDays,
-          sendInOrder,
-          enableOTP,
-          allowModifications,
-          autoReminder,
+          ...formData,
           signers: [
             {
               role: "contractor",
               signing_order: 1,
-              email: email,
-              name: name,
-              phone: phone || "",
-              widgets: signatureBoxes.map((box, index) => ({
+              email: formData.email,
+              name: formData.name,
+              phone: formData.phone || "",
+              widgets: signatureBoxes.map((box, i) => ({
                 type: "signature",
-                page: 1,
+                page: box.page,
                 x: box.x,
                 y: box.y,
                 w: box.w,
                 h: box.h,
-                name: `signature_${index + 1}`,
-              }))
-            }
-          ]
+                name: `signature_${i + 1}`,
+              })),
+            },
+          ],
         },
       });
 
@@ -107,12 +131,15 @@ const CreateContract: React.FC = () => {
       if (data?.objectId) {
         setAgreementId(data.objectId);
         setStatus("sent");
+        toast.success("Document sent successfully.");
       } else {
         setStatus("error");
+        toast.error("Failed to send document.");
       }
     } catch (err) {
       console.error("Function invoke failed:", err);
       setStatus("error");
+      toast.error("Unexpected error while sending document.");
     }
   };
 
@@ -137,17 +164,11 @@ const CreateContract: React.FC = () => {
     }
   };
 
-
   return (
     <AppLayout>
       <div className="w-full p-6">
         <div className="flex items-center mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="mr-2"
-          >
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mr-2">
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
           <h1 className="text-2xl font-bold">Create Contract</h1>
@@ -156,36 +177,28 @@ const CreateContract: React.FC = () => {
         <div className="max-w-3xl mx-auto">
           <ContractDocumentUploadCard
             file={file}
-            name={name}
-            setPhone={setPhone}
-            email={email}
-            phone={phone}
-            title={title}
-            note={note}
-            description={description}
-            timeToCompleteDays={timeToCompleteDays}
-            sendInOrder={sendInOrder}
-            enableOTP={enableOTP}
-            allowModifications={allowModifications}
-            autoReminder={autoReminder}
-            status={status}
+            fileType={fileType}
+            setFileType={setFileType}
+            {...formData}
+            setName={(v) => setFormData((p) => ({ ...p, name: v }))}
+            setEmail={(v) => setFormData((p) => ({ ...p, email: v }))}
+            setPhone={(v) => setFormData((p) => ({ ...p, phone: v }))}
+            setTitle={(v) => setFormData((p) => ({ ...p, title: v }))}
+            setNote={(v) => setFormData((p) => ({ ...p, note: v }))}
+            setDescription={(v) => setFormData((p) => ({ ...p, description: v }))}
+            setTimeToCompleteDays={(v) => setFormData((p) => ({ ...p, timeToCompleteDays: v }))}
+            setSendInOrder={(v) => setFormData((p) => ({ ...p, sendInOrder: v }))}
+            setEnableOTP={(v) => setFormData((p) => ({ ...p, enableOTP: v }))}
+            setAllowModifications={(v) => setFormData((p) => ({ ...p, allowModifications: v }))}
+            setAutoReminder={(v) => setFormData((p) => ({ ...p, autoReminder: v }))}
             setFile={setFile}
-            setName={setName}
-            setEmail={setEmail}
-            setTitle={setTitle}
-            setNote={setNote}
-            setDescription={setDescription}
-            setTimeToCompleteDays={setTimeToCompleteDays}
-            setSendInOrder={setSendInOrder}
-            setEnableOTP={setEnableOTP}
-            setAllowModifications={setAllowModifications}
-            setAutoReminder={setAutoReminder}
             onSubmit={handleNext}
             viewerRef={viewerRef}
             setSignatureBoxes={setSignatureBoxes}
             sendForSigning={sendForSigning}
             showModal={showModal}
             onClose={() => setShowModal(false)}
+            status={status}
           />
 
           {agreementId && (
@@ -195,10 +208,8 @@ const CreateContract: React.FC = () => {
               checkStatus={checkStatus}
             />
           )}
-
         </div>
       </div>
-
     </AppLayout>
   );
 };
