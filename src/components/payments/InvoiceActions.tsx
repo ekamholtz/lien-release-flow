@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -7,10 +6,11 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, RefreshCw } from "lucide-react";
+import { MoreHorizontal, RefreshCw, FileText } from "lucide-react";
 import { DbInvoice, InvoiceStatus } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { QboSyncStatusBadge } from './QboSyncStatus';
+import { PdfGenerationDialog } from './pdf/PdfGenerationDialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -46,6 +46,7 @@ export function InvoiceActions({
   const { session } = useAuth();
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [syncError, setSyncError] = React.useState<string | null>(null);
+  const [isPdfDialogOpen, setIsPdfDialogOpen] = React.useState(false);
   
   const handleSyncToQbo = async () => {
     if (!session?.access_token || isSyncing) return;
@@ -218,6 +219,15 @@ export function InvoiceActions({
           )}
         </Button>
       )}
+
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={() => setIsPdfDialogOpen(true)}
+      >
+        <FileText className="mr-1 h-3 w-3" />
+        PDF
+      </Button>
       
       {syncError && (
         <div className="text-xs text-red-500" title={syncError}>
@@ -256,6 +266,12 @@ export function InvoiceActions({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <PdfGenerationDialog
+        invoice={invoice}
+        isOpen={isPdfDialogOpen}
+        onClose={() => setIsPdfDialogOpen(false)}
+      />
     </div>
   );
 }

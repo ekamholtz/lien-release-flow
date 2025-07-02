@@ -31,7 +31,7 @@ const AccountsReceivable = () => {
   return (
     <AppLayout>
       <div className="w-full p-6">
-        <AccountsReceivableHeader />
+        <AccountsReceivableHeader invoices={invoices} />
         
         <AccountsReceivableContent
           invoices={invoices}
