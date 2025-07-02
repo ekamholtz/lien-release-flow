@@ -9,59 +9,76 @@ import html2pdf from "html2pdf.js";
 export const htmlToBase64Pdf = async (element: HTMLElement): Promise<string> => {
   return new Promise((resolve, reject) => {
     const options = {
-      margin: [15, 15, 15, 15], // Top, Right, Bottom, Left margins in mm
+      margin: [10, 10, 10, 10],
       filename: "invoice.pdf",
       image: { 
         type: "jpeg", 
-        quality: 0.95 
+        quality: 0.98 
       },
       html2canvas: { 
-        scale: 1.5,
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        removeContainer: true,
+        logging: true,
+        letterRendering: true,
+        removeContainer: false,
         scrollX: 0,
         scrollY: 0,
-        windowWidth: 794,
-        windowHeight: 1123
+        width: 800,
+        height: element.scrollHeight || 1200
       },
       jsPDF: { 
         unit: "mm", 
         format: "a4", 
-        orientation: "portrait",
-        compress: true
-      },
-      pagebreak: { 
-        mode: ['avoid-all', 'css', 'legacy'] 
+        orientation: "portrait"
       }
     };
 
-    console.log('Starting PDF conversion with options:', options);
-    console.log('Element to convert:', {
-      width: element.offsetWidth,
-      height: element.offsetHeight,
-      hasContent: element.innerHTML.length > 0
+    console.log('PDF Generation Debug:');
+    console.log('Element dimensions:', {
+      offsetWidth: element.offsetWidth,
+      offsetHeight: element.offsetHeight,
+      scrollWidth: element.scrollWidth,
+      scrollHeight: element.scrollHeight,
+      clientWidth: element.clientWidth,
+      clientHeight: element.clientHeight
     });
+    console.log('Element content preview:', element.innerHTML.substring(0, 500));
+    console.log('Element computed styles:', window.getComputedStyle(element));
+
+    // Ensure element is visible and has content
+    if (!element.innerHTML || element.innerHTML.trim().length === 0) {
+      console.error('Element has no content');
+      reject(new Error('Element has no content to convert'));
+      return;
+    }
 
     html2pdf()
       .set(options)
       .from(element)
       .outputPdf("datauristring")
       .then((dataUri: string) => {
-        console.log('PDF conversion successful, dataUri length:', dataUri.length);
-        // Strip the prefix: "data:application/pdf;base64,"
+        console.log('PDF conversion complete. DataURI length:', dataUri.length);
+        console.log('DataURI preview:', dataUri.substring(0, 100));
+        
+        if (!dataUri || dataUri.length < 100) {
+          console.error('Generated PDF appears to be empty or invalid');
+          reject(new Error('Generated PDF is empty or invalid'));
+          return;
+        }
+
         const base64 = dataUri.split(",")[1];
         if (!base64 || base64.length === 0) {
-          console.error('PDF conversion resulted in empty base64 string');
-          reject(new Error('PDF conversion resulted in empty content'));
+          console.error('Failed to extract base64 from data URI');
+          reject(new Error('Failed to extract base64 from PDF'));
         } else {
-          console.log('Base64 PDF extracted, length:', base64.length);
+          console.log('Base64 PDF extracted successfully, length:', base64.length);
           resolve(base64);
         }
       })
       .catch((err: any) => {
-        console.error("Failed to convert HTML to base64 PDF:", err);
+        console.error("PDF conversion failed:", err);
         reject(err);
       });
   });
