@@ -82,7 +82,6 @@ const DocxToHtmlViewer = forwardRef<DocxToHtmlViewerRef, Props>(
       },
     }));
 
-
     const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file || !file.name.endsWith(".docx")) {
