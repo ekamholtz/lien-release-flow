@@ -82,8 +82,8 @@ export class JsPdfService {
     pdf.text(new Date(invoice.created_at).toLocaleDateString(), 145, yPos + 12);
     pdf.text(new Date(invoice.due_date).toLocaleDateString(), 145, yPos + 20);
     
-    // Status with color
-    const statusColor = invoice.status === 'paid' ? [39, 174, 96] : 
+    // Status with color - Fix the TypeScript error by explicitly typing as tuples
+    const statusColor: [number, number, number] = invoice.status === 'paid' ? [39, 174, 96] : 
                        invoice.status === 'overdue' ? [231, 76, 60] : [241, 196, 15];
     pdf.setTextColor(...statusColor);
     pdf.text(invoice.status.toUpperCase(), 145, yPos + 28);
