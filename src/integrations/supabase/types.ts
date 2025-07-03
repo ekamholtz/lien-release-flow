@@ -181,6 +181,11 @@ export type Database = {
           project_id: string | null
           project_manager_id: string | null
           qbo_bill_id: string | null
+          qbo_last_synced_at: string | null
+          qbo_ref_id: string | null
+          qbo_sync_error: Json | null
+          qbo_sync_status: string | null
+          qbo_sync_token: string | null
           requires_lien_release: boolean | null
           status: string
           vendor_email: string
@@ -202,6 +207,11 @@ export type Database = {
           project_id?: string | null
           project_manager_id?: string | null
           qbo_bill_id?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_ref_id?: string | null
+          qbo_sync_error?: Json | null
+          qbo_sync_status?: string | null
+          qbo_sync_token?: string | null
           requires_lien_release?: boolean | null
           status?: string
           vendor_email: string
@@ -223,6 +233,11 @@ export type Database = {
           project_id?: string | null
           project_manager_id?: string | null
           qbo_bill_id?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_ref_id?: string | null
+          qbo_sync_error?: Json | null
+          qbo_sync_status?: string | null
+          qbo_sync_token?: string | null
           requires_lien_release?: boolean | null
           status?: string
           vendor_email?: string
@@ -883,6 +898,11 @@ export type Database = {
           payor_company: string | null
           payor_name: string | null
           provider_transaction_id: string | null
+          qbo_last_synced_at: string | null
+          qbo_payment_id: string | null
+          qbo_sync_error: Json | null
+          qbo_sync_status: string | null
+          qbo_sync_token: string | null
           status: string
           updated_at: string
           user_id: string | null
@@ -905,6 +925,11 @@ export type Database = {
           payor_company?: string | null
           payor_name?: string | null
           provider_transaction_id?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_payment_id?: string | null
+          qbo_sync_error?: Json | null
+          qbo_sync_status?: string | null
+          qbo_sync_token?: string | null
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -927,6 +952,11 @@ export type Database = {
           payor_company?: string | null
           payor_name?: string | null
           provider_transaction_id?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_payment_id?: string | null
+          qbo_sync_error?: Json | null
+          qbo_sync_status?: string | null
+          qbo_sync_token?: string | null
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -1078,6 +1108,12 @@ export type Database = {
           original_value: number | null
           project_manager_id: string | null
           project_type_id: string | null
+          qbo_customer_id: string | null
+          qbo_job_id: string | null
+          qbo_last_synced_at: string | null
+          qbo_sync_error: Json | null
+          qbo_sync_status: string | null
+          qbo_sync_token: string | null
           start_date: string
           status: Database["public"]["Enums"]["project_status"] | null
           updated_at: string
@@ -1099,6 +1135,12 @@ export type Database = {
           original_value?: number | null
           project_manager_id?: string | null
           project_type_id?: string | null
+          qbo_customer_id?: string | null
+          qbo_job_id?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_sync_error?: Json | null
+          qbo_sync_status?: string | null
+          qbo_sync_token?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["project_status"] | null
           updated_at?: string
@@ -1120,6 +1162,12 @@ export type Database = {
           original_value?: number | null
           project_manager_id?: string | null
           project_type_id?: string | null
+          qbo_customer_id?: string | null
+          qbo_job_id?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_sync_error?: Json | null
+          qbo_sync_status?: string | null
+          qbo_sync_token?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["project_status"] | null
           updated_at?: string
@@ -1145,6 +1193,53 @@ export type Database = {
             columns: ["project_type_id"]
             isOneToOne: false
             referencedRelation: "project_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qbo_account_mappings: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          local_category_mapping: Json | null
+          qbo_account_id: string
+          qbo_account_name: string
+          qbo_account_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          local_category_mapping?: Json | null
+          qbo_account_id: string
+          qbo_account_name: string
+          qbo_account_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          local_category_mapping?: Json | null
+          qbo_account_id?: string
+          qbo_account_name?: string
+          qbo_account_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qbo_account_mappings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1242,6 +1337,48 @@ export type Database = {
           id?: string
           payload?: Json | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      qbo_sync_batches: {
+        Row: {
+          batch_type: string
+          completed_at: string | null
+          created_at: string
+          entity_count: number
+          error_count: number
+          error_summary: Json | null
+          id: string
+          started_at: string
+          status: string
+          success_count: number
+          user_id: string
+        }
+        Insert: {
+          batch_type: string
+          completed_at?: string | null
+          created_at?: string
+          entity_count?: number
+          error_count?: number
+          error_summary?: Json | null
+          id?: string
+          started_at?: string
+          status?: string
+          success_count?: number
+          user_id: string
+        }
+        Update: {
+          batch_type?: string
+          completed_at?: string | null
+          created_at?: string
+          entity_count?: number
+          error_count?: number
+          error_summary?: Json | null
+          id?: string
+          started_at?: string
+          status?: string
+          success_count?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -1404,6 +1541,11 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          qbo_last_synced_at: string | null
+          qbo_sync_error: Json | null
+          qbo_sync_status: string | null
+          qbo_sync_token: string | null
+          qbo_vendor_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1414,6 +1556,11 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_sync_error?: Json | null
+          qbo_sync_status?: string | null
+          qbo_sync_token?: string | null
+          qbo_vendor_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1424,6 +1571,11 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          qbo_last_synced_at?: string | null
+          qbo_sync_error?: Json | null
+          qbo_sync_status?: string | null
+          qbo_sync_token?: string | null
+          qbo_vendor_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1511,6 +1663,15 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string | null
+        }[]
+      }
+      get_entities_pending_sync: {
+        Args: { p_table_name: string; p_user_id: string; p_limit?: number }
+        Returns: {
+          id: string
+          qbo_sync_status: string
+          qbo_last_synced_at: string
+          entity_data: Json
         }[]
       }
       get_pending_invitations_by_email: {
@@ -1630,6 +1791,17 @@ export type Database = {
       }
       update_project_status: {
         Args: { p_project_id: string; p_status: string }
+        Returns: undefined
+      }
+      update_qbo_sync_status: {
+        Args: {
+          p_table_name: string
+          p_entity_id: string
+          p_qbo_id: string
+          p_status: string
+          p_sync_token?: string
+          p_error?: Json
+        }
         Returns: undefined
       }
       update_sync_status: {
