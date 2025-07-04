@@ -17,12 +17,6 @@ const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
 // Define the canonical redirect URI
 const QBO_REDIRECT_URI = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback";
 
-// List redirect URIs for debugging
-const possibleRedirectURIs = [
-  "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback",
-  "https://oknofqytitpxmlprvekn.supabase.co/functions/v1/qbo-callback",
-];
-
 const scopes = [
   "com.intuit.quickbooks.accounting"
 ];
@@ -34,17 +28,14 @@ const authorizeBase =
 
 serve(async (req) => {
   // Add detailed request logging
-  console.log("qbo-authorize request details:", {
-    method: req.method,
-    url: req.url,
-    headers: {
-      auth: req.headers.get("authorization")?.slice(0, 30) + "...",
-      all: Object.fromEntries(req.headers.entries())
-    }
-  });
+  console.log("=== QBO Authorize Request ===");
+  console.log("Method:", req.method);
+  console.log("URL:", req.url);
+  console.log("Headers:", Object.fromEntries(req.headers.entries()));
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { 
       status: 204, 
       headers: corsHeaders 
@@ -52,34 +43,68 @@ serve(async (req) => {
   }
 
   try {
-    // Extract JWT token (but we're not validating it anymore since verify_jwt=false)
+    // Extract and validate JWT token
     const authHeader = req.headers.get('authorization');
+    console.log("Authorization header present:", !!authHeader);
+    console.log("Authorization header format:", authHeader?.substring(0, 20) + "...");
+    
+    if (!authHeader) {
+      console.error("Missing authorization header");
+      return new Response(JSON.stringify({
+        error: "Missing authorization header",
+        details: "This endpoint requires authentication. Please ensure you are signed in."
+      }), { 
+        status: 401, 
+        headers: corsHeaders 
+      });
+    }
+
+    if (!authHeader.startsWith('Bearer ')) {
+      console.error("Invalid authorization header format");
+      return new Response(JSON.stringify({
+        error: "Invalid authorization header format",
+        details: "Authorization header must start with 'Bearer '"
+      }), { 
+        status: 401, 
+        headers: corsHeaders 
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+    console.log("JWT token extracted, length:", token.length);
+    
     let userId = null;
     
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      console.log("Received token (first 30 chars):", token.slice(0, 30));
+    try {
+      // Decode without verification to see the claims
+      const decoded = jose.decodeJwt(token);
+      console.log("JWT decoded successfully:", {
+        sub: decoded.sub,
+        iss: decoded.iss,
+        aud: decoded.aud,
+        exp: decoded.exp,
+        expiresAt: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : 'unknown'
+      });
       
-      try {
-        // Decode without verification to see the claims
-        const decoded = jose.decodeJwt(token);
-        console.log("Decoded JWT payload:", {
-          sub: decoded.sub,
-          iss: decoded.iss,
-          aud: decoded.aud,
-          exp: decoded.exp
+      userId = decoded.sub;
+      
+      // Check if token is expired
+      if (decoded.exp && Date.now() / 1000 > decoded.exp) {
+        console.error("JWT token is expired");
+        return new Response(JSON.stringify({
+          error: "Token expired",
+          details: "Your session has expired. Please refresh the page and sign in again."
+        }), { 
+          status: 401, 
+          headers: corsHeaders 
         });
-        
-        userId = decoded.sub;
-      } catch (jwtError) {
-        console.error("JWT decode error:", jwtError);
-        // Continue even if JWT decode fails, we'll generate a response without userId
       }
-    } else {
-      console.log("No authorization header found or invalid format");
+      
+    } catch (jwtError) {
+      console.error("JWT decode error:", jwtError);
       return new Response(JSON.stringify({
-        error: "Missing or invalid authorization header",
-        note: "This function requires authorization"
+        error: "Invalid token",
+        details: "Unable to process authentication token. Please refresh the page and try again."
       }), { 
         status: 401, 
         headers: corsHeaders 
@@ -91,28 +116,26 @@ serve(async (req) => {
       console.error("Missing INTUIT_CLIENT_ID environment variable");
       return new Response(
         JSON.stringify({ 
-          error: "Server configuration error - missing client ID",
-          debug: {
-            env: {
-              INTUIT_ENVIRONMENT,
-              QBO_REDIRECT_URI,
-              possibleRedirectURIs
-            }
-          }
+          error: "Server configuration error",
+          details: "QuickBooks integration is not properly configured. Please contact support."
         }),
         { status: 500, headers: corsHeaders }
       );
     }
 
     if (!userId) {
+      console.error("Could not extract user ID from JWT");
       return new Response(
         JSON.stringify({ 
-          error: "Could not extract user ID from JWT",
+          error: "Invalid user session",
+          details: "Could not identify user from session. Please sign in again."
         }),
         { status: 401, headers: corsHeaders }
       );
     }
 
+    console.log("All validations passed, generating OAuth URL");
+    
     // Build Intuit URL with fixed redirect URI
     const params = new URLSearchParams({
       client_id: INTUIT_CLIENT_ID,
@@ -123,8 +146,8 @@ serve(async (req) => {
     });
 
     const oauthUrl = `${authorizeBase}?${params.toString()}`;
-    console.log("Generated Intuit OAuth URL (masked):", 
-      oauthUrl.replace(INTUIT_CLIENT_ID, "MASKED"));
+    console.log("Generated OAuth URL for user:", userId);
+    console.log("OAuth URL (masked):", oauthUrl.replace(INTUIT_CLIENT_ID, "***CLIENT_ID***"));
 
     // Return the OAuth URL with CORS headers
     return new Response(
@@ -132,22 +155,24 @@ serve(async (req) => {
         intuit_oauth_url: oauthUrl,
         debug: {
           redirect_uri: QBO_REDIRECT_URI,
-          possible_redirect_uris: possibleRedirectURIs,
           environment: INTUIT_ENVIRONMENT,
-          authorize_base: authorizeBase
+          authorize_base: authorizeBase,
+          user_id: userId,
+          scopes: scopes
         }
       }),
       { status: 200, headers: corsHeaders }
     );
       
   } catch (error) {
-    console.error("Error in qbo-authorize:", error);
+    console.error("Unexpected error in qbo-authorize:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Internal server error",
-        details: error.stack,
+        error: "Internal server error",
+        details: "An unexpected error occurred. Please try again or contact support if the problem persists.",
         debug: {
-          headers: Object.fromEntries(req.headers.entries())
+          message: error.message,
+          stack: error.stack
         }
       }),
       { status: 500, headers: corsHeaders }

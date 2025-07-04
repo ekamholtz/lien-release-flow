@@ -4,24 +4,47 @@ import { toast } from "sonner";
 export interface QboAuthResponse {
   intuit_oauth_url?: string;
   debug?: any;
+  error?: string;
 }
 
 export async function initiateQboAuth(accessToken: string, companyId: string): Promise<QboAuthResponse> {
   try {
-    console.log("Starting QBO connection process");
+    console.log("Initiating QBO auth process");
+    console.log("Company ID:", companyId);
+    console.log("Access token present:", !!accessToken);
+    console.log("Access token length:", accessToken?.length || 0);
+    
+    if (!accessToken) {
+      throw new Error("No access token provided");
+    }
+    
+    if (!companyId) {
+      throw new Error("No company ID provided");
+    }
     
     const functionUrl = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
     
-    console.log("Calling QBO authorize function");
+    console.log("Calling QBO authorize function:", functionUrl);
+    
+    const requestHeaders = {
+      Authorization: `Bearer ${accessToken}`,
+      apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
+      "Content-Type": "application/json"
+    };
+    
+    console.log("Request headers:", {
+      hasAuthorization: !!requestHeaders.Authorization,
+      hasApikey: !!requestHeaders.apikey,
+      authHeaderLength: requestHeaders.Authorization?.length || 0
+    });
     
     const response = await fetch(functionUrl, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
-        "Content-Type": "application/json"
-      }
+      headers: requestHeaders
     });
+
+    console.log("QBO authorize response status:", response.status);
+    console.log("QBO authorize response headers:", Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -32,32 +55,65 @@ export async function initiateQboAuth(accessToken: string, companyId: string): P
         body: errorText
       });
       
-      // Parse error response if possible
-      let debugInfo = {};
+      let errorMessage = `Connection failed (${response.status})`;
+      
       try {
         const errorJson = JSON.parse(errorText);
-        debugInfo = errorJson.debug || {};
-      } catch (e) {
-        console.error("Failed to parse error response:", e);
+        if (errorJson.error) {
+          errorMessage = errorJson.error;
+        }
+        
+        if (response.status === 401) {
+          errorMessage = "Authentication failed. Please refresh the page and try again.";
+        } else if (response.status === 500) {
+          errorMessage = "Server error. Please try again in a few moments.";
+        }
+        
+        return {
+          error: errorMessage,
+          debug: errorJson.debug || {}
+        };
+      } catch (parseError) {
+        console.error("Failed to parse error response:", parseError);
+        return {
+          error: errorMessage,
+          debug: { originalError: errorText }
+        };
       }
-      
-      throw new Error(`Connection failed: ${errorText || response.statusText}`);
     }
 
-    // Fix the TypeScript deep recursion issue by using a simpler approach
     const responseText = await response.text();
-    const responseData = JSON.parse(responseText) as QboAuthResponse;
+    console.log("QBO authorize response body length:", responseText.length);
     
-    console.log("QBO authorization response received");
+    let responseData: QboAuthResponse;
+    try {
+      responseData = JSON.parse(responseText);
+      console.log("QBO authorization response parsed successfully");
+    } catch (parseError) {
+      console.error("Failed to parse successful response:", parseError);
+      throw new Error("Invalid response from server");
+    }
     
     // Store the company_id in session storage for retrieval after OAuth redirection
-    sessionStorage.setItem('qbo_company_id', companyId);
+    if (companyId) {
+      sessionStorage.setItem('qbo_company_id', companyId);
+      console.log("Stored company ID in session storage:", companyId);
+    }
     
     return responseData;
 
   } catch (error: any) {
     console.error("QBO connection error:", error);
-    toast.error(error.message || "Failed to connect to QuickBooks Online");
-    throw error;
+    
+    let userMessage = "Failed to connect to QuickBooks Online";
+    
+    if (error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError")) {
+      userMessage = "Network error. Please check your connection and try again.";
+    } else if (error.message?.includes("authentication") || error.message?.includes("token")) {
+      userMessage = "Authentication error. Please refresh the page and try again.";
+    }
+    
+    toast.error(userMessage);
+    throw new Error(userMessage);
   }
 }

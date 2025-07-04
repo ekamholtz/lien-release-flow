@@ -25,7 +25,13 @@ export function useQboConnection() {
 
   const handleConnectQbo = async () => {
     if (!user || !currentCompany?.id) {
-      setError("Please ensure you're signed in and have selected a company");
+      const errorMsg = "Please ensure you're signed in and have selected a company";
+      setError(errorMsg);
+      toast({
+        title: "Authentication Required",
+        description: errorMsg,
+        variant: "destructive"
+      });
       return;
     }
 
@@ -33,14 +39,51 @@ export function useQboConnection() {
       setConnecting(true);
       setError(null);
       
-      console.log("Starting QBO connection process");
+      console.log("Starting QBO connection process for user:", user.id);
       
-      // Get user session for access token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error("No valid session found");
+      // Get fresh session with detailed logging
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        throw new Error(`Session error: ${sessionError.message}`);
       }
       
+      if (!session) {
+        console.error("No session found");
+        throw new Error("No active session found. Please sign in again.");
+      }
+      
+      if (!session.access_token) {
+        console.error("No access token in session");
+        throw new Error("No access token found. Please sign in again.");
+      }
+      
+      console.log("Session validation successful:", {
+        hasAccessToken: !!session.access_token,
+        expiresAt: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'unknown',
+        userId: session.user?.id
+      });
+      
+      // Check if token is about to expire
+      const expiresAt = (session.expires_at || 0) * 1000;
+      const fiveMinutes = 5 * 60 * 1000;
+      
+      if (expiresAt - Date.now() < fiveMinutes) {
+        console.log("Token expires soon, refreshing...");
+        
+        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshedSession) {
+          console.error("Token refresh failed:", refreshError);
+          throw new Error("Session expired. Please sign in again.");
+        }
+        
+        console.log("Token refreshed successfully");
+        session.access_token = refreshedSession.access_token;
+      }
+      
+      console.log("Initiating QBO auth with valid session");
       const response = await initiateQboAuth(session.access_token, currentCompany.id);
       
       if (response.intuit_oauth_url) {
@@ -51,14 +94,24 @@ export function useQboConnection() {
       }
       
       if (response.debug) {
+        console.log("QBO Auth debug info:", response.debug);
         setDebugInfo(response.debug);
       }
     } catch (error: any) {
       console.error('Error connecting to QBO:', error);
-      setError(error.message || "Failed to connect to QuickBooks Online");
+      
+      let userMessage = "Failed to connect to QuickBooks Online. Please try again.";
+      
+      if (error.message?.includes("Session expired") || error.message?.includes("No active session")) {
+        userMessage = "Your session has expired. Please refresh the page and sign in again.";
+      } else if (error.message?.includes("authorization")) {
+        userMessage = "Authentication failed. Please refresh the page and try again.";
+      }
+      
+      setError(error.message || userMessage);
       toast({
         title: "Connection Failed",
-        description: error.message || "Failed to connect to QuickBooks Online. Please try again.",
+        description: userMessage,
         variant: "destructive"
       });
     } finally {
@@ -74,6 +127,7 @@ export function useQboConnection() {
 
     try {
       setIsDisconnecting(true);
+      console.log("Disconnecting QBO for user:", user.id);
       
       const { error: deleteError } = await supabase
         .from('qbo_connections')
@@ -81,9 +135,11 @@ export function useQboConnection() {
         .eq('user_id', user.id);
 
       if (deleteError) {
+        console.error("Error disconnecting QBO:", deleteError);
         throw deleteError;
       }
 
+      console.log("QBO connection deleted successfully");
       toast({
         title: "Disconnected",
         description: "QuickBooks Online connection has been removed.",
