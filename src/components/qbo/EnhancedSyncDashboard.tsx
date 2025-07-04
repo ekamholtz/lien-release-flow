@@ -4,12 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { RefreshCw, AlertTriangle, CheckCircle, Clock, Loader2, TrendingUp } from "lucide-react";
+import { RefreshCw, AlertTriangle, CheckCircle, Clock, Loader2, TrendingUp, Play } from "lucide-react";
 import { useComprehensiveSyncStats } from "@/hooks/qbo/useComprehensiveSyncStats";
+import { useTriggerEntitySync } from "@/hooks/qbo/useTriggerEntitySync";
 import { format } from "date-fns";
 
 export function EnhancedSyncDashboard() {
   const { syncStats, isLoading, fetchSyncStats, retryFailedSyncs } = useComprehensiveSyncStats();
+  const { triggerBulkSync, triggerEntityTypeSync, isTriggering } = useTriggerEntitySync();
 
   const getStatusBadge = (status: string, count: number) => {
     if (count === 0) return null;
@@ -45,6 +47,22 @@ export function EnhancedSyncDashboard() {
 
   const capitalizeEntityType = (entityType: string) => {
     return entityType.charAt(0).toUpperCase() + entityType.slice(1) + 's';
+  };
+
+  const handleTriggerSync = async (entityType?: string) => {
+    let result;
+    if (entityType) {
+      result = await triggerEntityTypeSync(entityType);
+    } else {
+      result = await triggerBulkSync();
+    }
+    
+    if (result) {
+      // Refresh stats after triggering sync
+      setTimeout(() => {
+        fetchSyncStats();
+      }, 1000);
+    }
   };
 
   return (
@@ -101,6 +119,49 @@ export function EnhancedSyncDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Manual Sync Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Manual Sync Controls</CardTitle>
+          <CardDescription>
+            Manually trigger sync operations for specific entity types or all entities
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => handleTriggerSync()}
+              disabled={isTriggering}
+              className="gap-2"
+            >
+              {isTriggering ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              Sync All Entities
+            </Button>
+            
+            {Object.keys(syncStats.byEntityType).map((entityType) => (
+              <Button
+                key={entityType}
+                variant="outline"
+                onClick={() => handleTriggerSync(entityType)}
+                disabled={isTriggering}
+                className="gap-2"
+              >
+                {isTriggering ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+                Sync {capitalizeEntityType(entityType)}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Entity Breakdown */}
       <Card>
@@ -199,7 +260,7 @@ export function EnhancedSyncDashboard() {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-sm font-medium">
-                      {getSuccessRate(Number(stat.success_count), Number(stat.total_count))}% Success
+                      {getSuccessRate(stat.success_count, stat.total_count)}% Success
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {stat.last_sync_date 
@@ -210,10 +271,10 @@ export function EnhancedSyncDashboard() {
                   </div>
                   
                   <div className="flex gap-1">
-                    {getStatusBadge('success', Number(stat.success_count))}
-                    {getStatusBadge('error', Number(stat.error_count))}
-                    {getStatusBadge('pending', Number(stat.pending_count))}
-                    {getStatusBadge('processing', Number(stat.processing_count))}
+                    {getStatusBadge('success', stat.success_count)}
+                    {getStatusBadge('error', stat.error_count)}
+                    {getStatusBadge('pending', stat.pending_count)}
+                    {getStatusBadge('processing', stat.processing_count)}
                   </div>
                 </div>
               </div>

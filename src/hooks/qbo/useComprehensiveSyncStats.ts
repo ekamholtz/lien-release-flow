@@ -60,40 +60,87 @@ export function useComprehensiveSyncStats() {
         throw new Error('No active company membership found');
       }
 
-      // Call the new comprehensive sync statistics function
-      const { data: stats, error } = await supabase
-        .rpc('get_sync_statistics', { p_company_id: companyMember.company_id });
+      // Get comprehensive sync statistics directly from the accounting_sync table
+      // Since the get_sync_statistics function isn't available, we'll query directly
+      const { data: syncRecords, error } = await supabase
+        .from('accounting_sync')
+        .select('*')
+        .eq('company_id', companyMember.company_id);
 
       if (error) throw error;
 
-      const statistics = stats || [];
+      // Process the data to create statistics
+      const statistics: SyncStatistics[] = [];
+      const statsMap = new Map<string, SyncStatistics>();
+
+      (syncRecords || []).forEach(record => {
+        const key = `${record.entity_type}-${record.provider}`;
+        
+        if (!statsMap.has(key)) {
+          statsMap.set(key, {
+            entity_type: record.entity_type,
+            provider: record.provider,
+            total_count: 0,
+            success_count: 0,
+            error_count: 0,
+            pending_count: 0,
+            processing_count: 0,
+            last_sync_date: null
+          });
+        }
+
+        const stat = statsMap.get(key)!;
+        stat.total_count++;
+        
+        switch (record.status) {
+          case 'success':
+            stat.success_count++;
+            break;
+          case 'error':
+            stat.error_count++;
+            break;
+          case 'pending':
+            stat.pending_count++;
+            break;
+          case 'processing':
+            stat.processing_count++;
+            break;
+        }
+
+        // Update last sync date
+        if (record.last_synced_at && (!stat.last_sync_date || record.last_synced_at > stat.last_sync_date)) {
+          stat.last_sync_date = record.last_synced_at;
+        }
+      });
+
+      const finalStatistics = Array.from(statsMap.values());
       
       // Calculate totals
-      const totals = statistics.reduce((acc, stat) => ({
-        total: acc.total + Number(stat.total_count),
-        success: acc.success + Number(stat.success_count),
-        error: acc.error + Number(stat.error_count),
-        pending: acc.pending + Number(stat.pending_count),
-        processing: acc.processing + Number(stat.processing_count)
+      const totals = finalStatistics.reduce((acc, stat) => ({
+        total: acc.total + stat.total_count,
+        success: acc.success + stat.success_count,
+        error: acc.error + stat.error_count,
+        pending: acc.pending + stat.pending_count,
+        processing: acc.processing + stat.processing_count
       }), { total: 0, success: 0, error: 0, pending: 0, processing: 0 });
 
       // Group by entity type
-      const byEntityType = statistics.reduce((acc, stat) => {
+      const byEntityType = finalStatistics.reduce((acc, stat) => {
         if (!acc[stat.entity_type]) {
           acc[stat.entity_type] = { total: 0, success: 0, error: 0, pending: 0, processing: 0 };
         }
         
-        acc[stat.entity_type].total += Number(stat.total_count);
-        acc[stat.entity_type].success += Number(stat.success_count);
-        acc[stat.entity_type].error += Number(stat.error_count);
-        acc[stat.entity_type].pending += Number(stat.pending_count);
-        acc[stat.entity_type].processing += Number(stat.processing_count);
+        acc[stat.entity_type].total += stat.total_count;
+        acc[stat.entity_type].success += stat.success_count;
+        acc[stat.entity_type].error += stat.error_count;
+        acc[stat.entity_type].pending += stat.pending_count;
+        acc[stat.entity_type].processing += stat.processing_count;
         
         return acc;
       }, {} as Record<string, any>);
 
       setSyncStats({
-        statistics,
+        statistics: finalStatistics,
         totals,
         byEntityType
       });

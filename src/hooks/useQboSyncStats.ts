@@ -40,18 +40,20 @@ export function useQboSyncStats() {
         return;
       }
 
-      // Use the new comprehensive sync statistics function
-      const { data: comprehensiveStats, error } = await supabase
-        .rpc('get_sync_statistics', { p_company_id: companyMember.company_id });
+      // Get sync statistics directly from accounting_sync table
+      const { data: syncRecords, error } = await supabase
+        .from('accounting_sync')
+        .select('*')
+        .eq('company_id', companyMember.company_id);
 
       if (error) throw error;
 
       // Aggregate the stats for backward compatibility
-      const stats = (comprehensiveStats || []).reduce((acc, stat) => ({
-        total: acc.total + Number(stat.total_count),
-        synced: acc.synced + Number(stat.success_count),
-        failed: acc.failed + Number(stat.error_count),
-        pending: acc.pending + Number(stat.pending_count) + Number(stat.processing_count)
+      const stats = (syncRecords || []).reduce((acc, record) => ({
+        total: acc.total + 1,
+        synced: acc.synced + (record.status === 'success' ? 1 : 0),
+        failed: acc.failed + (record.status === 'error' ? 1 : 0),
+        pending: acc.pending + (record.status === 'pending' || record.status === 'processing' ? 1 : 0)
       }), { total: 0, synced: 0, failed: 0, pending: 0 });
 
       setSyncStats(stats);
