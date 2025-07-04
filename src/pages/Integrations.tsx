@@ -62,13 +62,13 @@ const Integrations = () => {
   const { user } = useAuth();
   const { currentCompany } = useCompany();
   const { 
-    qboStatus, 
+    connectionStatus, 
     error, 
     debugInfo, 
     handleConnectQbo 
   } = useQboConnection();
 
-  const isQboConnected = qboStatus === "connected";
+  const isQboConnected = connectionStatus.status === "connected";
 
   return (
     <div className="min-h-screen flex flex-col">

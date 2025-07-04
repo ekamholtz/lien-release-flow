@@ -49,15 +49,16 @@ export function useQboSyncStats() {
       if (error) throw error;
 
       // Aggregate the stats for backward compatibility
-      const stats = (syncRecords || []).reduce((acc, record) => {
-        const newAcc = {
+      const initialStats = { total: 0, synced: 0, failed: 0, pending: 0 };
+      
+      const stats = (syncRecords || []).reduce<QboSyncStats>((acc, record) => {
+        return {
           total: acc.total + 1,
           synced: acc.synced + (record.status === 'success' ? 1 : 0),
           failed: acc.failed + (record.status === 'error' ? 1 : 0),
           pending: acc.pending + (record.status === 'pending' || record.status === 'processing' ? 1 : 0)
         };
-        return newAcc;
-      }, { total: 0, synced: 0, failed: 0, pending: 0 });
+      }, initialStats);
 
       setSyncStats(stats);
     } catch (err) {

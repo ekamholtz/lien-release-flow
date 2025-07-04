@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, X } from "lucide-react";
@@ -24,7 +25,7 @@ export function IntegrationsSettings() {
   const { session } = useSessionRefresh();
   
   const {
-    qboStatus,
+    connectionStatus,
     connecting,
     error,
     setError,
@@ -42,10 +43,10 @@ export function IntegrationsSettings() {
   } = useQboSyncStats();
 
   React.useEffect(() => {
-    if (qboStatus === "loading") {
+    if (connectionStatus.status === "loading") {
       toast.info("Checking QuickBooks connection status...");
     }
-  }, [qboStatus]);
+  }, [connectionStatus.status]);
 
   const handleQboConnectWithRetry = async () => {
     if (!session?.access_token) {
@@ -70,20 +71,20 @@ export function IntegrationsSettings() {
       <div className="flex items-center gap-4">
         <span>
           Status:{" "}
-          {qboStatus === "loading" ? (
+          {connectionStatus.status === "loading" ? (
             <span className="text-gray-500">Checking…</span>
-          ) : qboStatus === "connected" ? (
+          ) : connectionStatus.status === "connected" ? (
             <span className="text-green-600 font-medium">Connected</span>
-          ) : qboStatus === "needs_reauth" ? (
+          ) : connectionStatus.status === "needs_reauth" ? (
             <span className="text-amber-600 font-medium">Needs Reauthorization</span>
-          ) : qboStatus === "not_connected" ? (
+          ) : connectionStatus.status === "not_connected" ? (
             <span className="text-red-600 font-medium">Not Connected</span>
           ) : (
             <span className="text-red-600 font-medium">Error</span>
           )}
         </span>
         
-        {qboStatus === "connected" ? (
+        {connectionStatus.status === "connected" ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -121,7 +122,7 @@ export function IntegrationsSettings() {
         ) : (
           <Button
             onClick={handleQboConnectWithRetry}
-            disabled={qboStatus === "loading" || connecting}
+            disabled={connectionStatus.status === "loading" || connecting}
             className="gap-2"
           >
             {connecting ? (
@@ -129,7 +130,7 @@ export function IntegrationsSettings() {
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                 Connecting...
               </>
-            ) : qboStatus === "needs_reauth" ? (
+            ) : connectionStatus.status === "needs_reauth" ? (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Reconnect QuickBooks
@@ -176,7 +177,7 @@ export function IntegrationsSettings() {
         </p>
       </div>
       
-      {qboStatus === "connected" && (
+      {connectionStatus.status === "connected" && (
         <>
           <QboSyncStatus
             syncStats={syncStats}
