@@ -22,53 +22,45 @@ export function useQboSyncStats() {
   const { session } = useSessionRefresh();
 
   const fetchSyncStats = async () => {
-    if (!session?.user) return;
+    if (!session?.user?.id) return;
     
     try {
       setIsRefreshingStats(true);
       
-      // Get the user's company
-      const { data: companyMember } = await supabase
-        .from('company_members')
-        .select('company_id')
-        .eq('user_id', session.user.id)
-        .eq('status', 'active')
-        .single();
-
-      if (!companyMember?.company_id) {
-        console.warn('No active company membership found');
-        return;
-      }
-
-      // Get sync statistics directly from accounting_sync table
+      // Query accounting_sync table directly by user_id since it doesn't have company_id
       const { data: syncRecords, error } = await supabase
         .from('accounting_sync')
-        .select('*')
-        .eq('company_id', companyMember.company_id);
+        .select('status')
+        .eq('user_id', session.user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Sync stats query error:', error);
+        throw error;
+      }
 
-      // Calculate the stats step by step to avoid type issues
-      let total = 0;
-      let synced = 0;
-      let failed = 0;
-      let pending = 0;
+      // Calculate the stats with explicit typing
+      const stats: QboSyncStats = {
+        total: 0,
+        synced: 0,
+        failed: 0,
+        pending: 0
+      };
       
-      if (syncRecords) {
+      if (syncRecords && Array.isArray(syncRecords)) {
         for (const record of syncRecords) {
-          total++;
+          stats.total++;
           
           if (record.status === 'success') {
-            synced++;
+            stats.synced++;
           } else if (record.status === 'error') {
-            failed++;
+            stats.failed++;
           } else if (record.status === 'pending' || record.status === 'processing') {
-            pending++;
+            stats.pending++;
           }
         }
       }
 
-      setSyncStats({ total, synced, failed, pending });
+      setSyncStats(stats);
     } catch (err) {
       console.error('Error fetching sync stats:', err);
       toast.error('Failed to load QBO sync statistics');
@@ -132,9 +124,10 @@ export function useQboSyncStats() {
   };
 
   useEffect(() => {
-    if (!session?.user) return;
-    fetchSyncStats();
-  }, [session]);
+    if (session?.user?.id) {
+      fetchSyncStats();
+    }
+  }, [session?.user?.id]);
 
   return {
     syncStats,
