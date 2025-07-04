@@ -14,7 +14,8 @@ export function useQboConnection() {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   const {
-    status: qboStatus,
+    connectionStatus,
+    isLoading,
     error,
     setError,
     debugInfo,
@@ -103,7 +104,7 @@ export function useQboConnection() {
   };
 
   return {
-    qboStatus,
+    connectionStatus,
     connecting,
     isDisconnecting,
     error,
