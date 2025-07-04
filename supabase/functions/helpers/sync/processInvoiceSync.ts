@@ -58,21 +58,103 @@ export async function processInvoiceSync(supabase: any, invoiceId: string, envir
       ? 'https://quickbooks.api.intuit.com'
       : 'https://sandbox.quickbooks.api.intuit.com';
 
-    // Create QBO invoice data
+    // Get or create QBO customer for this client
+    let qboCustomerId = null;
+    
+    if (invoice.client_id) {
+      // Check if client already has a QBO customer ID
+      const { data: client } = await supabase
+        .from('clients')
+        .select('qbo_customer_id')
+        .eq('id', invoice.client_id)
+        .single();
+      
+      if (client?.qbo_customer_id) {
+        qboCustomerId = client.qbo_customer_id;
+        console.log('Using existing QBO customer ID:', qboCustomerId);
+      }
+    }
+    
+    // If no QBO customer ID found, create one
+    if (!qboCustomerId) {
+      console.log('Creating new QBO customer for client:', invoice.client_name);
+      
+      // Create customer in QBO
+      const customerData = {
+        Name: invoice.client_name,
+        CompanyName: invoice.client_name,
+        PrimaryEmailAddr: {
+          Address: invoice.client_email || 'noemail@example.com'
+        }
+      };
+      
+      const createCustomerOperation = async () => {
+        const response = await fetch(
+          `${qboBaseUrl}/v3/company/${tokens.realm_id}/customer?minorversion=65`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${tokens.access_token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ Customer: customerData })
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to create QBO customer: ${errorText}`);
+        }
+
+        const result = await response.json();
+        return result.QueryResponse?.Customer?.[0] || result.Customer;
+      };
+
+      const retryLogger = async (attempt: number, error: Error) => {
+        await logQboAction(supabase, {
+          function_name: 'processInvoiceSync-createCustomer-retry',
+          payload: { invoice_id: invoiceId, attempt },
+          error: `Retry attempt ${attempt}: ${error.message}`,
+          user_id: userId,
+          severity: 'info'
+        });
+      };
+
+      const qboCustomer = await retryWithBackoff(createCustomerOperation, 3, 100, retryLogger);
+      
+      if (!qboCustomer?.Id) {
+        throw new Error('QBO customer creation returned no ID');
+      }
+      
+      qboCustomerId = qboCustomer.Id;
+      
+      // Update client with QBO customer ID if we have a client_id
+      if (invoice.client_id) {
+        await supabase
+          .from('clients')
+          .update({ qbo_customer_id: qboCustomerId })
+          .eq('id', invoice.client_id);
+      }
+      
+      console.log('Created QBO customer with ID:', qboCustomerId);
+    }
+
+    // Create QBO invoice data with proper customer reference
     const invoiceData = {
       Line: [{
         Amount: invoice.amount,
         DetailType: "SalesItemLineDetail",
         SalesItemLineDetail: {
           ItemRef: {
-            value: "1", // Default service item
+            value: "1", // Default service item - TODO: Make this configurable
             name: "Services"
           }
         },
-        Description: `Invoice ${invoice.invoice_number}`
+        Description: invoice.description || `Invoice ${invoice.invoice_number}`
       }],
       CustomerRef: {
-        value: "1", // Default customer - should be mapped properly
+        value: qboCustomerId,
         name: invoice.client_name
       },
       TotalAmt: invoice.amount,
@@ -135,6 +217,7 @@ export async function processInvoiceSync(supabase: any, invoiceId: string, envir
       p_provider_ref: qboInvoice.Id,
       p_provider_meta: {
         qbo_invoice: qboInvoice,
+        qbo_customer_id: qboCustomerId,
         operation: 'create'
       },
       p_user_id: userId
@@ -153,6 +236,7 @@ export async function processInvoiceSync(supabase: any, invoiceId: string, envir
       payload: { 
         invoice_id: invoiceId,
         qbo_invoice_id: qboInvoice.Id,
+        qbo_customer_id: qboCustomerId,
         amount: invoice.amount
       },
       user_id: userId,
@@ -162,6 +246,7 @@ export async function processInvoiceSync(supabase: any, invoiceId: string, envir
     return {
       success: true,
       qbo_invoice_id: qboInvoice.Id,
+      qbo_customer_id: qboCustomerId,
       message: 'Invoice synced successfully'
     };
 

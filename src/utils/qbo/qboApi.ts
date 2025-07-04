@@ -28,13 +28,11 @@ export async function initiateQboAuth(accessToken: string, companyId: string): P
     
     const requestHeaders = {
       Authorization: `Bearer ${accessToken}`,
-      apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rbm9mcXl0aXRweG1scHJ2ZWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDk0MzcsImV4cCI6MjA1OTI4NTQzN30.NG0oR4m9GCeLfpr11hsZEG5hVXs4uZzJOcFT7elrIAQ",
       "Content-Type": "application/json"
     };
     
     console.log("Request headers:", {
       hasAuthorization: !!requestHeaders.Authorization,
-      hasApikey: !!requestHeaders.apikey,
       authHeaderLength: requestHeaders.Authorization?.length || 0
     });
     

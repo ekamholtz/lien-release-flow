@@ -15,13 +15,13 @@ export interface SyncStatistics {
   last_sync_date: string | null;
 }
 
-type EntityStats = {
+interface EntityStats {
   total: number;
   success: number;
   error: number;
   pending: number;
   processing: number;
-};
+}
 
 export interface ComprehensiveSyncStats {
   statistics: SyncStatistics[];
@@ -111,7 +111,7 @@ export function useComprehensiveSyncStats() {
       const finalStatistics = Array.from(statsMap.values());
       
       // Calculate totals
-      const totals = finalStatistics.reduce((acc, stat) => ({
+      const totals: EntityStats = finalStatistics.reduce((acc, stat) => ({
         total: acc.total + stat.total_count,
         success: acc.success + stat.success_count,
         error: acc.error + stat.error_count,

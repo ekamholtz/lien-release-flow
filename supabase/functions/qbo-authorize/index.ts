@@ -10,7 +10,7 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
-// Get environment variables
+// Get environment variables from Supabase secrets
 const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID");
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
 
