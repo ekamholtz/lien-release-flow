@@ -73,27 +73,29 @@ export function useSyncStatistics() {
           });
         }
 
-        const stat = statsMap.get(key)!;
-        stat.total_count++;
-        
-        switch (record.status) {
-          case 'success':
-            stat.success_count++;
-            break;
-          case 'error':
-            stat.error_count++;
-            break;
-          case 'pending':
-            stat.pending_count++;
-            break;
-          case 'processing':
-            stat.processing_count++;
-            break;
-        }
+        const stat = statsMap.get(key);
+        if (stat) {
+          stat.total_count++;
+          
+          switch (record.status) {
+            case 'success':
+              stat.success_count++;
+              break;
+            case 'error':
+              stat.error_count++;
+              break;
+            case 'pending':
+              stat.pending_count++;
+              break;
+            case 'processing':
+              stat.processing_count++;
+              break;
+          }
 
-        // Update last sync date
-        if (record.last_synced_at && (!stat.last_sync_date || record.last_synced_at > stat.last_sync_date)) {
-          stat.last_sync_date = record.last_synced_at;
+          // Update last sync date
+          if (record.last_synced_at && (!stat.last_sync_date || record.last_synced_at > stat.last_sync_date)) {
+            stat.last_sync_date = record.last_synced_at;
+          }
         }
       });
 

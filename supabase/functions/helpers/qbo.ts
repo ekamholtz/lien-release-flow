@@ -460,10 +460,8 @@ export async function ensureQboTokens(
     if (needsRefresh) {
       console.log('QBO tokens expired or will expire soon, refreshing...');
       
-      // Refresh the tokens
-      const tokenEndpoint = environmentVars.INTUIT_ENVIRONMENT === 'production'
-        ? 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer'
-        : 'https://oauth.sandbox.intuit.com/oauth2/v1/tokens/bearer';
+      // FIXED: Use the correct token endpoint URL for both sandbox and production
+      const tokenEndpoint = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
       
       try {  
         const response = await fetch(tokenEndpoint, {
