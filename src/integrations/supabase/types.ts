@@ -321,6 +321,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          qbo_customer_id: string | null
           updated_at: string
         }
         Insert: {
@@ -331,6 +332,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          qbo_customer_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -341,6 +343,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          qbo_customer_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1805,16 +1808,28 @@ export type Database = {
         Returns: undefined
       }
       update_sync_status: {
-        Args: {
-          p_entity_type: string
-          p_entity_id: string
-          p_provider: string
-          p_status: string
-          p_provider_ref?: string
-          p_provider_meta?: Json
-          p_error?: Json
-          p_error_message?: string
-        }
+        Args:
+          | {
+              p_entity_type: string
+              p_entity_id: string
+              p_provider: string
+              p_status: string
+              p_provider_ref?: string
+              p_provider_meta?: Json
+              p_error?: Json
+              p_error_message?: string
+            }
+          | {
+              p_entity_type: string
+              p_entity_id: string
+              p_provider: string
+              p_status: string
+              p_provider_ref?: string
+              p_provider_meta?: Json
+              p_error?: Json
+              p_error_message?: string
+              p_user_id?: string
+            }
         Returns: undefined
       }
       user_has_permission_for_company: {
