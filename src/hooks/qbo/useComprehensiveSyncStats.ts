@@ -15,22 +15,18 @@ export interface SyncStatistics {
   last_sync_date: string | null;
 }
 
+type EntityStats = {
+  total: number;
+  success: number;
+  error: number;
+  pending: number;
+  processing: number;
+};
+
 export interface ComprehensiveSyncStats {
   statistics: SyncStatistics[];
-  totals: {
-    total: number;
-    success: number;
-    error: number;
-    pending: number;
-    processing: number;
-  };
-  byEntityType: Record<string, {
-    total: number;
-    success: number;
-    error: number;
-    pending: number;
-    processing: number;
-  }>;
+  totals: EntityStats;
+  byEntityType: Record<string, EntityStats>;
 }
 
 export function useComprehensiveSyncStats() {
@@ -123,8 +119,8 @@ export function useComprehensiveSyncStats() {
         processing: acc.processing + stat.processing_count
       }), { total: 0, success: 0, error: 0, pending: 0, processing: 0 });
 
-      // Group by entity type - fix type issue by being explicit
-      const byEntityType: Record<string, { total: number; success: number; error: number; pending: number; processing: number; }> = {};
+      // Group by entity type
+      const byEntityType: Record<string, EntityStats> = {};
       
       finalStatistics.forEach(stat => {
         const entityType = stat.entity_type;

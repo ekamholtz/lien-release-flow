@@ -13,7 +13,6 @@ import {
   CreditCard,
   ArrowUpCircle,
   ArrowDownCircle,
-  Plug,
   AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,7 +28,6 @@ const navigation = [
   { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Reports', href: '/reports', icon: FileBarChart },
   { name: 'Team', href: '/team', icon: Users },
-  { name: 'Integrations', href: '/integrations', icon: Plug },
   { name: 'Unsynced Transactions', href: '/unsynced-transactions', icon: AlertTriangle },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
