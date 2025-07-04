@@ -49,11 +49,13 @@ export function IntegrationsSettings() {
   }, [connectionStatus.status]);
 
   const handleQboConnectWithRetry = async () => {
-    console.log("Handle QBO connect called");
+    console.log('=== QBO Connect With Retry Started ===');
     console.log("Session state:", {
       hasSession: !!session,
       hasAccessToken: !!session?.access_token,
-      userId: session?.user?.id
+      userId: session?.user?.id,
+      tokenLength: session?.access_token?.length || 0,
+      expiresAt: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'unknown'
     });
     
     if (!session?.access_token) {
@@ -65,11 +67,13 @@ export function IntegrationsSettings() {
       const refreshedSession = await refreshSession();
       
       if (!refreshedSession?.access_token) {
-        setError("Session expired. Please refresh the page and sign in again.");
+        const errorMsg = "Session expired. Please refresh the page and sign in again.";
+        setError(errorMsg);
+        toast.error(errorMsg);
         return;
       }
       
-      console.log("Session refreshed, retrying connection...");
+      console.log("Session refreshed successfully, retrying connection...");
     }
     
     try {
@@ -77,13 +81,17 @@ export function IntegrationsSettings() {
       await handleConnectQbo();
     } catch (error: any) {
       console.error("QBO connection error:", error);
-      toast.error("Failed to connect to QuickBooks. Please try again.");
+      
+      let errorMessage = "Failed to connect to QuickBooks. Please try again.";
       
       if (error?.message?.includes("authorization") || error?.message?.includes("token")) {
-        setError("Authentication error. Please refresh the page and try again.");
-      } else {
-        setError(error?.message || "Connection failed. Please ensure you're signed in and try again.");
+        errorMessage = "Authentication error. Please refresh the page and try again.";
+      } else if (error?.message?.includes("session") || error?.message?.includes("expired")) {
+        errorMessage = "Your session has expired. Please refresh the page and sign in again.";
       }
+      
+      toast.error(errorMessage);
+      setError(error?.message || errorMessage);
     }
   };
 
@@ -128,6 +136,20 @@ export function IntegrationsSettings() {
   return (
     <div className="mt-6">
       <h2 className="text-xl font-semibold mb-4">QuickBooks Online Integration</h2>
+      
+      {/* Session Debug Info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
+          <strong>Session Debug:</strong>
+          <pre>{JSON.stringify({
+            hasSession: !!session,
+            hasAccessToken: !!session?.access_token,
+            userId: session?.user?.id,
+            tokenLength: session?.access_token?.length || 0,
+            expiresAt: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'unknown'
+          }, null, 2)}</pre>
+        </div>
+      )}
       
       {/* Connection Status Section */}
       <div className="bg-white border rounded-lg p-6 mb-6">
@@ -216,9 +238,9 @@ export function IntegrationsSettings() {
           <AlertTitle>Connection Error</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>{String(error)}</p>
-            {typeof error === 'string' && error.includes("token") && (
+            {typeof error === 'string' && (error.includes("token") || error.includes("session") || error.includes("authorization")) && (
               <p className="text-sm">
-                This usually means your session has expired. Please refresh the page and try again.
+                This usually means your session has expired or there's an authentication issue. Please refresh the page and try again.
               </p>
             )}
             <div className="flex gap-2 mt-3">

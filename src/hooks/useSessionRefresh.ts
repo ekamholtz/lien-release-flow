@@ -9,8 +9,14 @@ export const useSessionRefresh = () => {
 
   const refreshSession = async (): Promise<Session | null> => {
     try {
-      console.log('Attempting to refresh session...');
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      console.log('=== Session Refresh Started ===');
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session retrieval error:', sessionError);
+        setSession(null);
+        return null;
+      }
       
       if (!currentSession) {
         console.log('No current session found');
@@ -18,34 +24,46 @@ export const useSessionRefresh = () => {
         return null;
       }
       
-      console.log('Current session found, checking expiration...');
+      console.log('Current session found:', {
+        userId: currentSession.user?.id,
+        expiresAt: currentSession.expires_at ? new Date(currentSession.expires_at * 1000).toISOString() : 'unknown',
+        hasAccessToken: !!currentSession.access_token,
+        tokenLength: currentSession.access_token?.length || 0
+      });
       
       // If session is close to expiring (within 5 minutes), refresh it
-      const expiresAt = (currentSession?.expires_at || 0) * 1000; // Convert to milliseconds
+      const expiresAt = (currentSession?.expires_at || 0) * 1000;
       const fiveMinutes = 5 * 60 * 1000;
       const now = Date.now();
       
-      console.log('Session expires at:', new Date(expiresAt).toISOString());
-      console.log('Current time:', new Date(now).toISOString());
-      console.log('Time until expiration (minutes):', (expiresAt - now) / (1000 * 60));
+      console.log('Session expiration check:', {
+        expiresAt: new Date(expiresAt).toISOString(),
+        currentTime: new Date(now).toISOString(),
+        minutesUntilExpiration: (expiresAt - now) / (1000 * 60),
+        needsRefresh: expiresAt - now < fiveMinutes
+      });
       
       if (expiresAt - now < fiveMinutes) {
-        console.log('Session expires soon, refreshing...');
+        console.log('Session expires soon, attempting refresh...');
         
-        const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
+        const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession();
         
-        if (error) {
-          console.error('Session refresh error:', error);
+        if (refreshError) {
+          console.error('Session refresh error:', refreshError);
           setSession(null);
           return null;
         }
         
         if (newSession) {
-          console.log('Session refreshed successfully');
+          console.log('Session refreshed successfully:', {
+            userId: newSession.user?.id,
+            newExpiresAt: newSession.expires_at ? new Date(newSession.expires_at * 1000).toISOString() : 'unknown',
+            hasNewAccessToken: !!newSession.access_token
+          });
           setSession(newSession);
           return newSession;
         } else {
-          console.warn('Session refresh returned no session');
+          console.warn('Session refresh returned null session');
           setSession(null);
           return null;
         }
@@ -55,11 +73,12 @@ export const useSessionRefresh = () => {
       setSession(currentSession);
       return currentSession;
     } catch (error) {
-      console.error('Error in refreshSession:', error);
+      console.error('Unexpected error in refreshSession:', error);
       setSession(null);
       return null;
     } finally {
       setLoading(false);
+      console.log('=== Session Refresh Completed ===');
     }
   };
 
@@ -70,7 +89,12 @@ export const useSessionRefresh = () => {
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session ? 'session exists' : 'no session');
+        console.log('Auth state changed:', {
+          event,
+          hasSession: !!session,
+          userId: session?.user?.id,
+          hasAccessToken: !!session?.access_token
+        });
         setSession(session);
         setLoading(false);
       }

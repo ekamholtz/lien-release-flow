@@ -61,7 +61,6 @@ export function useComprehensiveSyncStats() {
       }
 
       // Get comprehensive sync statistics directly from the accounting_sync table
-      // Since the get_sync_statistics function isn't available, we'll query directly
       const { data: syncRecords, error } = await supabase
         .from('accounting_sync')
         .select('*')
@@ -124,20 +123,26 @@ export function useComprehensiveSyncStats() {
         processing: acc.processing + stat.processing_count
       }), { total: 0, success: 0, error: 0, pending: 0, processing: 0 });
 
-      // Group by entity type
-      const byEntityType = finalStatistics.reduce((acc, stat) => {
-        if (!acc[stat.entity_type]) {
-          acc[stat.entity_type] = { total: 0, success: 0, error: 0, pending: 0, processing: 0 };
+      // Group by entity type - fix the type issue
+      const byEntityType: Record<string, {
+        total: number;
+        success: number;
+        error: number;
+        pending: number;
+        processing: number;
+      }> = {};
+      
+      finalStatistics.forEach(stat => {
+        if (!byEntityType[stat.entity_type]) {
+          byEntityType[stat.entity_type] = { total: 0, success: 0, error: 0, pending: 0, processing: 0 };
         }
         
-        acc[stat.entity_type].total += stat.total_count;
-        acc[stat.entity_type].success += stat.success_count;
-        acc[stat.entity_type].error += stat.error_count;
-        acc[stat.entity_type].pending += stat.pending_count;
-        acc[stat.entity_type].processing += stat.processing_count;
-        
-        return acc;
-      }, {} as Record<string, any>);
+        byEntityType[stat.entity_type].total += stat.total_count;
+        byEntityType[stat.entity_type].success += stat.success_count;
+        byEntityType[stat.entity_type].error += stat.error_count;
+        byEntityType[stat.entity_type].pending += stat.pending_count;
+        byEntityType[stat.entity_type].processing += stat.processing_count;
+      });
 
       setSyncStats({
         statistics: finalStatistics,
@@ -158,7 +163,7 @@ export function useComprehensiveSyncStats() {
     try {
       toast.info(`Retrying failed ${entityType || 'all'} syncs...`);
       
-      const endpoints = {
+      const endpoints: Record<string, string> = {
         invoice: 'sync-invoice',
         bill: 'sync-bill', 
         vendor: 'sync-vendor',
@@ -168,9 +173,9 @@ export function useComprehensiveSyncStats() {
       const entitiesToRetry = entityType ? [entityType] : Object.keys(endpoints);
       
       for (const entity of entitiesToRetry) {
-        if (endpoints[entity as keyof typeof endpoints]) {
+        if (endpoints[entity]) {
           const response = await fetch(
-            `https://oknofqytitpxmlprvekn.functions.supabase.co/${endpoints[entity as keyof typeof endpoints]}`,
+            `https://oknofqytitpxmlprvekn.functions.supabase.co/${endpoints[entity]}`,
             {
               method: 'POST',
               headers: {
