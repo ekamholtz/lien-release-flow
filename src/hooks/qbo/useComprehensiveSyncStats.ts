@@ -123,25 +123,27 @@ export function useComprehensiveSyncStats() {
         processing: acc.processing + stat.processing_count
       }), { total: 0, success: 0, error: 0, pending: 0, processing: 0 });
 
-      // Group by entity type - fix the type issue
-      const byEntityType: Record<string, {
-        total: number;
-        success: number;
-        error: number;
-        pending: number;
-        processing: number;
-      }> = {};
+      // Group by entity type - fix type issue by being explicit
+      const byEntityType: Record<string, { total: number; success: number; error: number; pending: number; processing: number; }> = {};
       
       finalStatistics.forEach(stat => {
-        if (!byEntityType[stat.entity_type]) {
-          byEntityType[stat.entity_type] = { total: 0, success: 0, error: 0, pending: 0, processing: 0 };
+        const entityType = stat.entity_type;
+        if (!byEntityType[entityType]) {
+          byEntityType[entityType] = { 
+            total: 0, 
+            success: 0, 
+            error: 0, 
+            pending: 0, 
+            processing: 0 
+          };
         }
         
-        byEntityType[stat.entity_type].total += stat.total_count;
-        byEntityType[stat.entity_type].success += stat.success_count;
-        byEntityType[stat.entity_type].error += stat.error_count;
-        byEntityType[stat.entity_type].pending += stat.pending_count;
-        byEntityType[stat.entity_type].processing += stat.processing_count;
+        const entityStats = byEntityType[entityType];
+        entityStats.total += stat.total_count;
+        entityStats.success += stat.success_count;
+        entityStats.error += stat.error_count;
+        entityStats.pending += stat.pending_count;
+        entityStats.processing += stat.processing_count;
       });
 
       setSyncStats({
