@@ -179,6 +179,11 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
     navigate('/bills/create', { state: { projectId: project.id } });
   };
 
+  // Sync complete handler
+  const handleSyncComplete = () => {
+    refetchBills();
+  };
+
   return (
     <div className="w-full">
       <h2 className="text-lg font-semibold mb-4">Transactions</h2>
@@ -222,6 +227,7 @@ export function ProjectTransactions({ project }: ProjectTransactionsProps) {
             onUpdateStatus={handleUpdateBillStatus}
             onPayBill={handlePayBill}
             onViewDetails={handleViewBillDetails}
+            onSyncComplete={handleSyncComplete}
           />
         </TabsContent>
       </Tabs>

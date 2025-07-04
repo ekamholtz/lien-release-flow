@@ -48,24 +48,27 @@ export function useQboSyncStats() {
 
       if (error) throw error;
 
-      // Calculate the stats manually to avoid type inference issues
-      const stats: QboSyncStats = { total: 0, synced: 0, failed: 0, pending: 0 };
+      // Calculate the stats step by step to avoid type issues
+      let total = 0;
+      let synced = 0;
+      let failed = 0;
+      let pending = 0;
       
-      if (syncRecords && syncRecords.length > 0) {
+      if (syncRecords) {
         for (const record of syncRecords) {
-          stats.total++;
+          total++;
           
           if (record.status === 'success') {
-            stats.synced++;
+            synced++;
           } else if (record.status === 'error') {
-            stats.failed++;
+            failed++;
           } else if (record.status === 'pending' || record.status === 'processing') {
-            stats.pending++;
+            pending++;
           }
         }
       }
 
-      setSyncStats(stats);
+      setSyncStats({ total, synced, failed, pending });
     } catch (err) {
       console.error('Error fetching sync stats:', err);
       toast.error('Failed to load QBO sync statistics');

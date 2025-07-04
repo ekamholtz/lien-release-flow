@@ -1,78 +1,74 @@
 
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
-  ArrowLeftRight, 
-  ArrowDownToLine, 
+  FolderOpen, 
   FileText, 
-  Settings, 
+  Receipt, 
   Users, 
-  BarChart3, 
-  LogOut,
-  Files,
-  LayoutDashboard
+  Building2, 
+  FileBarChart,
+  Settings,
+  CreditCard,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Plug,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
-import { CNSTRCTLogo } from '@/components/ui/cnstrct-logo';
+
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Projects', href: '/projects', icon: FolderOpen },
+  { name: 'Accounts Receivable', href: '/accounts-receivable', icon: ArrowDownCircle },
+  { name: 'Accounts Payable', href: '/accounts-payable', icon: ArrowUpCircle },
+  { name: 'Clients', href: '/clients', icon: Users },
+  { name: 'Vendors', href: '/vendors', icon: Building2 },
+  { name: 'Documents', href: '/documents', icon: FileText },
+  { name: 'Reports', href: '/reports', icon: FileBarChart },
+  { name: 'Team', href: '/team', icon: Users },
+  { name: 'Integrations', href: '/integrations', icon: Plug },
+  { name: 'Unsynced Transactions', href: '/unsynced-transactions', icon: AlertTriangle },
+  { name: 'Settings', href: '/settings', icon: Settings },
+];
 
 export function AppSidebar() {
-  const { signOut } = useAuth();
-  
-  const links = [
-    { to: '/dashboard', icon: <Home className="h-5 w-5" />, text: 'Dashboard' },
-    { to: '/projects', icon: <LayoutDashboard className="h-5 w-5" />, text: 'Projects' },
-    { to: '/bills', icon: <ArrowLeftRight className="h-5 w-5" />, text: 'Accounts Payable' },
-    { to: '/invoices', icon: <ArrowDownToLine className="h-5 w-5" />, text: 'Accounts Receivable' },
-    { to: '/documents', icon: <Files className="h-5 w-5" />, text: 'Documents' },
-    { to: '/team', icon: <Users className="h-5 w-5" />, text: 'Team' },
-    { to: '/reports', icon: <BarChart3 className="h-5 w-5" />, text: 'Reports' },
-    { to: '/settings', icon: <Settings className="h-5 w-5" />, text: 'Settings' },
-    { to: '/contract', icon: <FileText className="h-5 w-5" />, text: 'Contracts' },
-  ];
+  const location = useLocation();
+  const { user } = useAuth();
+
+  if (!user) return null;
 
   return (
-    <div className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:z-50 md:w-60">
-      <ScrollArea className="flex flex-col h-full bg-cnstrct-navy border-r border-cnstrct-navy">
-        <div className="flex flex-col h-full py-4">
-          <div className="px-4 py-3">
-            <CNSTRCTLogo className="mb-4" />
-            <h2 className="px-3 text-lg font-semibold text-white">Navigation</h2>
-          </div>
-          <div className="flex-1">
-            <nav className="grid gap-1 px-3">
-              {links.map((link) => (
-                <NavLink 
-                  key={link.to} 
-                  to={link.to} 
-                  className={({ isActive }) => cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-white/10",
-                    isActive ? "bg-cnstrct-orange/20 text-white" : "text-gray-300"
+    <div className="flex flex-col w-64 bg-white border-r border-gray-200 min-h-screen">
+      <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+        <nav className="mt-5 flex-1 px-2 space-y-1">
+          {navigation.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                  isActive
+                    ? 'bg-construction-50 text-construction-700 border-r-2 border-construction-600'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    'mr-3 flex-shrink-0 h-5 w-5',
+                    isActive ? 'text-construction-600' : 'text-gray-400 group-hover:text-gray-500'
                   )}
-                >
-                  {link.icon}
-                  {link.text}
-                </NavLink>
-              ))}
-            </nav>
-          </div>
-          <div className="px-3 py-2">
-            <Separator className="my-2 bg-white/20" />
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start text-red-300 hover:bg-white/10 hover:text-red-200"
-              onClick={signOut}
-            >
-              <LogOut className="mr-2 h-5 w-5" />
-              Log out
-            </Button>
-          </div>
-        </div>
-      </ScrollArea>
+                />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
     </div>
   );
 }

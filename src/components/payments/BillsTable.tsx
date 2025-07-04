@@ -19,9 +19,10 @@ interface BillsTableProps {
   onUpdateStatus: (billId: string, newStatus: BillStatus) => Promise<void>;
   onPayBill: (bill: ExtendedBill) => void;
   onViewDetails: (bill: ExtendedBill) => void;
+  onSyncComplete?: () => void;
 }
 
-export function BillsTable({ bills, onUpdateStatus, onPayBill, onViewDetails }: BillsTableProps) {
+export function BillsTable({ bills, onUpdateStatus, onPayBill, onViewDetails, onSyncComplete }: BillsTableProps) {
   return (
     <div className="rounded-md border overflow-hidden">
       <Table>
@@ -63,6 +64,7 @@ export function BillsTable({ bills, onUpdateStatus, onPayBill, onViewDetails }: 
                   onUpdateStatus={onUpdateStatus} 
                   onPayBill={onPayBill}
                   onViewDetails={onViewDetails}
+                  onSyncComplete={onSyncComplete}
                 />
               </TableCell>
             </TableRow>

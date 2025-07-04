@@ -4,15 +4,17 @@ import { Button } from "@/components/ui/button";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Eye, Check, X, CreditCard } from "lucide-react";
 import { DbBill, BillStatus } from '@/lib/supabase';
+import { BillSyncButton } from './BillSyncButton';
 
 interface BillActionsProps {
   bill: DbBill;
   onUpdateStatus: (billId: string, newStatus: BillStatus) => Promise<void>;
   onPayBill: (bill: DbBill) => void;
   onViewDetails: (bill: DbBill) => void;
+  onSyncComplete?: () => void;
 }
 
-export function BillActions({ bill, onUpdateStatus, onPayBill, onViewDetails }: BillActionsProps) {
+export function BillActions({ bill, onUpdateStatus, onPayBill, onViewDetails, onSyncComplete }: BillActionsProps) {
   return (
     <div className="flex items-center justify-end gap-2">
       <TooltipProvider>
@@ -92,6 +94,8 @@ export function BillActions({ bill, onUpdateStatus, onPayBill, onViewDetails }: 
           </Tooltip>
         </TooltipProvider>
       )}
+
+      <BillSyncButton billId={bill.id} onSyncComplete={onSyncComplete} />
     </div>
   );
 }
