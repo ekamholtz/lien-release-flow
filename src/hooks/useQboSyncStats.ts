@@ -26,20 +26,33 @@ export function useQboSyncStats() {
     
     try {
       setIsRefreshingStats(true);
-      const { data: syncRecords, error } = await supabase
-        .from('accounting_sync')
-        .select('*')
-        .eq('entity_type', 'invoice')
-        .eq('provider', 'qbo');
+      
+      // Get the user's company
+      const { data: companyMember } = await supabase
+        .from('company_members')
+        .select('company_id')
+        .eq('user_id', session.user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (!companyMember?.company_id) {
+        console.warn('No active company membership found');
+        return;
+      }
+
+      // Use the new comprehensive sync statistics function
+      const { data: comprehensiveStats, error } = await supabase
+        .rpc('get_sync_statistics', { p_company_id: companyMember.company_id });
 
       if (error) throw error;
 
-      const stats = {
-        total: syncRecords.length,
-        synced: syncRecords.filter(rec => rec.status === 'success').length,
-        failed: syncRecords.filter(rec => rec.status === 'error').length,
-        pending: syncRecords.filter(rec => ['pending', 'processing'].includes(rec.status || '')).length
-      };
+      // Aggregate the stats for backward compatibility
+      const stats = (comprehensiveStats || []).reduce((acc, stat) => ({
+        total: acc.total + Number(stat.total_count),
+        synced: acc.synced + Number(stat.success_count),
+        failed: acc.failed + Number(stat.error_count),
+        pending: acc.pending + Number(stat.pending_count) + Number(stat.processing_count)
+      }), { total: 0, synced: 0, failed: 0, pending: 0 });
 
       setSyncStats(stats);
     } catch (err) {
@@ -56,27 +69,40 @@ export function useQboSyncStats() {
     try {
       toast.info('Retrying failed QBO syncs...');
       
-      const response = await fetch(
-        'https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-sync-retry',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({})
-        }
-      );
+      const endpoints = [
+        'qbo-sync-retry',
+        'qbo-bill-sync-retry', 
+        'qbo-vendor-sync-retry',
+        'qbo-payment-sync-retry'
+      ];
       
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to trigger retry: ${error}`);
+      let totalProcessed = 0;
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(
+            `https://oknofqytitpxmlprvekn.functions.supabase.co/${endpoint}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({})
+            }
+          );
+          
+          if (response.ok) {
+            const result = await response.json();
+            totalProcessed += result.processed || 0;
+          }
+        } catch (endpointError) {
+          console.error(`Error with ${endpoint}:`, endpointError);
+        }
       }
       
-      const result = await response.json();
-      
-      if (result.processed > 0) {
-        toast.success(`Scheduled retry for ${result.processed} failed syncs`);
+      if (totalProcessed > 0) {
+        toast.success(`Scheduled retry for ${totalProcessed} failed syncs`);
       } else {
         toast.info('No failed syncs found to retry');
       }
