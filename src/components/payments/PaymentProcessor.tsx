@@ -57,6 +57,32 @@ export function PaymentProcessor({
     return ['check', 'cash', 'wire_transfer'].includes(paymentMethod);
   };
 
+  const triggerQboSync = async (paymentId: string) => {
+    try {
+      console.log('Triggering QBO sync for payment:', paymentId);
+      
+      // Get user session for access token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.warn('No session found for QBO sync');
+        return;
+      }
+
+      // Create sync record to trigger QBO integration
+      await supabase.rpc('update_sync_status', {
+        p_entity_type: 'payment',
+        p_entity_id: paymentId,
+        p_provider: 'qbo',
+        p_status: 'pending'
+      });
+
+      console.log('QBO sync triggered for payment:', paymentId);
+    } catch (error) {
+      console.error('Failed to trigger QBO sync:', error);
+      // Don't fail the payment if sync trigger fails
+    }
+  };
+
   const handlePayment = async (offlineData?: OfflinePaymentData) => {
     // Prevent double submission
     if (processing) {
@@ -145,6 +171,9 @@ export function PaymentProcessor({
         }
 
         console.log('Payment saved successfully:', payment);
+
+        // Trigger QBO sync for the new payment
+        await triggerQboSync(payment.id);
 
         // Refresh payment data to get updated totals
         await refreshPayments();
