@@ -1,12 +1,5 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
-import { ThemeProvider } from "next-themes";
-import { CompanyProvider } from "@/contexts/CompanyContext";
+import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -37,55 +30,39 @@ import LienRelease from "./pages/LienRelease";
 import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
-
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CompanyProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/onboarding" element={<OnboardingPage />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/projects" element={<Projects />} />
-                  <Route path="/projects/create" element={<CreateProject />} />
-                  <Route path="/projects/new" element={<NewProject />} />
-                  <Route path="/projects/:projectId" element={<ProjectDashboard />} />
-                  <Route path="/invoices/create" element={<CreateInvoice />} />
-                  <Route path="/bills/create" element={<CreateBill />} />
-                  <Route path="/accounts-receivable" element={<AccountsReceivable />} />
-                  <Route path="/accounts-payable" element={<AccountsPayable />} />
-                  <Route path="/integrations" element={<Integrations />} />
-                  <Route path="/unsynced-transactions" element={<UnsyncedTransactions />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/team" element={<Team />} />
-                  <Route path="/clients" element={<Clients />} />
-                  <Route path="/vendors" element={<Vendors />} />
-                  <Route path="/documents" element={<Documents />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/contracts/create" element={<CreateContract />} />
-                  <Route path="/contracts/:contractId" element={<Contract />} />
-                  <Route path="/review-pdf" element={<ReviewPdfPage />} />
-                  <Route path="/docx-fill" element={<DocxFillPage />} />
-                  <Route path="/lien-release" element={<LienRelease />} />
-                  <Route path="/subscription" element={<Subscription />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </ThemeProvider>
-        </CompanyProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/projects" element={<Projects />} />
+      <Route path="/projects/create" element={<CreateProject />} />
+      <Route path="/projects/new" element={<NewProject />} />
+      <Route path="/projects/:projectId" element={<ProjectDashboard />} />
+      <Route path="/invoices/create" element={<CreateInvoice />} />
+      <Route path="/bills/create" element={<CreateBill />} />
+      <Route path="/accounts-receivable" element={<AccountsReceivable />} />
+      <Route path="/accounts-payable" element={<AccountsPayable />} />
+      <Route path="/integrations" element={<Integrations />} />
+      <Route path="/unsynced-transactions" element={<UnsyncedTransactions />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/team" element={<Team />} />
+      <Route path="/clients" element={<Clients />} />
+      <Route path="/vendors" element={<Vendors />} />
+      <Route path="/documents" element={<Documents />} />
+      <Route path="/reports" element={<Reports />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/contracts/create" element={<CreateContract />} />
+      <Route path="/contracts/:contractId" element={<Contract />} />
+      <Route path="/review-pdf" element={<ReviewPdfPage />} />
+      <Route path="/docx-fill" element={<DocxFillPage />} />
+      <Route path="/lien-release" element={<LienRelease />} />
+      <Route path="/subscription" element={<Subscription />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
