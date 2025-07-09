@@ -31,6 +31,9 @@ import Contract from './pages/Contract';
 import CreateContract from './pages/CreateContract';
 import ReviewPdfPage from './pages/ReviewPdfPage';
 import DocxFillPage from './pages/DocxFillPage';
+import Pay from './pages/Pay';
+import PaySuccess from './pages/PaySuccess';
+import PayFailure from './pages/PayFailure';
 
 // Auth guard for protected routes
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -40,22 +43,22 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (loading || companyLoading) {
     return <div>Loading...</div>;
   }
-  
+
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-  
+
   // For routes that require company context, redirect to onboarding if no company
   // We'll exclude certain routes that don't require a company (like onboarding itself)
   const currentPath = window.location.pathname;
   const routesNotRequiringCompany = ['/onboarding', '/subscription', '/team'];
-  
+
   const needsCompany = !routesNotRequiringCompany.some(route => currentPath.startsWith(route));
-  
+
   if (needsCompany && !currentCompany) {
     return <Navigate to="/onboarding/personal-info" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
@@ -67,223 +70,226 @@ const App = () => {
         <Route path="/auth" element={<Auth />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/contact" element={<Contact />} />
-        
+        <Route path="/pay" element={<Pay />} />
+        <Route path="/pay/success" element={<PaySuccess />} />
+        <Route path="/pay/failure" element={<PayFailure />} />
+
         {/* Onboarding routes */}
-        <Route 
-          path="/onboarding/:step" 
+        <Route
+          path="/onboarding/:step"
           element={
             <ProtectedRoute>
               <OnboardingPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        
+
         {/* Dashboard and main routes */}
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/projects" 
+        <Route
+          path="/projects"
           element={
             <ProtectedRoute>
               <Projects />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/projects/new" 
+        <Route
+          path="/projects/new"
           element={
             <ProtectedRoute>
               <NewProject />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/projects/create" 
+        <Route
+          path="/projects/create"
           element={
             <ProtectedRoute>
               <CreateProject />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/projects/:projectId" 
+        <Route
+          path="/projects/:projectId"
           element={
             <ProtectedRoute>
               <ProjectDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/projects/:projectId/edit-options" 
+        <Route
+          path="/projects/:projectId/edit-options"
           element={
             <ProtectedRoute>
               <ProjectEditOptions />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/projects/:projectId/edit" 
+        <Route
+          path="/projects/:projectId/edit"
           element={
             <ProtectedRoute>
               <CreateProject />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/projects/:projectId/edit-basic" 
+        <Route
+          path="/projects/:projectId/edit-basic"
           element={
             <ProtectedRoute>
               <CreateProject basicInfoOnly={true} />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/projects/:projectId/change-order" 
+        <Route
+          path="/projects/:projectId/change-order"
           element={
             <ProtectedRoute>
               <ChangeOrderWizard />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/projects/:projectId/documents" 
+        <Route
+          path="/projects/:projectId/documents"
           element={
             <ProtectedRoute>
               <ProjectDashboard documentsOnly={true} />
             </ProtectedRoute>
-          } 
+          }
         />
-        
+
         {/* Finance routes */}
-        <Route 
-          path="/invoices" 
+        <Route
+          path="/invoices"
           element={
             <ProtectedRoute>
               <AccountsReceivable />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/invoices/create" 
+        <Route
+          path="/invoices/create"
           element={
             <ProtectedRoute>
               <CreateInvoice />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/bills" 
+        <Route
+          path="/bills"
           element={
             <ProtectedRoute>
               <AccountsPayable />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/bills/create" 
+        <Route
+          path="/bills/create"
           element={
             <ProtectedRoute>
               <CreateBill />
             </ProtectedRoute>
-          } 
+          }
         />
-        
+
         {/* Other routes */}
-        <Route 
-          path="/documents" 
+        <Route
+          path="/documents"
           element={
             <ProtectedRoute>
               <Documents />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/reports" 
+        <Route
+          path="/reports"
           element={
             <ProtectedRoute>
               <Reports />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/settings" 
+        <Route
+          path="/settings"
           element={
             <ProtectedRoute>
               <Settings />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/team" 
+        <Route
+          path="/team"
           element={
             <ProtectedRoute>
               <Team />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/subscription" 
+        <Route
+          path="/subscription"
           element={
             <ProtectedRoute>
               <Subscription />
             </ProtectedRoute>
-          } 
+          }
         />
         {/* Add route for lien-release without ID parameter */}
-        <Route 
-          path="/lien-release" 
+        <Route
+          path="/lien-release"
           element={
             <ProtectedRoute>
               <LienRelease />
             </ProtectedRoute>
-          } 
+          }
         />
         {/* Keep the existing route with ID parameter */}
-        <Route 
-          path="/lien-release/:id" 
+        <Route
+          path="/lien-release/:id"
           element={
             <ProtectedRoute>
               <LienRelease />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/contract" 
+        <Route
+          path="/contract"
           element={
             <ProtectedRoute>
               <Contract />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/contract/create" 
+        <Route
+          path="/contract/create"
           element={
             <ProtectedRoute>
               <CreateContract />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/review-doc-pdf" 
+        <Route
+          path="/review-doc-pdf"
           element={
             <ProtectedRoute>
               <ReviewPdfPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/fill-template" 
+        <Route
+          path="/fill-template"
           element={
             <ProtectedRoute>
               <DocxFillPage />
             </ProtectedRoute>
-          } 
+          }
         />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -38,7 +38,7 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
   const navigate = useNavigate();
   const { currentCompany } = useCompany();
   const { user } = useAuth();
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,27 +55,27 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
       toast.error("Please select a company first");
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       console.log('Form Values:', values);
       console.log('Line items:', lineItems);
       console.log('Use line items:', useLineItems);
-      
+
       // Convert amount from string to number
       const amountNumber = parseFloat(values.amount);
-      
+
       // Format due date as ISO string (YYYY-MM-DD)
       const formattedDueDate = values.dueDate.toISOString().split('T')[0];
-      
+
       // Get client details
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('name, email')
         .eq('id', values.clientId)
         .single();
-        
+
       if (clientError) {
         throw new Error(`Error fetching client: ${clientError.message}`);
       }
@@ -102,7 +102,7 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
           .select('company_id')
           .eq('id', values.project)
           .maybeSingle();
-          
+
         if (!projectError && projectData && projectData.company_id) {
           companyId = projectData.company_id;
           console.log('Using project company_id:', companyId);
@@ -110,7 +110,24 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
           console.log('Falling back to current company_id:', companyId);
         }
       }
-      
+
+      //create Rainforestpay session for payment link
+      const { data: paymentRNData, error: paymentRNError } = await supabase.functions.invoke("create-invoice", {
+        body: {
+          amount: amountNumber,
+          currency: "USD",
+          email: clientData.email || '',
+          description: "Payment Fee for " + values.invoiceNumber,
+          user_id: user.id
+        },
+      });
+
+
+      if (paymentRNError || !paymentRNData?.paymentUrl) {
+        console.error("Edge Fn error", paymentRNError || paymentRNData);
+        return toast.error(`Failed to create invoice: ${paymentRNError}`);
+      }
+
       // Save invoice to Supabase
       const { data, error } = await supabase
         .from('invoices')
@@ -125,10 +142,11 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
           status: 'draft' as InvoiceStatus,
           company_id: companyId,
           project_manager_id: projectManagerId,
-          has_line_items: useLineItems
+          has_line_items: useLineItems,
+          payment_link: paymentRNData.paymentUrl
         })
         .select();
-      
+
       if (error) {
         console.error('Error saving invoice:', error);
         toast.error(`Failed to create invoice: ${error.message}`);
@@ -160,6 +178,19 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
           toast.error('Invoice created but failed to save line items');
         }
 
+        //send payment email
+        const { data: sendMailData, error: sendMailError } = await supabase.functions.invoke("send-payment-email", {
+          body: {
+            invoiceId: invoiceId,
+          },
+        });
+
+
+        if (sendMailError) {
+          console.error("Edge Fn error", sendMailError);
+          return toast.error(`Failed to send mail invoice: ${sendMailError}`);
+        }
+
         // Mark source bill line items as invoiced
         const billLineItemIds = lineItems
           .filter(item => item.source_bill_line_item_id)
@@ -168,7 +199,7 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
         if (billLineItemIds.length > 0) {
           const { error: updateError } = await supabase
             .from('bill_line_items')
-            .update({ 
+            .update({
               invoiced: true,
               invoice_line_item_id: invoiceId
             })
@@ -179,20 +210,20 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
           }
         }
       }
-      
+
       // Handle file uploads if there are any
       if (files.length > 0) {
         toast.info(`${files.length} files will be processed for upload.`);
       }
-      
+
       toast.success(`Invoice ${values.invoiceNumber} has been created with ${useLineItems ? lineItems.length : 0} line item(s)`);
-      
+
       // Reset form
       form.reset();
       setFiles([]);
       setLineItems([]);
       setUseLineItems(false);
-      
+
       // Navigate to invoices page
       navigate('/invoices');
     } catch (err) {
@@ -202,11 +233,11 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
       setIsSubmitting(false);
     }
   }
-  
+
   const handleFileSelect = (file: File) => {
     setFiles(prev => [...prev, file]);
   };
-  
+
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
@@ -214,27 +245,27 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <InvoiceFormFields 
+        <InvoiceFormFields
           control={form.control}
           lineItems={lineItems}
           onLineItemsChange={setLineItems}
           useLineItems={useLineItems}
           onUseLineItemsChange={setUseLineItems}
         />
-        
+
         <FileUpload onFileSelect={handleFileSelect} />
         <FilePreview files={files} onRemoveFile={removeFile} />
-        
+
         <div className="flex gap-3 justify-end">
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => navigate('/invoices')}
           >
             Cancel
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="bg-construction-600 hover:bg-construction-700"
             disabled={isSubmitting}
           >
