@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,15 @@ import { DbInvoice } from '@/lib/supabase';
 import { JsPdfService, PdfGenerationOptions } from '@/services/jsPdfService';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+
+interface InvoiceLineItem {
+  id: string;
+  description: string;
+  cost: number;
+  markup_percentage: number;
+  price: number;
+  category_name?: string;
+}
 
 interface PdfGenerationDialogProps {
   invoice: DbInvoice & { 
@@ -30,15 +38,17 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPdf, setGeneratedPdf] = useState<string | null>(null);
   const [companyLogo, setCompanyLogo] = useState<string>('');
+  const [lineItems, setLineItems] = useState<InvoiceLineItem[]>([]);
 
-  // Load company logo when dialog opens
+  // Load company logo and line items when dialog opens
   useEffect(() => {
     if (isOpen && invoice.company_id) {
-      loadCompanyLogo();
+      loadCompanyData();
+      loadLineItems();
     }
-  }, [isOpen, invoice.company_id]);
+  }, [isOpen, invoice.company_id, invoice.id]);
 
-  const loadCompanyLogo = async () => {
+  const loadCompanyData = async () => {
     if (!invoice.company_id) return;
     
     try {
@@ -57,15 +67,46 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
     }
   };
 
+  const loadLineItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('invoice_line_items')
+        .select(`
+          id,
+          description,
+          cost,
+          markup_percentage,
+          price,
+          expense_categories(name)
+        `)
+        .eq('invoice_id', invoice.id);
+
+      if (!error && data) {
+        const formattedLineItems = data.map(item => ({
+          id: item.id,
+          description: item.description || '',
+          cost: Number(item.cost || 0),
+          markup_percentage: Number(item.markup_percentage || 0),
+          price: Number(item.price),
+          category_name: (item.expense_categories as any)?.name || 'Uncategorized'
+        }));
+        setLineItems(formattedLineItems);
+      }
+    } catch (error) {
+      console.error('Error loading line items:', error);
+      setLineItems([]);
+    }
+  };
+
   const handleGeneratePdf = async () => {
     try {
       setIsGenerating(true);
-      const pdfBase64 = await JsPdfService.generateInvoicePdf(invoice, options);
+      const pdfBase64 = await JsPdfService.generateInvoicePdf(invoice, options, lineItems);
       setGeneratedPdf(pdfBase64);
       
       toast({
         title: "PDF Generated",
-        description: "Your invoice PDF has been generated successfully with enhanced company branding.",
+        description: "Your professional invoice PDF has been generated successfully.",
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -122,7 +163,7 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building className="h-5 w-5" />
-            Generate Invoice PDF
+            Generate Professional Invoice PDF
           </DialogTitle>
         </DialogHeader>
         
@@ -142,13 +183,18 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="summary" id="summary" />
-                <Label htmlFor="summary" className="text-sm">Summary - Show cost, markup, and total</Label>
+                <Label htmlFor="summary" className="text-sm">Summary - Show cost breakdown and totals</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="detailed" id="detailed" />
-                <Label htmlFor="detailed" className="text-sm">Detailed - Show all line items</Label>
+                <Label htmlFor="detailed" className="text-sm">Detailed - Show all line items with categories</Label>
               </div>
             </RadioGroup>
+            {lineItems.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Found {lineItems.length} line item(s) for this invoice
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -219,7 +265,7 @@ export function PdfGenerationDialog({ invoice, isOpen, onClose }: PdfGenerationD
                     Generating...
                   </>
                 ) : (
-                  'Generate PDF'
+                  'Generate Professional PDF'
                 )}
               </Button>
             </>

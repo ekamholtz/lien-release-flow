@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Download, FileText } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 import { DbInvoice } from '@/lib/supabase';
 import { JsPdfService, PdfGenerationOptions } from '@/services/jsPdfService';
 import { toast } from '@/hooks/use-toast';
@@ -60,9 +59,24 @@ export function BatchPdfDialog({ invoices, isOpen, onClose }: BatchPdfDialogProp
       setIsGenerating(true);
       
       const selectedInvoiceObjects = invoices.filter(inv => selectedInvoices.includes(inv.id));
-      const results = await JsPdfService.generateBatchPdfs(selectedInvoiceObjects, options);
       
-      // Download each PDF
+      // Generate PDFs one by one with better error handling
+      const results = [];
+      for (const invoice of selectedInvoiceObjects) {
+        try {
+          const pdf = await JsPdfService.generateInvoicePdf(invoice, options);
+          results.push({ invoice, pdf });
+        } catch (error) {
+          console.error(`Error generating PDF for invoice ${invoice.invoice_number}:`, error);
+          toast({
+            title: "Partial Error",
+            description: `Failed to generate PDF for invoice ${invoice.invoice_number}`,
+            variant: "destructive"
+          });
+        }
+      }
+      
+      // Download successful PDFs
       results.forEach(({ invoice, pdf }) => {
         const fileName = `invoice-${invoice.invoice_number}.pdf`;
         JsPdfService.downloadPdf(pdf, fileName);
@@ -70,7 +84,7 @@ export function BatchPdfDialog({ invoices, isOpen, onClose }: BatchPdfDialogProp
       
       toast({
         title: "PDFs Generated",
-        description: `Successfully generated ${results.length} invoice PDFs using jsPDF.`,
+        description: `Successfully generated ${results.length} professional invoice PDFs.`,
       });
       
       onClose();
@@ -104,7 +118,7 @@ export function BatchPdfDialog({ invoices, isOpen, onClose }: BatchPdfDialogProp
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle>Generate Batch Invoice PDFs</DialogTitle>
+          <DialogTitle>Generate Professional Batch Invoice PDFs</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4 overflow-y-auto">
@@ -130,7 +144,7 @@ export function BatchPdfDialog({ invoices, isOpen, onClose }: BatchPdfDialogProp
                     onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked as boolean)}
                   />
                   <Label htmlFor={invoice.id} className="text-sm flex-1">
-                    #{invoice.invoice_number} - {invoice.client_name} - ${invoice.amount}
+                    #{invoice.invoice_number} - {invoice.client_name} - ${Number(invoice.amount).toFixed(2)}
                   </Label>
                 </div>
               ))}
@@ -212,7 +226,7 @@ export function BatchPdfDialog({ invoices, isOpen, onClose }: BatchPdfDialogProp
             ) : (
               <>
                 <FileText className="mr-2 h-4 w-4" />
-                Generate {selectedInvoices.length} PDFs
+                Generate {selectedInvoices.length} Professional PDFs
               </>
             )}
           </Button>
