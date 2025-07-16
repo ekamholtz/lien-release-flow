@@ -3,7 +3,7 @@ import React from 'react';
 import { CreditCard, ArrowLeft, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export type PayInvoiceStep = 'method' | 'process' | 'complete';
+export type PayInvoiceStep = 'method' | 'process' |'digitalPay'| 'complete';
 
 interface PayInvoiceStepsProps {
   step: PayInvoiceStep;

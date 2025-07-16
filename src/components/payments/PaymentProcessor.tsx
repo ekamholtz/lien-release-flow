@@ -14,7 +14,7 @@ import { useInvoicePayments } from '@/hooks/useInvoicePayments';
 import { supabase } from '@/integrations/supabase/client';
 import { DbInvoice } from '@/lib/supabase';
 
-type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+type PaymentStatus = 'pending' | 'processing' |'digitalPay'| 'completed' | 'failed' | 'cancelled';
 
 interface PaymentProcessorProps {
   amount: number;
@@ -22,6 +22,7 @@ interface PaymentProcessorProps {
   entityType: 'invoice' | 'bill';
   entityId: string;
   invoice?: DbInvoice;
+  onPaymentPay?: () => void;
   onPaymentComplete?: (paymentId: string, offlineData?: OfflinePaymentData) => void;
   onPaymentError?: (error: string) => void;
 }
@@ -32,6 +33,7 @@ export function PaymentProcessor({
   entityType,
   entityId,
   invoice,
+  onPaymentPay,
   onPaymentComplete,
   onPaymentError
 }: PaymentProcessorProps) {
@@ -154,9 +156,11 @@ export function PaymentProcessor({
       } else {
         // For digital payments (future Rainforestpay integration)
         console.log('Processing digital payment...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setStatus('completed');
-        onPaymentComplete?.('payment-' + Date.now());
+        // await new Promise(resolve => setTimeout(resolve, 2000));
+        // setStatus('completed');
+        setStatus('digitalPay');
+        onPaymentPay();
+        // onPaymentComplete?.('payment-' + Date.now());
       }
       
     } catch (err) {

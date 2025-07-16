@@ -30,6 +30,10 @@ export function usePayInvoiceLogic(
     setStep('process');
   };
 
+  const handlePaymentPay = () => {
+    setStep('digitalPay');
+  };
+
   const handlePaymentComplete = async (paymentId: string, offlineData?: OfflinePaymentData) => {
     try {
       console.log('Payment completed successfully');
@@ -87,6 +91,7 @@ export function usePayInvoiceLogic(
     paymentCompleted,
     form,
     handleMethodSelection,
+    handlePaymentPay,
     handlePaymentComplete,
     handlePaymentError,
     handleClose,
