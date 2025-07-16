@@ -34,7 +34,7 @@ export default function Pay() {
       // Fetch invoice
       const { data: invoice, error: invoiceError } = await supabase
         .from("invoices")
-        .select("invoice_number ,client_name , client_email , amount")
+        .select("invoice_number ,client_name , client_email , amount, id")
         .eq("invoice_number", invoiceNumber)
         .single();
 
@@ -59,12 +59,48 @@ export default function Pay() {
     const comp = document.getElementById("rf-pay") as HTMLElement | null;
     if (!comp) return;
 
-    const handleApproved = async () => {
+    const handleApproved = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const rainforestResponse = customEvent.detail[0]?.data;
+
+      console.log("Rainforest payment approved:", rainforestResponse);
+      const paymentMethod = mapRainforestMethods(rainforestResponse);
+      const { data: payment, error: paymentError } = await supabase
+        .from("payments")
+        .insert([
+          {
+            entity_type: "invoice",
+            entity_id: invoice?.invoiceId,
+            amount:invoice?.amount,
+            payment_method: paymentMethod,
+            payment_provider: "rainforestpay",
+            status: rainforestResponse?.status?.toLowerCase(),
+            payment_date: new Date().toISOString(),
+            is_offline: false,
+            company_id: invoice.companyId,
+            payor_name: rainforestResponse?.billing_contact?.name || null,
+            payor_company: null,
+          },
+        ])
+        .select()
+        .single();
+
+      if (paymentError) {
+        console.error("Failed to save payment:", paymentError);
+        throw paymentError;
+      }
+
+      console.log("Payment saved to DB:", payment);
+
       if (invoiceNumber) {
         await supabase
           .from("payment_invoices")
-          .update({ status: "approved", paid_at: new Date().toISOString() })
-          .eq("id", invoiceNumber);
+          .update({
+            status: rainforestResponse?.status,
+            paid_at: new Date().toISOString(),
+            payin_id: rainforestResponse?.payin_id,
+          })
+          .eq("entity_number", invoiceNumber);
       }
       navigate("/pay/success");
     };
@@ -72,23 +108,36 @@ export default function Pay() {
     const handleDeclined = async () => {
       if (invoiceNumber) {
         await supabase
-          .from("payment_invoices")
-          .update({ status: "declined" })
-          .eq("id", invoiceNumber);
+        .from("payment_invoices")
+        .update({ status: "DECLINED" })
+        .eq("entity_number", invoiceNumber);
       }
       navigate("/pay/failure");
     };
 
-    comp.addEventListener("approved", handleApproved);
-    comp.addEventListener("declined", handleDeclined);
-    comp.addEventListener("error", handleDeclined);
+    comp.addEventListener("approved", handleApproved as EventListener);
+    comp.addEventListener("declined", handleDeclined as EventListener);
+    comp.addEventListener("error", handleDeclined as EventListener);
 
     return () => {
-      comp.removeEventListener("approved", handleApproved);
-      comp.removeEventListener("declined", handleDeclined);
-      comp.removeEventListener("error", handleDeclined);
+      comp.removeEventListener("approved", handleApproved as EventListener);
+      comp.removeEventListener("declined", handleDeclined as EventListener);
+      comp.removeEventListener("error", handleDeclined as EventListener);
     };
   }, [cfg, sk, invoiceNumber, navigate]);
+
+  const mapRainforestMethods = (rf: any): string => {
+    const method = rf.method_type;
+
+    if (method === "CARD" && rf.card?.type === "CREDIT") return "credit_card";
+    if (method === "APPLE_PAY" || method === "GOOGLE_PAY") return "credit_card";
+    if (method === "ACH" || method === "PLAID_ACH") return "ach";
+
+    // Default to credit_card if it's a card
+    if (method === "CARD") return "credit_card";
+
+    throw new Error(`Unsupported payment method type: ${method}`);
+  };
 
   if (!cfg || !sk) {
     return (
