@@ -7,7 +7,7 @@ import { UseFormReturn } from 'react-hook-form';
 
 interface PaymentActionsProps {
   paymentMethod: PaymentMethod;
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  status: 'pending' | 'processing' | 'completed' |'digitalPay'| 'failed' | 'cancelled';
   processing: boolean;
   offlinePaymentForm: UseFormReturn<OfflinePaymentData>;
   onOfflinePaymentSubmit: (data: OfflinePaymentData) => void;

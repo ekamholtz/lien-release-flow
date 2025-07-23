@@ -7,6 +7,7 @@ import { usePayInvoiceSteps } from "./pay-invoice/PayInvoiceSteps";
 import { PayInvoiceMethodStep } from "./pay-invoice/PayInvoiceMethodStep";
 import { PayInvoiceProcessStep } from "./pay-invoice/PayInvoiceProcessStep";
 import { PayInvoiceCompleteStep } from "./pay-invoice/PayInvoiceCompleteStep";
+import { PayInvoiceDigitalStep } from './pay-invoice/PayInvoiceDigitalStep';
 
 interface PayInvoiceProps {
   invoice: DbInvoice;
@@ -22,6 +23,7 @@ export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayI
     form,
     handleMethodSelection,
     handlePaymentComplete,
+    handlePaymentPay,
     handlePaymentError,
     handleClose,
     handleBackToMethodSelection
@@ -55,9 +57,20 @@ export function PayInvoice({ invoice, isOpen, onClose, onPaymentComplete }: PayI
             invoiceId={invoice.id}
             invoice={invoice}
             onPaymentComplete={handlePaymentComplete}
+            onPaymentPay={handlePaymentPay}
             onPaymentError={handlePaymentError}
           />
         )}
+
+        {step === 'digitalPay' && (
+          <PayInvoiceDigitalStep
+            invoiceId={invoice.id}
+            paymentMethod={selectedPaymentMethod}
+            onPaymentComplete={handlePaymentComplete}
+            onPaymentError={handlePaymentError}
+          />
+        )}
+
 
         {step === 'complete' && (
           <PayInvoiceCompleteStep

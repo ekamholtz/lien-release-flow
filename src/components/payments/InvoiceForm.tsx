@@ -42,7 +42,8 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      invoiceNumber: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
+      // invoiceNumber: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
+      invoiceNumber: `INV-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`,
       clientId: "",
       project: preselectedProjectId || "",
       amount: "",
@@ -118,7 +119,8 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
           currency: "USD",
           email: clientData.email || '',
           description: "Payment Fee for " + values.invoiceNumber,
-          user_id: user.id
+          user_id: user.id,
+          entity_number: values.invoiceNumber
         },
       });
 
@@ -185,6 +187,7 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
           },
         });
 
+        console.log("send mail for payment url", sendMailData);
 
         if (sendMailError) {
           console.error("Edge Fn error", sendMailError);
