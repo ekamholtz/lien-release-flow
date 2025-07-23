@@ -15,7 +15,7 @@ export default function PayFailure() {
                     </p>
                     <div className="mt-6">
                         <a
-                            href="/dasboard"
+                            href="/dashboard"
                             className="inline-block bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition"
                         >
                             Contact Support

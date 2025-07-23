@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Lock, XCircle } from "lucide-react";
@@ -13,6 +13,7 @@ export default function Pay() {
   const invoiceNumber = params.get("inv");
 
   const [invoice, setInvoice] = useState<any | null>(null);
+  const invoiceRef = useRef<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function Pay() {
       // Fetch invoice
       const { data: invoice, error: invoiceError } = await supabase
         .from("invoices")
-        .select("invoice_number ,client_name , client_email , amount, id")
+        .select("invoice_number ,client_name , client_email , amount, id, company_id")
         .eq("invoice_number", invoiceNumber)
         .single();
 
@@ -45,7 +46,7 @@ export default function Pay() {
       }
 
       setInvoice(invoice);
-
+      invoiceRef.current = invoice;
       setLoading(false);
     };
 
@@ -55,29 +56,34 @@ export default function Pay() {
 
   useEffect(() => {
     if (!cfg || !sk) return;
-
+    invoiceRef.current = invoice;
     const comp = document.getElementById("rf-pay") as HTMLElement | null;
     if (!comp) return;
 
     const handleApproved = async (event: Event) => {
       const customEvent = event as CustomEvent;
       const rainforestResponse = customEvent.detail[0]?.data;
+      const { data: invoice, error: invoiceError } = await supabase
+        .from("invoices")
+        .select("invoice_number ,client_name , client_email , amount, id, company_id")
+        .eq("invoice_number", invoiceNumber)
+        .single();
 
-      console.log("Rainforest payment approved:", rainforestResponse);
       const paymentMethod = mapRainforestMethods(rainforestResponse);
+
       const { data: payment, error: paymentError } = await supabase
         .from("payments")
         .insert([
           {
             entity_type: "invoice",
-            entity_id: invoice?.invoiceId,
-            amount:invoice?.amount,
+            entity_id: invoice.id,
+            amount: invoice.amount,
             payment_method: paymentMethod,
             payment_provider: "rainforestpay",
             status: rainforestResponse?.status?.toLowerCase(),
             payment_date: new Date().toISOString(),
             is_offline: false,
-            company_id: invoice.companyId,
+            company_id: invoice.company_id,
             payor_name: rainforestResponse?.billing_contact?.name || null,
             payor_company: null,
           },
@@ -101,18 +107,47 @@ export default function Pay() {
             payin_id: rainforestResponse?.payin_id,
           })
           .eq("entity_number", invoiceNumber);
+
+        const { error } = await supabase
+          .from('invoices')
+          .update({ status: 'sent' })
+          .eq('id', invoice.id)
+          .eq('company_id', invoice.company_id);
+        console.error("Failed to update status payment: invoice", error);
       }
       navigate("/pay/success");
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      navigate("/dashboard");
     };
 
-    const handleDeclined = async () => {
+    const handleDeclined = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.warn("Rainforest payment declined or errored:", customEvent.detail);
+      const currentInvoice = invoiceRef.current;
+      const { data: invoice, error: invoiceError } = await supabase
+        .from("invoices")
+        .select("invoice_number ,client_name , client_email , amount, id, company_id")
+        .eq("invoice_number", invoiceNumber)
+        .single();
+      if (!invoice) {
+        console.error("Invoice missing at payment decline");
+        return;
+      }
       if (invoiceNumber) {
         await supabase
-        .from("payment_invoices")
-        .update({ status: "DECLINED" })
-        .eq("entity_number", invoiceNumber);
+          .from("payment_invoices")
+          .update({ status: "declined" })
+          .eq("entity_number", invoiceNumber);
+        const { error } = await supabase
+          .from('invoices')
+          .update({ status: 'sent' })
+          .eq('id', invoice.id)
+          .eq('company_id', invoice.company_id);
+        console.error("Invoice missing at payment decline", error);
       }
       navigate("/pay/failure");
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      navigate("/dashboard");
     };
 
     comp.addEventListener("approved", handleApproved as EventListener);
@@ -124,7 +159,7 @@ export default function Pay() {
       comp.removeEventListener("declined", handleDeclined as EventListener);
       comp.removeEventListener("error", handleDeclined as EventListener);
     };
-  }, [cfg, sk, invoiceNumber, navigate]);
+  }, [cfg, sk, invoice, invoiceNumber, navigate]);
 
   const mapRainforestMethods = (rf: any): string => {
     const method = rf.method_type;
@@ -180,7 +215,7 @@ export default function Pay() {
               <Lock className="h-4 w-4 mr-1" /> Encrypted & secure
             </p>
             <button
-              onClick={() => navigate("/pay/failure")}
+              onClick={() => navigate("/dashboard")}
               className="flex items-center gap-1 text-sm text-red-500 hover:underline"
             >
               <XCircle className="h-4 w-4" /> Cancel Payment

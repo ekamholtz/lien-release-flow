@@ -129,7 +129,6 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
         console.error("Edge Fn error", paymentRNError || paymentRNData);
         return toast.error(`Failed to create invoice: ${paymentRNError}`);
       }
-
       // Save invoice to Supabase
       const { data, error } = await supabase
         .from('invoices')
@@ -180,19 +179,7 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
           toast.error('Invoice created but failed to save line items');
         }
 
-        //send payment email
-        const { data: sendMailData, error: sendMailError } = await supabase.functions.invoke("send-payment-email", {
-          body: {
-            invoiceId: invoiceId,
-          },
-        });
 
-        console.log("send mail for payment url", sendMailData);
-
-        if (sendMailError) {
-          console.error("Edge Fn error", sendMailError);
-          return toast.error(`Failed to send mail invoice: ${sendMailError}`);
-        }
 
         // Mark source bill line items as invoiced
         const billLineItemIds = lineItems
@@ -217,6 +204,20 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
       // Handle file uploads if there are any
       if (files.length > 0) {
         toast.info(`${files.length} files will be processed for upload.`);
+      }
+
+      //send payment email
+      const { data: sendMailData, error: sendMailError } = await supabase.functions.invoke("send-payment-email", {
+        body: {
+          invoiceId: invoiceId,
+        },
+      });
+
+      console.log("send mail for payment url", sendMailData);
+
+      if (sendMailError) {
+        console.error("Edge Fn error", sendMailError);
+        return toast.error(`Failed to send mail invoice: ${sendMailError}`);
       }
 
       toast.success(`Invoice ${values.invoiceNumber} has been created with ${useLineItems ? lineItems.length : 0} line item(s)`);

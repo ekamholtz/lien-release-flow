@@ -162,6 +162,7 @@ export function PaymentProcessor({
         onPaymentPay();
         // onPaymentComplete?.('payment-' + Date.now());
       }
+       await refreshPayments();
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Payment failed';
