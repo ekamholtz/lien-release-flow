@@ -113,7 +113,11 @@ export function PayInvoiceDigitalStep({
             payin_id: rainforestResponse?.payin_id,
           })
           .eq("entity_number", invoiceNumber);
-
+        const { error } = await supabase
+          .from('invoices')
+          .update({ status: 'sent' })
+          .eq('id', invoiceId);
+        console.error("Failed to update status payment: invoice", error);
         onPaymentComplete?.(payment.id);
       } catch (err) {
         console.error("Error in handleApproved:", err);
@@ -129,7 +133,11 @@ export function PayInvoiceDigitalStep({
         .from("payment_invoices")
         .update({ status: "declined" })
         .eq("entity_number", invoiceNumber);
-
+      const { error } = await supabase
+        .from('invoices')
+        .update({ status: 'sent' })
+        .eq('id', invoiceId);
+      console.error("Failed to update status payment: invoice", error);
       onPaymentError("Payment declined or failed.");
     };
 
