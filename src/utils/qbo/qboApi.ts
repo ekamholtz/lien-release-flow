@@ -10,7 +10,8 @@ export async function initiateQboAuth(accessToken: string, companyId: string): P
   try {
     console.log("Starting QBO connection process");
     
-    const functionUrl = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
+    // const functionUrl = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-authorize";
+    const functionUrl = "https://oknofqytitpxmlprvekn.supabase.co/functions/v1/qbo-authorize";
     
     console.log("Calling QBO authorize function");
     
@@ -48,7 +49,7 @@ export async function initiateQboAuth(accessToken: string, companyId: string): P
     const responseText = await response.text();
     const responseData = JSON.parse(responseText) as QboAuthResponse;
     
-    console.log("QBO authorization response received");
+    console.log("QBO authorization response received",companyId,responseText);
     
     // Store the company_id in session storage for retrieval after OAuth redirection
     sessionStorage.setItem('qbo_company_id', companyId);

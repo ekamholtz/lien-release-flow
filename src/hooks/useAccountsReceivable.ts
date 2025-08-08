@@ -65,14 +65,36 @@ export function useAccountsReceivable() {
         query = query.lte('created_at', filters.dateRange.to.toISOString());
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data:rawInvoices, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      console.log('Fetched invoices:', data?.length || 0);
-      setInvoices(data as ExtendedInvoice[] || []);
+      console.log('Fetched invoices:', rawInvoices?.length || 0);
+
+          const invoiceIds = (rawInvoices || []).map(inv => inv.id);
+       // --- 2. Fetch sync data for those invoices ---
+    const { data: syncRecords, error: syncError } = await supabase
+      .from('accounting_sync')
+      .select('entity_id, status, provider, last_synced_at, error_message')
+      .in('entity_id', invoiceIds)
+      .eq('entity_type', 'invoice');
+
+    if (syncError) throw syncError;
+
+    // --- 3. Merge sync data into invoices ---
+    const enrichedInvoices: ExtendedInvoice[] = (rawInvoices || []).map(invoice => {
+      const sync = syncRecords?.find(s => s.entity_id === invoice.id);
+      return {
+        ...invoice,
+        accounting_sync: sync || undefined,
+      };
+    });
+
+    setInvoices(enrichedInvoices);
+
+      // setInvoices(data as ExtendedInvoice[] || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
       toast({

@@ -15,12 +15,13 @@ const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID");
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
 
 // Define the canonical redirect URI
-const QBO_REDIRECT_URI = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback";
+// const QBO_REDIRECT_URI = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback";
+const QBO_REDIRECT_URI = "https://oknofqytitpxmlprvekn.supabase.co/functions/v1/qbo-callback";
 
 // List redirect URIs for debugging
 const possibleRedirectURIs = [
-  "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback",
   "https://oknofqytitpxmlprvekn.supabase.co/functions/v1/qbo-callback",
+  "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback",
 ];
 
 const scopes = [

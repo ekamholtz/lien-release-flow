@@ -27,7 +27,7 @@ export function useQboConnection() {
       setError("Please ensure you're signed in and have selected a company");
       return;
     }
-
+debugger
     try {
       setConnecting(true);
       setError(null);

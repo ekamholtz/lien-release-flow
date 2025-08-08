@@ -51,7 +51,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // For routes that require company context, redirect to onboarding if no company
   // We'll exclude certain routes that don't require a company (like onboarding itself)
   const currentPath = window.location.pathname;
-  const routesNotRequiringCompany = ['/onboarding', '/subscription', '/team'];
+  const routesNotRequiringCompany = ['/onboarding', '/subscription', '/team','/settings'];
 
   const needsCompany = !routesNotRequiringCompany.some(route => currentPath.startsWith(route));
 
