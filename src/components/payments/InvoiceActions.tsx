@@ -109,7 +109,8 @@ export function InvoiceActions({
       
       try {
         const response = await fetch(
-          'https://oknofqytitpxmlprvekn.functions.supabase.co/sync-invoice',
+          // 'https://oknofqytitpxmlprvekn.functions.supabase.co/sync-invoice',
+          'https://oknofqytitpxmlprvekn.supabase.co/functions/v1/sync-invoice',
           {
             method: 'POST',
             headers: {

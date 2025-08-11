@@ -19,10 +19,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useSessionRefresh } from "@/hooks/useSessionRefresh";
+import { useCompany } from "@/contexts/CompanyContext";
+import { useQboConnectionStatus } from "@/hooks/qbo/useQboConnectionStatus";
 
 export function IntegrationsSettings() {
   const { session } = useSessionRefresh();
-  
+  const { currentCompany } = useCompany();
   const {
     qboStatus,
     connecting,
@@ -41,13 +43,33 @@ export function IntegrationsSettings() {
     handleRetryFailedSyncs
   } = useQboSyncStats();
 
+  const {
+      checkQboConnection
+    } = useQboConnectionStatus(currentCompany?.id);
+
   React.useEffect(() => {
     if (qboStatus === "loading") {
       toast.info("Checking QuickBooks connection status...");
     }
   }, [qboStatus]);
 
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("connected") === "qbo") {
+      toast.success("QuickBooks connected successfully!");
+      checkQboConnection(currentCompany?.id);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    if (params.get("error") === "qbo") {
+      toast.error(params.get("message") || "QuickBooks connection failed");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [currentCompany?.id]);
+
   const handleQboConnectWithRetry = async () => {
+    debugger;
     if (!session?.access_token) {
       toast.error("Please sign in to connect QuickBooks");
       return;

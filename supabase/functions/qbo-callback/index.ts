@@ -7,7 +7,8 @@ const INTUIT_CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID")!;
 const INTUIT_CLIENT_SECRET = Deno.env.get("INTUIT_CLIENT_SECRET")!;
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") || "sandbox";
 const APP_URL = Deno.env.get("APP_URL")!;
-const QBO_REDIRECT_URI = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback";
+// const QBO_REDIRECT_URI = "https://oknofqytitpxmlprvekn.functions.supabase.co/qbo-callback";
+const QBO_REDIRECT_URI = "https://oknofqytitpxmlprvekn.supabase.co/functions/v1/qbo-callback";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
