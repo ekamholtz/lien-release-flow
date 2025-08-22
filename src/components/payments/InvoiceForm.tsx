@@ -42,8 +42,7 @@ export function InvoiceForm({ preselectedProjectId }: InvoiceFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      // invoiceNumber: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
-      invoiceNumber: `INV-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`,
+      invoiceNumber: `INV-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
       clientId: "",
       project: preselectedProjectId || "",
       amount: "",

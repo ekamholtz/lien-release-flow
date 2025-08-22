@@ -47,13 +47,22 @@ export function PayInvoiceDigitalStep({
         .eq("entity_number", invoice.invoice_number)
         .single();
 
-      if (error || !data?.session_key || !data?.payin_config_id) {
+      const { data: sessionData, error: sessionError } = await supabase.functions.invoke("create-session", {
+        body: {
+          invoice_number: invoice.invoice_number,
+          payin_config_id: data?.payin_config_id,
+          amount: invoice.amount,
+          currency: "USD",
+        },
+      });
+
+      if (sessionError || !sessionData?.session_key) {
         console.error("Session data invalid or missing:", error || data);
         onPaymentError("Failed to initialize payment session.");
         return;
       }
 
-      setSessionKey(data.session_key);
+      setSessionKey(sessionData.session_key);
       setPayinConfigId(data.payin_config_id);
       setLoading(false);
     };
@@ -113,11 +122,12 @@ export function PayInvoiceDigitalStep({
             payin_id: rainforestResponse?.payin_id,
           })
           .eq("entity_number", invoiceNumber);
-        const { error } = await supabase
-          .from('invoices')
-          .update({ status: 'sent' })
-          .eq('id', invoiceId);
-        console.error("Failed to update status payment: invoice", error);
+
+        await supabase
+          .from("invoices")
+          .update({ status: "sent" })
+          .eq("id", invoiceId);
+
         onPaymentComplete?.(payment.id);
       } catch (err) {
         console.error("Error in handleApproved:", err);
@@ -133,11 +143,12 @@ export function PayInvoiceDigitalStep({
         .from("payment_invoices")
         .update({ status: "declined" })
         .eq("entity_number", invoiceNumber);
-      const { error } = await supabase
-        .from('invoices')
-        .update({ status: 'sent' })
-        .eq('id', invoiceId);
-      console.error("Failed to update status payment: invoice", error);
+
+      await supabase
+        .from("invoices")
+        .update({ status: "sent" })
+        .eq("id", invoiceId);
+
       onPaymentError("Payment declined or failed.");
     };
 
@@ -177,13 +188,10 @@ export function PayInvoiceDigitalStep({
     if (method === "CARD" && rf.card?.type === "CREDIT") return "credit_card";
     if (method === "APPLE_PAY" || method === "GOOGLE_PAY") return "credit_card";
     if (method === "ACH" || method === "PLAID_ACH") return "ach";
-
-    // Default to credit_card if it's a card
     if (method === "CARD") return "credit_card";
 
     throw new Error(`Unsupported payment method type: ${method}`);
   };
-
 
   if (loading) {
     return <p className="text-center text-sm text-gray-500">Initializing payment...</p>;

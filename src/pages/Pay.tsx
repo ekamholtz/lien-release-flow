@@ -9,12 +9,12 @@ export default function Pay() {
   const navigate = useNavigate();
 
   const cfg = params.get("cfg");
-  const sk = params.get("sk");
   const invoiceNumber = params.get("inv");
 
   const [invoice, setInvoice] = useState<any | null>(null);
   const invoiceRef = useRef<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionKey, setSessionKey] = useState<string | null>(null);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -27,15 +27,15 @@ export default function Pay() {
   }, []);
 
   useEffect(() => {
-    if (!cfg || !sk || !invoiceNumber) return;
+    if (!cfg || !invoiceNumber) return;
 
-    const fetchAndInsertPayment = async () => {
+    const fetchInvoiceAndSession = async () => {
       setLoading(true);
 
       // Fetch invoice
       const { data: invoice, error: invoiceError } = await supabase
         .from("invoices")
-        .select("invoice_number ,client_name , client_email , amount, id, company_id")
+        .select("invoice_number, client_name, client_email, amount, id, company_id")
         .eq("invoice_number", invoiceNumber)
         .single();
 
@@ -47,15 +47,32 @@ export default function Pay() {
 
       setInvoice(invoice);
       invoiceRef.current = invoice;
+
+      const { data, error } = await supabase.functions.invoke("create-session", {
+        body: {
+          invoice_number: invoice.invoice_number,
+          payin_config_id: cfg,
+          amount: invoice.amount,
+          currency: "USD",
+        },
+      });
+
+      if (error) {
+        console.error("Failed to create session:", error);
+        setLoading(false);
+        return;
+      }
+
+      console.log("Session created:", data);
+      setSessionKey(data.session_key);
       setLoading(false);
     };
 
-    fetchAndInsertPayment();
-  }, [cfg, sk, invoiceNumber]);
-
+    fetchInvoiceAndSession();
+  }, [cfg, invoiceNumber]);
 
   useEffect(() => {
-    if (!cfg || !sk) return;
+    if (!cfg || !sessionKey) return;
     invoiceRef.current = invoice;
     const comp = document.getElementById("rf-pay") as HTMLElement | null;
     if (!comp) return;
@@ -63,40 +80,34 @@ export default function Pay() {
     const handleApproved = async (event: Event) => {
       const customEvent = event as CustomEvent;
       const rainforestResponse = customEvent.detail[0]?.data;
-      const { data: invoice, error: invoiceError } = await supabase
+
+      const { data: invoice } = await supabase
         .from("invoices")
-        .select("invoice_number ,client_name , client_email , amount, id, company_id")
+        .select("invoice_number, client_name, client_email, amount, id, company_id")
         .eq("invoice_number", invoiceNumber)
         .single();
 
       const paymentMethod = mapRainforestMethods(rainforestResponse);
 
-      const { data: payment, error: paymentError } = await supabase
-        .from("payments")
-        .insert([
-          {
-            entity_type: "invoice",
-            entity_id: invoice.id,
-            amount: invoice.amount,
-            payment_method: paymentMethod,
-            payment_provider: "rainforestpay",
-            status: rainforestResponse?.status?.toLowerCase(),
-            payment_date: new Date().toISOString(),
-            is_offline: false,
-            company_id: invoice.company_id,
-            payor_name: rainforestResponse?.billing_contact?.name || null,
-            payor_company: null,
-          },
-        ])
-        .select()
-        .single();
+      const { error: paymentError } = await supabase.from("payments").insert([
+        {
+          entity_type: "invoice",
+          entity_id: invoice.id,
+          amount: invoice.amount,
+          payment_method: paymentMethod,
+          payment_provider: "rainforestpay",
+          status: rainforestResponse?.status?.toLowerCase(),
+          payment_date: new Date().toISOString(),
+          is_offline: false,
+          company_id: invoice.company_id,
+          payor_name: rainforestResponse?.billing_contact?.name || null,
+          payor_company: null,
+        },
+      ]);
 
       if (paymentError) {
         console.error("Failed to save payment:", paymentError);
-        throw paymentError;
       }
-
-      console.log("Payment saved to DB:", payment);
 
       if (invoiceNumber) {
         await supabase
@@ -108,45 +119,24 @@ export default function Pay() {
           })
           .eq("entity_number", invoiceNumber);
 
-        const { error } = await supabase
-          .from('invoices')
-          .update({ status: 'sent' })
-          .eq('id', invoice.id)
-          .eq('company_id', invoice.company_id);
-        console.error("Failed to update status payment: invoice", error);
+        await supabase
+          .from("invoices")
+          .update({ status: "sent" })
+          .eq("id", invoice.id)
+          .eq("company_id", invoice.company_id);
       }
+
       navigate("/pay/success");
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       navigate("/dashboard");
     };
 
-    const handleDeclined = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      console.warn("Rainforest payment declined or errored:", customEvent.detail);
-      const currentInvoice = invoiceRef.current;
-      const { data: invoice, error: invoiceError } = await supabase
-        .from("invoices")
-        .select("invoice_number ,client_name , client_email , amount, id, company_id")
-        .eq("invoice_number", invoiceNumber)
-        .single();
-      if (!invoice) {
-        console.error("Invoice missing at payment decline");
-        return;
-      }
+    const handleDeclined = async () => {
       if (invoiceNumber) {
-        await supabase
-          .from("payment_invoices")
-          .update({ status: "declined" })
-          .eq("entity_number", invoiceNumber);
-        const { error } = await supabase
-          .from('invoices')
-          .update({ status: 'sent' })
-          .eq('id', invoice.id)
-          .eq('company_id', invoice.company_id);
-        console.error("Invoice missing at payment decline", error);
+        await supabase.from("payment_invoices").update({ status: "declined" }).eq("entity_number", invoiceNumber);
       }
       navigate("/pay/failure");
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       navigate("/dashboard");
     };
 
@@ -159,22 +149,18 @@ export default function Pay() {
       comp.removeEventListener("declined", handleDeclined as EventListener);
       comp.removeEventListener("error", handleDeclined as EventListener);
     };
-  }, [cfg, sk, invoice, invoiceNumber, navigate]);
+  }, [cfg, sessionKey, invoice, invoiceNumber, navigate]);
 
   const mapRainforestMethods = (rf: any): string => {
     const method = rf.method_type;
-
     if (method === "CARD" && rf.card?.type === "CREDIT") return "credit_card";
     if (method === "APPLE_PAY" || method === "GOOGLE_PAY") return "credit_card";
     if (method === "ACH" || method === "PLAID_ACH") return "ach";
-
-    // Default to credit_card if it's a card
     if (method === "CARD") return "credit_card";
-
     throw new Error(`Unsupported payment method type: ${method}`);
   };
 
-  if (!cfg || !sk) {
+  if (!cfg || !invoiceNumber) {
     return (
       <div className="flex items-center justify-center min-h-screen text-red-600">
         <p className="text-lg font-medium">Invalid payment link.</p>
@@ -201,14 +187,16 @@ export default function Pay() {
             <p className="text-center text-red-500">Invoice not found</p>
           )}
 
-          <div className="border rounded-xl overflow-hidden shadow-sm">
-            <rainforest-payment
-              id="rf-pay"
-              session-key={sk}
-              payin-config-id={cfg}
-              allowed-methods="CARD,ACH"
-            />
-          </div>
+          {sessionKey && (
+            <div className="border rounded-xl overflow-hidden shadow-sm">
+              <rainforest-payment
+                id="rf-pay"
+                session-key={sessionKey}
+                payin-config-id={cfg}
+                allowed-methods="CARD,ACH"
+              />
+            </div>
+          )}
 
           <div className="flex justify-between items-center mt-4">
             <p className="text-xs text-gray-500 flex items-center">
